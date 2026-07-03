@@ -16,9 +16,6 @@ partial class FractionalLayoutNode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator FractionalLayoutNode(LayoutNode value) => FromLayoutNode(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static explicit operator LayoutNode(FractionalLayoutNode value) => value.ToLayoutNode();
-
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FractionalLayoutNode operator +(FractionalLayoutNode variable) => variable;
@@ -85,5 +82,57 @@ partial class FractionalLayoutNode
         return new DivideOperatorLayoutNode(left, right);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FractionalLayoutNode operator +(FractionalLayoutNode left, float right)
+    {
+        if (left.IsEmpty)
+            return right;
+        if (right == 0.0f)
+            return left;
+        if (left is FixedValueLayoutNode fixedLeft)
+            return Fixed(fixedLeft.Value + right);
+        return left + Fixed(right);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FractionalLayoutNode operator -(FractionalLayoutNode left, float right)
+    {
+        if (left.IsEmpty)
+            return Fixed(-right);
+        if (right == 0.0f)
+            return left;
+        if (left is FixedValueLayoutNode fixedLeft)
+            return Fixed(fixedLeft.Value - right);
+        return left - Fixed(right);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FractionalLayoutNode operator *(FractionalLayoutNode left, float right)
+    {
+        if (left.IsEmpty || right == 0.0f)
+            return Empty;
+        if (right == 1.0f)
+            return left;
+        if (left is FixedValueLayoutNode fixedLeft)
+            return Fixed(fixedLeft.Value * right);
+        return left * Fixed(right);
+    }
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FractionalLayoutNode operator /(FractionalLayoutNode left, float right)
+    {
+        if (right == 0.0f || right == -0.0f)
+            ThrowDivideByZeroException();
+        if (right == 1.0f)
+            return left;
+        if (left is FixedValueLayoutNode fixedLeft)
+            return Fixed(fixedLeft.Value / right);
+        return left / Fixed(right);
+    }
+
     private bool IsOne() => this is FixedValueLayoutNode fixedVariable && fixedVariable.Value == 1.0f;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowDivideByZeroException() => throw new DivideByZeroException();
 }
