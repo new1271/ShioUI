@@ -1,35 +1,20 @@
 using System.Runtime.CompilerServices;
 
-using RiceTea.Core.Helpers;
-
 using ShioUI.Layout.Internals;
 
 namespace ShioUI.Layout;
 
-public abstract partial class LayoutNode
+public abstract partial class LayoutNode : LayoutNodeBase
 {
     public static readonly LayoutNode Empty = new FixedValueLayoutNode(0);
 
-    private static int _identifierCounter = 0;
-
-    private readonly int _identifier;
-    private ulong _layoutTimestamp;
     private int _cachedResult;
-
-    public int NodeId
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _identifier;
-    }
 
     public bool IsEmpty
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => ReferenceEquals(this, Empty);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected LayoutNode() => _identifier = InterlockedHelper.Increment(ref _identifierCounter);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Compute(in LayoutContext context)
@@ -39,10 +24,10 @@ public abstract partial class LayoutNode
     internal int ComputeInternal(in LayoutContext context)
     {
         ulong timestamp = context.Timestamp;
-        if (timestamp != 0 && _layoutTimestamp == timestamp)
+        if (CheckCacheTimestamp(timestamp))
             return _cachedResult;
         int result = ComputeCore(context);
-        _layoutTimestamp = timestamp;
+        UpdateCacheTimestamp(timestamp);
         _cachedResult = result;
         return result;
     }
@@ -51,18 +36,15 @@ public abstract partial class LayoutNode
     internal (int Result, bool Cached) ComputeInternalWithCached(in LayoutContext context)
     {
         ulong timestamp = context.Timestamp;
-        if (timestamp != 0 && _layoutTimestamp == timestamp)
+        if (CheckCacheTimestamp(timestamp))
             return (Result: _cachedResult, Cached: true);
         int result = ComputeCore(context);
-        _layoutTimestamp = timestamp;
+        UpdateCacheTimestamp(timestamp);
         _cachedResult = result;
         return (Result: result, Cached: false);
     }
 
     protected abstract int ComputeCore(in LayoutContext context);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ClearCache() => _layoutTimestamp = 0;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LayoutNode Negative() => -this;
@@ -85,5 +67,6 @@ public abstract partial class LayoutNode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LayoutNode Min(LayoutNode variable) => Min(this, variable);
 
-    public override int GetHashCode() => _identifier;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FractionalLayoutNode ToFractionalLayoutNode() => FractionalLayoutNode.FromLayoutNode(this);
 }

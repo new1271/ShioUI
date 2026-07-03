@@ -12,6 +12,7 @@ public interface ILayoutContext
     VirtualLayoutContext.Builder CreateVirtualContextBuilder();
     LayoutContext.ChildrenEnumerator GetChildrenEnumerator(UIElement element);
     int GetComputedValue(LayoutNode node);
+    float GetComputedValue(FractionalLayoutNode node);
     int GetComputedValue(UIElement element, LayoutProperty property);
     int?[] GetComputedValues(UIElement element);
     LayoutNode? GetLayoutNodeOrNull(UIElement element, LayoutProperty property);

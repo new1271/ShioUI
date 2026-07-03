@@ -16,13 +16,13 @@ internal sealed class UIElementEqualityComparer : IEqualityComparer<UIElement>
     public int GetHashCode([DisallowNull] UIElement obj) => obj.ElementId;
 }
 
-internal sealed class LayoutNodeEqualityComparer : IEqualityComparer<LayoutNode>
+internal sealed class LayoutNodeBaseEqualityComparer : IEqualityComparer<LayoutNodeBase>
 {
-    public static readonly LayoutNodeEqualityComparer Instance = new LayoutNodeEqualityComparer();
+    public static readonly LayoutNodeBaseEqualityComparer Instance = new LayoutNodeBaseEqualityComparer();
 
-    private LayoutNodeEqualityComparer() { }
+    private LayoutNodeBaseEqualityComparer() { }
 
-    public bool Equals(LayoutNode? x, LayoutNode? y) => ReferenceEquals(x, y);
+    public bool Equals(LayoutNodeBase? x, LayoutNodeBase? y) => ReferenceEquals(x, y);
 
-    public int GetHashCode([DisallowNull] LayoutNode obj) => obj.NodeId;
+    public int GetHashCode([DisallowNull] LayoutNodeBase obj) => obj.NodeId;
 }

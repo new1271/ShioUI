@@ -6,8 +6,6 @@ using System.Threading;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 
-using ShioUI.Windows;
-
 namespace ShioUI.Internals;
 
 internal sealed unsafe partial class CacheStore<T> : IDisposable

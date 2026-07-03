@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 using ShioUI.Graphics;
-using ShioUI.Layout;
 
 using RiceTea.Core.Extensions;
 using ShioUI.Utils;

@@ -5,7 +5,6 @@ using ShioUI.Graphics;
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Theme;
 using ShioUI.Utils;
-using ShioUI.Windows;
 
 namespace ShioUI;
 

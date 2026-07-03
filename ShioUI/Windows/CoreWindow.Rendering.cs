@@ -38,8 +38,6 @@ using ShioUI.Layout.Internals;
 using ShioUI.Theme;
 using ShioUI.Utils;
 
-using static System.Threading.Lock;
-
 namespace ShioUI.Windows;
 
 public abstract partial class CoreWindow : IRenderable, IRenderWindow

@@ -13,74 +13,46 @@ using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
 using ShioUI.Internals;
-using ShioUI.Layout.Internals;
 
 namespace ShioUI.Layout;
 
 [StructLayout(LayoutKind.Auto)]
-public unsafe readonly ref struct LayoutContext : ILayoutContext
+public readonly unsafe ref partial struct LayoutContext : ILayoutContext
 {
-    internal readonly Dictionary<UIElement, ArraySegment<LayoutNode?>> _elementDict;
-    internal readonly Dictionary<UIElement, ArraySegment<UIElement>> _childrenDict;
-    internal readonly Dictionary<UIElement, UIElement> _parentDict;
+    private readonly Dictionary<LayoutNodeBase, int>? _walkedNodes;
+    private readonly PooledList<LayoutNodeBase>? _walkedNonCachedNodeList;
 
-    private readonly Dictionary<LayoutNode, int>? _walkedNodes;
-    private readonly Size _pageSize;
-    private readonly ulong _timestamp;
-
-    // For virtual context
-    private readonly PooledList<LayoutNode>? _walkedNonCachedNodeList;
-    private readonly LayoutNode[]? _fakeLayoutNodeKeys;
-    private readonly int* _fakeLayoutNodeValues;
-    private readonly int _fakeLayoutNodeCount;
+    internal readonly Arguments _arguments;
+    internal readonly VirtualLayoutContext.SharedData _virtualData;
 
     public ulong Timestamp
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _timestamp;
+        get => _arguments.Timestamp;
     }
 
     public readonly Size PageSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _pageSize;
+        get => _arguments.PageSize;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutContext(
-        Dictionary<UIElement, ArraySegment<LayoutNode?>> elementDict,
-        Dictionary<UIElement, ArraySegment<UIElement>> childrenDict,
-        Dictionary<UIElement, UIElement> parentDict,
-        Size pageSize,
-        ulong timestamp)
+    public LayoutContext(scoped in Arguments arguments)
     {
-        _elementDict = elementDict;
-        _childrenDict = childrenDict;
-        _parentDict = parentDict;
-        _pageSize = pageSize;
-        _timestamp = timestamp;
+        _arguments = arguments;
         if (ShioSettings.UseDebugMode)
-            _walkedNodes = new Dictionary<LayoutNode, int>(LayoutNodeEqualityComparer.Instance);
+            _walkedNodes = new Dictionary<LayoutNodeBase, int>(LayoutNodeBaseEqualityComparer.Instance);
         else
             _walkedNodes = null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal LayoutContext(
-        Dictionary<UIElement, ArraySegment<LayoutNode?>> elementDict,
-        Dictionary<UIElement, ArraySegment<UIElement>> childrenDict,
-        Dictionary<UIElement, UIElement> parentDict,
-        PooledList<LayoutNode> walkedNonCachedNodeList,
-        LayoutNode[]? fakeLayoutNodeKeys,
-        int* fakeLayoutNodeValues,
-        int fakeLayoutNodeCount,
-        Size pageSize,
-        ulong timestamp) : this(elementDict, childrenDict, parentDict, pageSize, timestamp)
+    internal LayoutContext(scoped in Arguments argument, scoped in VirtualLayoutContext.SharedData virtualData,
+        PooledList<LayoutNodeBase> walkedNonCachedNodeList) : this(in argument)
     {
+        _virtualData = virtualData;
         _walkedNonCachedNodeList = walkedNonCachedNodeList;
-        _fakeLayoutNodeKeys = fakeLayoutNodeKeys;
-        _fakeLayoutNodeValues = fakeLayoutNodeValues;
-        _fakeLayoutNodeCount = fakeLayoutNodeCount;
     }
 
     public readonly VirtualLayoutContext.Builder CreateVirtualContextBuilder()
@@ -89,7 +61,7 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ChildrenEnumerator GetChildrenEnumerator(UIElement element)
     {
-        if (!_childrenDict.TryGetValue(element, out ArraySegment<UIElement> segment))
+        if (!_arguments.ChildrenDict.TryGetValue(element, out ArraySegment<UIElement> segment))
             return default;
         UIElement[]? array = segment.Array;
         int offset = segment.Offset;
@@ -101,7 +73,7 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly bool TryGetParentElement(UIElement element, [NotNullWhen(true)] out UIElement? parent)
-        => _parentDict.TryGetValue(element, out parent);
+        => _arguments.ParentDict.TryGetValue(element, out parent);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly LayoutNode? GetLayoutNodeOrNull(UIElement element, LayoutProperty property)
@@ -109,7 +81,7 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
         if (property >= LayoutProperty._Last)
             return ArgumentOutOfRangeException.Throw<LayoutNode>(nameof(property));
 
-        if (!_elementDict.TryGetValue(element, out ArraySegment<LayoutNode?> segment))
+        if (!_arguments.ElementDict.TryGetValue(element, out ArraySegment<LayoutNode?> segment))
             return null;
 
         return UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(segment.Array!), segment.Offset + (int)property);
@@ -121,7 +93,7 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
         int?[] result = ArrayHelper.CreateUninitializedArray<int?>((int)LayoutProperty._Last);
         ref int? resultRef = ref UnsafeHelper.GetArrayDataReference(result);
 
-        if (!_elementDict.TryGetValue(element, out ArraySegment<LayoutNode?> segment))
+        if (!_arguments.ElementDict.TryGetValue(element, out ArraySegment<LayoutNode?> segment))
         {
             Rect bounds = element.Bounds;
             UnsafeHelper.AddTypedOffset(ref resultRef, (nuint)LayoutProperty.Left) = bounds.Left;
@@ -151,7 +123,7 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
         if (property >= LayoutProperty._Last)
             return ArgumentOutOfRangeException.Throw<int>(nameof(property));
 
-        if (!_elementDict.TryGetValue(element, out ArraySegment<LayoutNode?> segment))
+        if (!_arguments.ElementDict.TryGetValue(element, out ArraySegment<LayoutNode?> segment))
         {
             return property switch
             {
@@ -195,19 +167,41 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int GetComputedValue(LayoutNode node)
     {
-        if (node is FixedValueLayoutNode fixedValueNode)
+        if (node is Internals.FixedValueLayoutNode fixedValueNode)
             return fixedValueNode.Value;
 
-        LayoutNode[]? fakeLayoutNodeKeys = _fakeLayoutNodeKeys;
+        LayoutNode[]? fakeLayoutNodeKeys = _virtualData.FakeLayoutNodeKeys;
         if (fakeLayoutNodeKeys is not null)
         {
-            int count = _fakeLayoutNodeCount;
+            int count = _virtualData.FakeLayoutNodeCount;
             int indexOf = Array.IndexOf(fakeLayoutNodeKeys, node, 0, count);
             if (indexOf >= 0 && indexOf < count)
-                return _fakeLayoutNodeValues[indexOf];
+                return _virtualData.FakeLayoutNodeValues[indexOf];
         }
 
-        PooledList<LayoutNode>? nodeList = _walkedNonCachedNodeList;
+        PooledList<LayoutNodeBase>? nodeList = _walkedNonCachedNodeList;
+        if (nodeList is null)
+            return GetComputedValue_SlowRoute(node);
+        else
+            return GetComputedValue_SlowRouteAndCheckCached(nodeList, node);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly float GetComputedValue(FractionalLayoutNode node)
+    {
+        if (node is Internals.Fractional.FixedValueLayoutNode fixedValueNode)
+            return fixedValueNode.Value;
+
+        FractionalLayoutNode[]? fakeFractionalLayoutNodeKeys = _virtualData.FakeFractionalLayoutNodeKeys;
+        if (fakeFractionalLayoutNodeKeys is not null)
+        {
+            int count = _virtualData.FakeFractionalLayoutNodeCount;
+            int indexOf = Array.IndexOf(fakeFractionalLayoutNodeKeys, node, 0, count);
+            if (indexOf >= 0 && indexOf < count)
+                return _virtualData.FakeFractionalLayoutNodeValues[indexOf];
+        }
+
+        PooledList<LayoutNodeBase>? nodeList = _walkedNonCachedNodeList;
         if (nodeList is null)
             return GetComputedValue_SlowRoute(node);
         else
@@ -227,7 +221,20 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
         }
     }
 
-    private readonly int GetComputedValue_SlowRouteAndCheckCached(PooledList<LayoutNode> list, LayoutNode node)
+    private readonly float GetComputedValue_SlowRoute(FractionalLayoutNode node)
+    {
+        AddNodeOrThrow(node);
+        try
+        {
+            return node.ComputeInternal(this);
+        }
+        finally
+        {
+            RemoveNode(node);
+        }
+    }
+
+    private readonly int GetComputedValue_SlowRouteAndCheckCached(PooledList<LayoutNodeBase> list, LayoutNode node)
     {
         AddNodeOrThrow(node);
         try
@@ -243,10 +250,26 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AddNodeOrThrow(LayoutNode node)
+    private readonly float GetComputedValue_SlowRouteAndCheckCached(PooledList<LayoutNodeBase> list, FractionalLayoutNode node)
     {
-        Dictionary<LayoutNode, int>? walkedNodes = _walkedNodes;
+        AddNodeOrThrow(node);
+        try
+        {
+            (float result, bool cached) = node.ComputeInternalWithCached(this);
+            if (!cached)
+                list.Add(node);
+            return result;
+        }
+        finally
+        {
+            RemoveNode(node);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AddNodeOrThrow(LayoutNodeBase node)
+    {
+        Dictionary<LayoutNodeBase, int>? walkedNodes = _walkedNodes;
         if (walkedNodes is null)
             return;
         if (walkedNodes.ContainsKey(node))
@@ -256,12 +279,12 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RemoveNode(LayoutNode node) => _walkedNodes?.Remove(node);
+    private void RemoveNode(LayoutNodeBase node) => _walkedNodes?.Remove(node);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ThrowCyclicDependencyException(LayoutNode node)
+    public void ThrowCyclicDependencyException(LayoutNodeBase node)
     {
-        Dictionary<LayoutNode, int>? walkedNodes = _walkedNodes;
+        Dictionary<LayoutNodeBase, int>? walkedNodes = _walkedNodes;
         if (walkedNodes is null)
             ThrowWithNoArgs(node);
         else
@@ -271,11 +294,11 @@ public unsafe readonly ref struct LayoutContext : ILayoutContext
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        static void ThrowWithNoArgs(LayoutNode node) => throw new CyclicDependencyException([node]);
+        static void ThrowWithNoArgs(LayoutNodeBase node) => throw new CyclicDependencyException([node]);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowCyclicDependencyException(Dictionary<LayoutNode, int> nodes)
+    private static void ThrowCyclicDependencyException(Dictionary<LayoutNodeBase, int> nodes)
         => throw new CyclicDependencyException(
             nodes.OrderBy(static pair => pair.Value)
             .Select(static pair => pair.Key)

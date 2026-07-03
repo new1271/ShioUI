@@ -56,6 +56,10 @@ partial class LayoutNode
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static LayoutNode FromFractionalLayoutNode(FractionalLayoutNode fractionalLayoutNode)
+        => fractionalLayoutNode.ToLayoutNode();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static LayoutNode Element(UIElement element, LayoutProperty property)
         => element.GetLayoutDefinition(property);
 

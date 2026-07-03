@@ -232,7 +232,7 @@ public sealed class LayoutEngine : ILayoutEngine
     private void RecalculateLayoutInternal(Size pageSize, ulong timestamp)
     {
         Dictionary<UIElement, ArraySegment<LayoutNode?>> elementDict = _elementDict;
-        LayoutContext context = new LayoutContext(elementDict, _childrenDict, _parentDict, pageSize, timestamp);
+        LayoutContext context = new LayoutContext(new(elementDict, _childrenDict, _parentDict, pageSize, timestamp));
         try
         {
             RecalculateLayoutCore(context, timestamp);

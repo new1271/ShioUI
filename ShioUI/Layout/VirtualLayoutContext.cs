@@ -5,53 +5,26 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RiceTea.Core.Buffers;
-using RiceTea.Core.Helpers;
-using RiceTea.Core.Native;
 
 namespace ShioUI.Layout;
 
 [StructLayout(LayoutKind.Auto)]
-public unsafe ref partial struct VirtualLayoutContext : ILayoutContext, IDisposable
+public ref partial struct VirtualLayoutContext : ILayoutContext, IDisposable
 {
-    private readonly int _fakeLayoutNodeCount;
-    private readonly PooledList<LayoutNode> _walkedNonCachedNodeList;
+    private readonly PooledList<LayoutNodeBase> _walkedNonCachedNodeList;
 
-    private ArrayPool<LayoutNode>? _nodePool;
-    private NativeMemoryPool? _memoryPool;
-    private LayoutNode[]? _fakeLayoutNodeKeys;
     private LayoutContext _context;
-    private int* _fakeLayoutNodeValues;
-    private nuint _fakeLayoutNodeValuesLength;
+    private Data _data;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal VirtualLayoutContext(scoped ref Builder builder)
     {
-        PooledList<LayoutNode> walkedNonCachedNodeList = new PooledList<LayoutNode>(capacity: 0);
+        PooledList<LayoutNodeBase> walkedNonCachedNodeList = new PooledList<LayoutNodeBase>(capacity: 0);
         _walkedNonCachedNodeList = walkedNonCachedNodeList;
-
-        _nodePool = ReferenceHelper.Exchange(ref builder._nodePool, default);
-        _memoryPool = ReferenceHelper.Exchange(ref builder._memoryPool, default);
-        _fakeLayoutNodeValuesLength = ReferenceHelper.Exchange(ref builder._fakeLayoutNodeValuesLength, default);
-
-        LayoutNode[]? fakeLayoutNodeKeys = ReferenceHelper.Exchange(ref builder._fakeLayoutNodeKeys, default);
-        int* fakeLayoutNodeValues = ReferenceHelper.Exchange(ref builder._fakeLayoutNodeValues, default);
-        int fakeLayoutNodeCount = ReferenceHelper.Exchange(ref builder._fakeLayoutNodeCount, default);
-
-        _fakeLayoutNodeKeys = fakeLayoutNodeKeys;
-        _fakeLayoutNodeValues = fakeLayoutNodeValues;
-        _fakeLayoutNodeCount = fakeLayoutNodeCount;
-
-        _context = new LayoutContext(
-            ReferenceHelper.Exchange(ref builder._elementDict, default)!,
-            ReferenceHelper.Exchange(ref builder._childrenDict, default)!,
-            ReferenceHelper.Exchange(ref builder._parentDict, default)!,
-            walkedNonCachedNodeList,
-            fakeLayoutNodeKeys,
-            fakeLayoutNodeValues,
-            fakeLayoutNodeCount,
-            builder._pageSize,
-            builder._timestamp
-            );
+        _data = builder._data;
+        _context = new LayoutContext(builder._arguments, builder._data.SharedData, walkedNonCachedNodeList);
+        builder._arguments = default;
+        builder._data = default;
     }
 
     public readonly Size PageSize
@@ -78,6 +51,10 @@ public unsafe ref partial struct VirtualLayoutContext : ILayoutContext, IDisposa
         => _context.GetComputedValue(node);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly float GetComputedValue(FractionalLayoutNode node)
+        => _context.GetComputedValue(node);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int GetComputedValue(UIElement element, LayoutProperty property)
         => _context.GetComputedValue(element, property);
 
@@ -96,8 +73,8 @@ public unsafe ref partial struct VirtualLayoutContext : ILayoutContext, IDisposa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void ClearTemporaryCacheForNodes()
     {
-        PooledList<LayoutNode> walkedNonCachedNodeList = _walkedNonCachedNodeList;
-        foreach (LayoutNode node in walkedNonCachedNodeList)
+        PooledList<LayoutNodeBase> walkedNonCachedNodeList = _walkedNonCachedNodeList;
+        foreach (LayoutNodeBase node in walkedNonCachedNodeList)
             node.ClearCache();
         walkedNonCachedNodeList.Clear();
     }
@@ -106,21 +83,6 @@ public unsafe ref partial struct VirtualLayoutContext : ILayoutContext, IDisposa
     {
         _context = default;
         _walkedNonCachedNodeList.Dispose();
-
-        ArrayPool<LayoutNode>? nodePool = ReferenceHelper.Exchange(ref _nodePool, null);
-        if (nodePool is not null)
-        {
-            LayoutNode[]? keys = ReferenceHelper.Exchange(ref _fakeLayoutNodeKeys, null);
-            DebugHelper.ThrowIf(keys is null);
-            nodePool.Return(keys);
-        }
-
-        NativeMemoryPool? memoryPool = ReferenceHelper.Exchange(ref _memoryPool, null);
-        if (memoryPool is not null)
-        {
-            int* values = ReferenceHelper.Exchange(ref _fakeLayoutNodeValues, null);
-            DebugHelper.ThrowIf(values is null);
-            memoryPool.Return(new NativeMemoryBlock(values, ReferenceHelper.Exchange(ref _fakeLayoutNodeValuesLength, default) * sizeof(int)));
-        }
+        _data.Dispose();
     }
 }
