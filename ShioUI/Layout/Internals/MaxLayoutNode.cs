@@ -16,5 +16,20 @@ internal sealed class MaxLayoutNode : LayoutNode
     }
 
     protected override int ComputeCore(in LayoutContext context)
-        => MathHelper.Max(context.GetComputedValue(_leftVariable), context.GetComputedValue(_rightVariable));
+        => MathHelper.Max(context.GetComputedValue(_leftVariable), context.GetComputedValue(_rightVariable)); 
+    
+    public sealed class Fractional : FractionalLayoutNode
+    {
+        private readonly FractionalLayoutNode _leftVariable, _rightVariable;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Fractional(FractionalLayoutNode left, FractionalLayoutNode right)
+        {
+            _leftVariable = left;
+            _rightVariable = right;
+        }
+
+        protected override float ComputeCore(in LayoutContext context)
+            => MathHelper.Max(context.GetComputedValue(_leftVariable), context.GetComputedValue(_rightVariable));
+    }
 }

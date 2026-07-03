@@ -9,5 +9,15 @@ internal sealed class CustomLayoutNode : LayoutNode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CustomLayoutNode(CustomComputeDelegate func) => _func = func;
 
-    protected override int ComputeCore(in LayoutContext context) => _func.Invoke(in context);
+    protected override int ComputeCore(in LayoutContext context) => _func.Invoke(in context); 
+    
+    public sealed class Fractional : FractionalLayoutNode
+    {
+        private readonly CustomFractionalComputeDelegate _func;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Fractional(CustomFractionalComputeDelegate func) => _func = func;
+
+        protected override float ComputeCore(in LayoutContext context) => _func.Invoke(in context);
+    }
 }

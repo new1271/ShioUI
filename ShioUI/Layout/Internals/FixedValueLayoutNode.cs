@@ -16,4 +16,20 @@ internal sealed class FixedValueLayoutNode : LayoutNode
     }
 
     protected override int ComputeCore(in LayoutContext context) => _value;
+
+    public sealed class Fractional : FractionalLayoutNode
+    {
+        private readonly float _value;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Fractional(float value) => _value = value;
+
+        public float Value
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _value;
+        }
+
+        protected override float ComputeCore(in LayoutContext context) => _value;
+    }
 }

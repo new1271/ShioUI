@@ -88,4 +88,19 @@ partial class LayoutNode
             return leftFixed.Value < rightFixed.Value ? left : right;
         return new MinLayoutNode(left, right);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static LayoutNode Floor(FractionalLayoutNode node) => new FloorLayoutNode(node);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static LayoutNode Ceiling(FractionalLayoutNode node) => new CeilingLayoutNode(node);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static LayoutNode Round(FractionalLayoutNode node) => new RoundLayoutNode.Default(node);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static LayoutNode Round(FractionalLayoutNode node, MidpointRounding midpointRounding) => new RoundLayoutNode.Custom(node, midpointRounding);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static LayoutNode Truncate(FractionalLayoutNode node) => new TruncateLayoutNode(node);
 }

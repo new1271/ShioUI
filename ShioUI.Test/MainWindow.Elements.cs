@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 
+using RiceTea.Core.Helpers;
+
 using ShioUI.Controls;
 using ShioUI.Controls.Extensions;
-using ShioUI.Layout;
+using ShioUI.Extensions;
 using ShioUI.Input;
-using System;
 
 namespace ShioUI.Test;
 
@@ -182,7 +183,7 @@ partial class MainWindow
             Watermark = "盡情輸入文字吧!",
             MultiLine = true
         };
-        textbox.HeightExpression = LayoutNode.Min(textbox.AutoHeightDefinition, PageHeightDefinition / 2 - textbox.TopDefinition);
+        textbox.HeightExpression = MathHelper.Min(textbox.AutoHeightDefinition, PageHeightDefinition / 2 - textbox.TopDefinition);
         textbox.TextChanging += (object sender, ref TextChangingEventArgs _) => (sender as UIElement)?.ResetLayoutTimestamp(); // 強制讓元件下次渲染時重算布局
 
         Label label = new Label(this)

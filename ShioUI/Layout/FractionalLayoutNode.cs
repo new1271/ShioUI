@@ -1,13 +1,12 @@
-using System;
 using System.Runtime.CompilerServices;
 
-using ShioUI.Layout.Internals.Fractional;
+using ShioUI.Layout.Internals;
 
 namespace ShioUI.Layout;
 
 public abstract partial class FractionalLayoutNode : LayoutNodeBase
 {
-    public static readonly FractionalLayoutNode Empty = new FixedValueLayoutNode(0);
+    public static readonly FractionalLayoutNode Empty = new FixedValueLayoutNode.Fractional(0);
 
     private float _cachedResult;
 
@@ -54,20 +53,5 @@ public abstract partial class FractionalLayoutNode : LayoutNodeBase
     public FractionalLayoutNode Min(FractionalLayoutNode variable) => Min(this, variable);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Floor() => new FloorLayoutNode(this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Ceiling() => new CeilingLayoutNode(this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Round() => new RoundLayoutNode.Default(this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Round(MidpointRounding midpointRounding) => new RoundLayoutNode.Custom(this, midpointRounding);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Truncate() => new TruncateLayoutNode(this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode ToLayoutNode() => new TruncateLayoutNode(this);
+    public LayoutNode ToLayoutNode() => new Internals.TruncateLayoutNode(this);
 }

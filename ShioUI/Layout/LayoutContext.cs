@@ -13,6 +13,7 @@ using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
 using ShioUI.Internals;
+using ShioUI.Layout.Internals;
 
 namespace ShioUI.Layout;
 
@@ -167,7 +168,7 @@ public readonly unsafe ref partial struct LayoutContext : ILayoutContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly int GetComputedValue(LayoutNode node)
     {
-        if (node is Internals.FixedValueLayoutNode fixedValueNode)
+        if (node is FixedValueLayoutNode fixedValueNode)
             return fixedValueNode.Value;
 
         LayoutNode[]? fakeLayoutNodeKeys = _virtualData.FakeLayoutNodeKeys;
@@ -189,7 +190,7 @@ public readonly unsafe ref partial struct LayoutContext : ILayoutContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly float GetComputedValue(FractionalLayoutNode node)
     {
-        if (node is Internals.Fractional.FixedValueLayoutNode fixedValueNode)
+        if (node is FixedValueLayoutNode.Fractional fixedValueNode)
             return fixedValueNode.Value;
 
         FractionalLayoutNode[]? fakeFractionalLayoutNodeKeys = _virtualData.FakeFractionalLayoutNodeKeys;
