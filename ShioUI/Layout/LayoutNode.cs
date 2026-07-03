@@ -47,25 +47,10 @@ public abstract partial class LayoutNode : LayoutNodeBase
     protected abstract int ComputeCore(in LayoutContext context);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Negative() => -this;
+    public LayoutNode Max(LayoutNode node) => Max(this, node);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Add(LayoutNode variable) => this + variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Subtract(LayoutNode variable) => this - variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Multiply(LayoutNode variable) => this * variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Divide(LayoutNode variable) => this / variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Max(LayoutNode variable) => Max(this, variable);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode Min(LayoutNode variable) => Min(this, variable);
+    public LayoutNode Min(LayoutNode node) => Min(this, node);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FractionalLayoutNode ToFractionalLayoutNode() => FractionalLayoutNode.FromLayoutNode(this);

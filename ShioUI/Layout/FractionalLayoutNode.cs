@@ -48,21 +48,6 @@ public abstract partial class FractionalLayoutNode : LayoutNodeBase
     protected abstract float ComputeCore(in LayoutContext context);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FractionalLayoutNode Negative() => -this;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FractionalLayoutNode Add(FractionalLayoutNode variable) => this + variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FractionalLayoutNode Subtract(FractionalLayoutNode variable) => this - variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FractionalLayoutNode Multiply(FractionalLayoutNode variable) => this * variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public FractionalLayoutNode Divide(FractionalLayoutNode variable) => this / variable;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FractionalLayoutNode Max(FractionalLayoutNode variable) => Max(this, variable);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
