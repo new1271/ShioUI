@@ -849,28 +849,15 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         }
     }
 
-    protected virtual void OnMouseUpForElements(in MouseEventArgs args, ref MouseUpData data)
+    protected virtual void OnMouseUpForElements(in MouseEventArgs args)
     {
         UIElement? overlayElement = GetOverlayElement();
-        if (data.HitElements.Count <= 0)
-        {
-            if (overlayElement is not null)
-                UIElementHelper.OnGlobalMouseUpForElement(overlayElement, in args);
-            else
-            {
-                using ElementsCacheScope scope = EnterActiveElementsCacheScope();
-                UIElementHelper.OnGlobalMouseUpForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in args);
-            }
-        }
+        if (overlayElement is not null)
+            UIElementHelper.OnGlobalMouseUpForElement(overlayElement, in args);
         else
         {
-            if (overlayElement is not null)
-                UIElementHelper.OnMouseUpForElement(overlayElement, in args, ref data);
-            else
-            {
-                using ElementsCacheScope scope = EnterActiveElementsCacheScope();
-                UIElementHelper.OnMouseUpForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in args, ref data);
-            }
+            using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+            UIElementHelper.OnGlobalMouseUpForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in args);
         }
     }
 
@@ -1718,33 +1705,37 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         }
     }
 
-    private void GetAndClearLastMouseDownHitElements(PooledList<UIElement> list, MouseButtons buttons)
+    private void GetAndClearLastMouseDownHitElements(ref ArrayPool<UIElement?>.RentScope scope, MouseButtons buttons)
     {
         lock (_syncLock)
         {
             ref GCHandle recordedHitElementArrayRef = ref UnsafeHelper.GetArrayDataReference(_recordedMouseDownHitElementRefs);
             if (buttons.HasFlagFast((MouseButtons)0b0000001))
-                GetAndClearTarget(list, ref recordedHitElementArrayRef);
+                GetAndClearTarget(ref scope, ref recordedHitElementArrayRef);
             if (buttons.HasFlagFast((MouseButtons)0b0000010))
-                GetAndClearTarget(list, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 1));
+                GetAndClearTarget(ref scope, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 1));
             if (buttons.HasFlagFast((MouseButtons)0b0000100))
-                GetAndClearTarget(list, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 2));
+                GetAndClearTarget(ref scope, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 2));
             if (buttons.HasFlagFast((MouseButtons)0b0001000))
-                GetAndClearTarget(list, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 3));
+                GetAndClearTarget(ref scope, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 3));
             if (buttons.HasFlagFast((MouseButtons)0b0010000))
-                GetAndClearTarget(list, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 4));
+                GetAndClearTarget(ref scope, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 4));
             if (buttons.HasFlagFast((MouseButtons)0b0100000))
-                GetAndClearTarget(list, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 5));
+                GetAndClearTarget(ref scope, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 5));
             if (buttons.HasFlagFast((MouseButtons)0b1000000))
-                GetAndClearTarget(list, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 6));
+                GetAndClearTarget(ref scope, ref UnsafeHelper.AddTypedOffset(ref recordedHitElementArrayRef, 6));
         }
 
-        static void GetAndClearTarget(PooledList<UIElement> list, ref GCHandle handle)
+        static void GetAndClearTarget(ref ArrayPool<UIElement?>.RentScope scope, ref GCHandle handle)
         {
             if (handle.IsAllocated)
             {
-                if (handle.Target is UIElement target && !list.Contains(target))
-                    list.Add(target);
+                if (handle.Target is UIElement target && !scope.Contains(target))
+                {
+                    int count = scope.Count;
+                    scope.Resize(count + 1);
+                    scope[count] = target;
+                }
                 handle.Target = null;
             }
         }

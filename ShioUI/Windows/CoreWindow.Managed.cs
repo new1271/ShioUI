@@ -10,6 +10,8 @@ using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
+using ShioUI.Controls;
+using ShioUI.Extensions;
 using ShioUI.Graphics;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
@@ -66,10 +68,42 @@ public abstract partial class CoreWindow : NativeWindow
 
     protected virtual void OnMouseUp(in MouseEventArgs args)
     {
-        using PooledList<UIElement> list = new(capacity: 0);
-        GetAndClearLastMouseDownHitElements(list, args.Buttons);
-        MouseUpData data = new MouseUpData(list);
-        OnMouseUpForElements(new MouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta), ref data);
+        ArrayPool<UIElement?>.RentScope scope = _elementArrayPool.EnterRentScope();
+        try
+        {
+            GetAndClearLastMouseDownHitElements(ref scope, args.Buttons);
+            int count = scope.Count;
+            switch (count)
+            {
+                case 0:
+                    break;
+                case 1:
+                    {
+                        UIElement? element = scope.GetReferenceOfFirstElement();
+                        if (element is IMouseInteractHandler handler)
+                            handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(args.Location)), args.Buttons, args.Delta));
+                    }
+                    break;
+                default:
+                    if (count > 0)
+                    {
+                        ref readonly UIElement? arrayRef = ref scope.GetReferenceOfFirstElement();
+                        int i = 0;
+                        do
+                        {
+                            UIElement? element = UnsafeHelper.AddTypedOffsetAsReadOnly(in arrayRef, i);
+                            if (element is IMouseInteractHandler handler)
+                                handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(args.Location)), args.Buttons, args.Delta));
+                        } while (++i < count);
+                    }
+                    break;
+            }
+        }
+        finally
+        {
+            scope.Dispose();
+        }
+        OnMouseUpForElements(new MouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta));
     }
 
     protected virtual void OnMouseMove(in MouseEventArgs args)

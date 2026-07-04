@@ -15,7 +15,7 @@ partial class UIElementHelper
         => DispatchReadOnlyEvent(elements, in args, &OnGlobalMouseDownForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnGlobalMouseDownForElementsUnsafe(ref readonly UIElement? elementsRef,int count, in MouseEventArgs args)
+    public static unsafe void OnGlobalMouseDownForElementsUnsafe(ref readonly UIElement? elementsRef, int count, in MouseEventArgs args)
         => DispatchReadOnlyEventUnsafe(in elementsRef, count, in args, &OnGlobalMouseDownForElement);
 
     public static unsafe void OnGlobalMouseDownForElement(UIElement element, in MouseEventArgs args)
@@ -40,7 +40,7 @@ partial class UIElementHelper
         => DispatchReadOnlyEvent(elements, in args, &OnGlobalMouseUpForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnGlobalMouseUpForElementsUnsafe(ref readonly UIElement? elementsRef,int count, in MouseEventArgs args)
+    public static unsafe void OnGlobalMouseUpForElementsUnsafe(ref readonly UIElement? elementsRef, int count, in MouseEventArgs args)
         => DispatchReadOnlyEventUnsafe(in elementsRef, count, in args, &OnGlobalMouseUpForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -66,7 +66,7 @@ partial class UIElementHelper
         => DispatchReadOnlyEvent(elements, in args, &OnGlobalMouseMoveForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnGlobalMouseMoveForElementsUnsafe(ref readonly UIElement? elementsRef,int count, in MouseEventArgs args)
+    public static unsafe void OnGlobalMouseMoveForElementsUnsafe(ref readonly UIElement? elementsRef, int count, in MouseEventArgs args)
         => DispatchReadOnlyEventUnsafe(in elementsRef, count, in args, &OnGlobalMouseMoveForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -92,7 +92,7 @@ partial class UIElementHelper
         => DispatchReadOnlyEvent(elements, in args, &OnGlobalMouseScrollForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnGlobalMouseScrollForElementsUnsafe(ref readonly UIElement? elementsRef,int count, in MouseEventArgs args)
+    public static unsafe void OnGlobalMouseScrollForElementsUnsafe(ref readonly UIElement? elementsRef, int count, in MouseEventArgs args)
         => DispatchReadOnlyEventUnsafe(in elementsRef, count, in args, &OnGlobalMouseScrollForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

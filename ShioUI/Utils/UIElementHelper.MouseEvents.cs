@@ -19,14 +19,6 @@ public struct HitTestData
 }
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct MouseUpData
-{
-    public readonly PooledList<UIElement> HitElements;
-
-    public MouseUpData(PooledList<UIElement> hitElements) => HitElements = hitElements;
-}
-
-[StructLayout(LayoutKind.Auto)]
 public struct MouseMoveData
 {
     public SystemCursorType? CursorType;
@@ -47,7 +39,7 @@ partial class UIElementHelper
         => DispatchEvent(elements, ref args, ref data, args.Location, &OnMouseDownForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnMouseDownForElementsUnsafe(ref readonly UIElement? elementsRef,int count, ref HandleableMouseEventArgs args, ref HitTestData data)
+    public static unsafe void OnMouseDownForElementsUnsafe(ref readonly UIElement? elementsRef, int count, ref HandleableMouseEventArgs args, ref HitTestData data)
       => DispatchEventUnsafe(in elementsRef, count, ref args, ref data, args.Location, &OnMouseDownForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,42 +99,12 @@ partial class UIElementHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnMouseUpForElements<TEnumerable>(TEnumerable elements, in MouseEventArgs args, ref MouseUpData data)
-        where TEnumerable : IEnumerable<UIElement?>
-        => DispatchReadOnlyEvent(elements, in args, ref data, &OnMouseUpForElement);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnMouseUpForElementsUnsafe(ref readonly UIElement? elementsRef,int count, in MouseEventArgs args, ref MouseUpData data) 
-        => DispatchReadOnlyEventUnsafe(in elementsRef, count, in args, ref data, &OnMouseUpForElement);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void OnMouseUpForElement(UIElement element, in MouseEventArgs args, ref MouseUpData data)
-    {
-        if (element is IElementContainer container)
-        {
-            PointF innerPageLocation = args.Location;
-            if (element is IRenderWindow window)
-                innerPageLocation = window.PageToInnerPage(innerPageLocation);
-            else
-                innerPageLocation = element.PageToLocal(innerPageLocation);
-            if (data.HitElements.Count <= 0)
-                OnGlobalMouseUpForElements(container.GetActiveElements(), new MouseEventArgs(innerPageLocation, args.Buttons, args.Delta));
-            else
-                OnMouseUpForElements(container.GetActiveElements(), new MouseEventArgs(innerPageLocation, args.Buttons, args.Delta), ref data);
-        }
-        if (element is IGlobalMouseInteractHandler globalHandler)
-            globalHandler.OnMouseUpGlobally(in args);
-        if (data.HitElements.Remove(element) && element is IMouseInteractHandler handler)
-            handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(args.Location), args.Buttons, args.Delta));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static unsafe void OnMouseMoveForElements<TEnumerable>(TEnumerable elements, in MouseEventArgs args, ref MouseMoveData data)
         where TEnumerable : IEnumerable<UIElement?>
         => DispatchReadOnlyEvent(elements, in args, ref data, args.Location, &OnMouseMoveForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnMouseMoveForElementsUnsafe(ref readonly UIElement? elementsRef,int count, in MouseEventArgs args, ref MouseMoveData data)
+    public static unsafe void OnMouseMoveForElementsUnsafe(ref readonly UIElement? elementsRef, int count, in MouseEventArgs args, ref MouseMoveData data)
     => DispatchReadOnlyEventUnsafe(in elementsRef, count, in args, ref data, args.Location, &OnMouseMoveForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -199,7 +161,7 @@ partial class UIElementHelper
         => DispatchEvent(elements, ref args, ref data, args.Location, &OnMouseScrollForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe void OnMouseScrollForElementsUnsafe(ref readonly UIElement? elementsRef,int count, ref HandleableMouseEventArgs args, ref HitTestData data)
+    public static unsafe void OnMouseScrollForElementsUnsafe(ref readonly UIElement? elementsRef, int count, ref HandleableMouseEventArgs args, ref HitTestData data)
         => DispatchEventUnsafe(in elementsRef, count, ref args, ref data, args.Location, &OnMouseScrollForElement);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
