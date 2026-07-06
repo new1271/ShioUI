@@ -92,42 +92,42 @@ partial class UIElementHelper
         => DisposeHelper.SwapDispose(ref brushRef, provider.TryGetBrush(node, out D2D1Brush? result) ? result.Clone() : null);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ApplyThemeForElement(IThemeResourceProvider provider, UIElement? element)
+    public static void ApplyThemeToElement(IThemeResourceProvider provider, UIElement? element)
         => element?.ApplyTheme(provider);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ApplyThemeForElements<TEnumerable>(IThemeResourceProvider provider, TEnumerable elements)
+    public static void ApplyThemeToElements<TEnumerable>(IThemeResourceProvider provider, TEnumerable elements)
         where TEnumerable : IEnumerable<UIElement?>
     {
         using ArrayPool<UIElement?>.RentScope scope = ArrayPool<UIElement?>.Shared.EnterRentScopeAndCapture(elements);
-        ApplyThemeForElementsCore(provider, in scope.GetReferenceOfFirstElement(), MathHelper.MakeUnsigned(scope.Count));
+        ApplyThemeToElementsCore(provider, in scope.GetReferenceOfFirstElement(), MathHelper.MakeUnsigned(scope.Count));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ApplyThemeForElementsUnsafe(IThemeResourceProvider provider, ref readonly UIElement? elementsRef,int count)
-        => ApplyThemeForElementsCore(provider, in elementsRef, MathHelper.MakeUnsigned(count));
+    public static void ApplyThemeToElementsUnsafe(IThemeResourceProvider provider, ref readonly UIElement? elementsRef,int count)
+        => ApplyThemeToElementsCore(provider, in elementsRef, MathHelper.MakeUnsigned(count));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ApplyThemeForElementsCore(IThemeResourceProvider provider, ref readonly UIElement? elementArrayRef, nuint length)
+    private static void ApplyThemeToElementsCore(IThemeResourceProvider provider, ref readonly UIElement? elementArrayRef, nuint length)
     {
         int i;
         for (i = 0; length >= 4; length -= 4, i += 4)
         {
-            ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i));
-            ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 1));
-            ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 2));
-            ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 3));
+            ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i));
+            ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 1));
+            ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 2));
+            ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 3));
         }
         switch (length)
         {
             case 3:
-                ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 2));
+                ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 2));
                 goto case 2;
             case 2:
-                ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 1));
+                ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i + 1));
                 goto case 1;
             case 1:
-                ApplyThemeForElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i));
+                ApplyThemeToElement(provider, UnsafeHelper.AddTypedOffsetAsReadOnly(in elementArrayRef, i));
                 break;
         }
     }

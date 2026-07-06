@@ -125,7 +125,7 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
     {
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
-        UIElementHelper.ApplyThemeForElements(provider, _children);
+        UIElementHelper.ApplyThemeToElements(provider, _children);
         string fontName = provider.FontName;
         _fontName = fontName;
         using DWriteTextFormat format = SharedResources.DWriteFactory.CreateTextFormat(fontName, UIConstants.DefaultFontSize);

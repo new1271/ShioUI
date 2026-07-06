@@ -761,14 +761,14 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, (nuint)Brush._Last);
         ShioUtils.ResetBlur(this);
 
-        UIElementHelper.ApplyThemeForElement(provider, GetOverlayElement());
+        UIElementHelper.ApplyThemeToElement(provider, GetOverlayElement());
         ApplyThemeToElements(provider);
     }
 
     protected virtual void ApplyThemeToElements(IThemeResourceProvider provider)
     {
         using ElementsCacheScope scope = EnterElementsCacheScope();
-        UIElementHelper.ApplyThemeForElementsUnsafe(provider, in scope.GetReferenceOfFirstElement(), scope.Count);
+        UIElementHelper.ApplyThemeToElementsUnsafe(provider, in scope.GetReferenceOfFirstElement(), scope.Count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
