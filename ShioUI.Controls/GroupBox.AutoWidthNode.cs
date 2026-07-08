@@ -20,12 +20,12 @@ partial class GroupBox
         {
             var computeResult = ContainerAutoSizeHelper.Compute(this, element, context,
                     deltaStart: LayoutProperty.Left, deltaEnd: LayoutProperty.Right, initialValue: context.PageSize.Width);
-            if (InnerPageLeftPadding == InnerPageRightPadding)
-                return computeResult.Result + InnerPageLeftPadding;
+            if (ContentPageLeftPadding == ContentPageRightPadding)
+                return computeResult.Result + ContentPageLeftPadding + UIConstants.ElementMargin;
             else
             {
                 int mask = (MathHelper.BooleanToInt32(computeResult.ReversedFlow) - 1); // 反相取遮罩
-                return computeResult.Result + ((InnerPageLeftPadding & mask) | (InnerPageRightPadding & ~mask));
+                return computeResult.Result + ((ContentPageLeftPadding & mask) | (ContentPageRightPadding & ~mask)) + UIConstants.ElementMargin;
             }
         }
     }

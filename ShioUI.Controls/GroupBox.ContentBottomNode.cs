@@ -11,6 +11,6 @@ partial class GroupBox
         public ContentBottomNode(WeakReference<GroupBox> reference) : base(reference) { }
 
         protected override int ComputeCore(GroupBox element, in LayoutContext context) 
-            => GetInnerPageBottomCore(context.GetComputedValue(element, LayoutProperty.Height));
+            => GetContentPageBottomCore(context.GetComputedValue(element, LayoutProperty.Height));
     }
 }

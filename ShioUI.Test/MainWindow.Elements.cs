@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using RiceTea.Core.Helpers;
 
 using ShioUI.Controls;
-using ShioUI.Controls.Extensions;
 using ShioUI.Extensions;
 using ShioUI.Input;
+using ShioUI.Layout;
 
 namespace ShioUI.Test;
 
@@ -71,70 +71,59 @@ partial class MainWindow
             RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
             Title = "群組容器",
         }.WithAutoHeight();
-        GroupBox groupBox2 = new GroupBox(this)
+        using (var scope = groupBox.EnterContentPageScope())
         {
-            LeftExpression = listBox.RightDefinition + UIConstants.ElementMargin,
-            //TopExpression = groupBox.BottomDefinition + UIConstants.ElementMargin,
-            BottomExpression = PageHeightDefinition - UIConstants.ElementMargin,
-            RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
-            Title = "群組容器(倒轉)",
-        }.WithAutoHeight();
+            LayoutNode leftNode = scope.PageLeftDefinition + UIConstants.ElementMarginDefinition;
+            LayoutNode topNode = scope.PageTopDefinition + UIConstants.ElementMarginDefinition;
+            LayoutNode rightNode = scope.PageRightDefinition - UIConstants.ElementMarginDefinition;
 
-        InitializeGroupBox(groupBox);
-        InitializeGroupBox2(groupBox2);
-        elementList.Add(groupBox);
-        elementList.Add(groupBox2);
-        _elementLists[0] = elementList;
-
-        void InitializeGroupBox(GroupBox groupBox)
-        {
             groupBox.AddChild(new CheckBox(this)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
-                TopExpression = groupBox.ContentTopDefinition,
+                LeftExpression = leftNode,
+                TopExpression = topNode,
                 Text = "可以勾選的方塊"
             }.WithAutoWidth().WithAutoHeight());
 
             ComboBox comboBox = new ComboBox(this)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
-                TopExpression = groupBox.FirstChild!.BottomDefinition + UIConstants.ElementMargin,
+                LeftExpression = leftNode,
+                TopExpression = groupBox.FirstChild!.BottomDefinition + UIConstants.ElementMarginDefinition,
                 WidthExpression = 200
             }.WithAutoHeight();
             Label label = new Label(this)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
-                TopExpression = comboBox.BottomDefinition + UIConstants.ElementMargin,
-                RightExpression = groupBox.ContentRightDefinition,
+                LeftExpression = leftNode,
+                TopExpression = comboBox.BottomDefinition + UIConstants.ElementMarginDefinition,
+                RightExpression = rightNode,
                 Text = "底下是進度條測試",
                 Alignment = TextAlignment.MiddleCenter
             }.WithAutoHeight();
             Button leftButton = new Button(this)
             {
                 LeftExpression = label.LeftDefinition,
-                TopExpression = label.BottomDefinition + UIConstants.ElementMargin,
+                TopExpression = label.BottomDefinition + UIConstants.ElementMarginDefinition,
                 Text = "-"
             }.WithAutoWidth().WithAutoHeight();
             Button rightButton = new Button(this)
             {
-                TopExpression = label.BottomDefinition + UIConstants.ElementMargin,
+                TopExpression = label.BottomDefinition + UIConstants.ElementMarginDefinition,
                 RightExpression = label.RightDefinition,
                 Text = "+"
             }.WithAutoWidth().WithAutoHeight();
             ProgressBar progressBar = new ProgressBar(this)
             {
-                LeftExpression = leftButton.RightDefinition + UIConstants.ElementMargin,
-                TopExpression = label.BottomDefinition + UIConstants.ElementMargin,
-                RightExpression = rightButton.LeftDefinition - UIConstants.ElementMargin,
+                LeftExpression = leftButton.RightDefinition + UIConstants.ElementMarginDefinition,
+                TopExpression = label.BottomDefinition + UIConstants.ElementMarginDefinition,
+                RightExpression = rightButton.LeftDefinition - UIConstants.ElementMarginDefinition,
                 HeightExpression = leftButton.HeightDefinition,
                 Maximium = 100.0f,
                 Value = 50.0f
             };
             TextBox textBox2 = new TextBox(this, _ime)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
+                LeftExpression = leftNode,
                 TopExpression = progressBar.BottomDefinition + UIConstants.ElementMargin,
-                RightExpression = groupBox.ContentRightDefinition,
+                RightExpression = rightNode,
                 Watermark = "這裡也可以輸入文字喔!"
             }.WithAutoHeight();
             groupBox.AddChildren(comboBox, label, leftButton, rightButton, progressBar, textBox2);
@@ -147,29 +136,42 @@ partial class MainWindow
             leftButton.Click += LeftButton_Click;
             rightButton.Click += RightButton_Click;
         }
-
-        void InitializeGroupBox2(GroupBox groupBox)
+        GroupBox groupBox2 = new GroupBox(this)
         {
+            LeftExpression = listBox.RightDefinition + UIConstants.ElementMargin,
+            //TopExpression = groupBox.BottomDefinition + UIConstants.ElementMargin,
+            BottomExpression = PageHeightDefinition - UIConstants.ElementMargin,
+            RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
+            Title = "群組容器(倒轉)",
+        }.WithAutoHeight();
+        using (var scope = groupBox2.EnterContentPageScope())
+        {
+            LayoutNode leftNode = scope.PageLeftDefinition + UIConstants.ElementMarginDefinition;
+            LayoutNode bottomNode = scope.PageBottomDefinition - UIConstants.ElementMarginDefinition;
+
             CheckBox a, b, c;
-            groupBox.AddChild(a = new CheckBox(this)
+            groupBox2.AddChild(a = new CheckBox(this)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
-                BottomExpression = groupBox.ContentBottomDefinition,
+                LeftExpression = leftNode,
+                BottomExpression = bottomNode,
                 Text = "可以勾選的方塊 A"
             }.WithAutoWidth().WithAutoHeight());
-            groupBox.AddChild(b = new CheckBox(this)
+            groupBox2.AddChild(b = new CheckBox(this)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
+                LeftExpression = leftNode,
                 BottomExpression = a.TopDefinition - UIConstants.ElementMarginDefinition,
                 Text = "可以勾選的方塊 B"
             }.WithAutoWidth().WithAutoHeight());
-            groupBox.AddChild(c = new CheckBox(this)
+            groupBox2.AddChild(c = new CheckBox(this)
             {
-                LeftExpression = groupBox.ContentLeftDefinition,
+                LeftExpression = leftNode,
                 BottomExpression = b.TopDefinition - UIConstants.ElementMarginDefinition,
                 Text = "可以勾選的方塊 C"
             }.WithAutoWidth().WithAutoHeight());
         }
+        elementList.Add(groupBox);
+        elementList.Add(groupBox2);
+        _elementLists[0] = elementList;
     }
 
     private void InitializeSecondPageElements()
