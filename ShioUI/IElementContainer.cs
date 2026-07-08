@@ -18,6 +18,8 @@ public interface IElementContainer
 
     bool IsBackgroundOpaque(UIElement element);
 
+    ContentPageScope EnterContentPageScope();
+
     IEnumerable<UIElement?> GetElements();
 
     IEnumerable<UIElement?> GetActiveElements()

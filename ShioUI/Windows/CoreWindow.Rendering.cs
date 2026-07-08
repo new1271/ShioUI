@@ -70,6 +70,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         "closeButton.active",
     }.WithPrefix("app.title.").ToLowerAscii();
 
+    [ThreadStatic]
+    private static ContentPageScopeParams _contentPageScopeParams;
     #endregion
 
     #region Fields
@@ -709,6 +711,19 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     }
 
     public IThemeResourceProvider? GetThemeResourceProvider() => InterlockedHelper.Read(ref _resourceProvider);
+
+    public ContentPageScope EnterContentPageScope()
+    {
+        ref ContentPageScopeParams @params = ref _contentPageScopeParams;
+        if (@params.PageLeftDefinition is null)
+        {
+            LayoutNode emptyNode = LayoutNode.Empty;
+            LayoutNode widthNode = PageWidthLayoutNode.Instance;
+            LayoutNode heightNode = PageHeightLayoutNode.Instance;
+            @params = new ContentPageScopeParams(emptyNode, emptyNode, widthNode, heightNode, widthNode, heightNode);
+        }
+        return ContentPageScope.Create(this, @params);
+    }
 
     IEnumerable<UIElement?> IElementContainer.GetActiveElements() => GetActiveElements();
 

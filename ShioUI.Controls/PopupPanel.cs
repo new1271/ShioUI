@@ -55,6 +55,8 @@ public sealed partial class PopupPanel : PopupElementBase, IElementContainer, IC
 
     bool IElementContainer.IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque();
 
+    public ContentPageScope EnterContentPageScope() => ContentPageScope.Create(this);
+
     protected override void DisposeCore(bool disposing)
     {
         base.DisposeCore(disposing);

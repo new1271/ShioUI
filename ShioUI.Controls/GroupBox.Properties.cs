@@ -47,100 +47,46 @@ partial class GroupBox : IAutoWidthElement, IAutoHeightElement
         get => _children.GetUnderlyingList().LastOrDefault();
     }
 
-    public int ContentLeft
+    public int ContentPageLeft
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLeftCore();
+        get => GetContentPageLeftCore();
     }
 
-    public LayoutNode ContentLeftDefinition
+    public int ContentPageTop
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Left);
+        get => GetContentPageTopCore();
     }
 
-    public int ContentTop
+    public int ContentPageRight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentTopCore();
+        get => GetContentPageRightCore(Width);
     }
 
-    public LayoutNode ContentTopDefinition
+    public int ContentPageBottom
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Top);
+        get => GetContentPageBottomCore(Height);
     }
 
-    public int ContentRight
+    public int ContentPageWidth
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentRightCore(Width);
+        get => GetContentPageWidthCore(Width);
     }
 
-    public LayoutNode ContentRightDefinition
+    public int ContentPageHeight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Right);
+        get => GetContentPageHeightCore(Height);
     }
 
-    public int ContentBottom
+    public Point ContentPageOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentBottomCore(Height);
-    }
-
-    public LayoutNode ContentBottomDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Bottom);
-    }
-
-    public int ContentWidth
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Width - (ContentLeftPadding + ContentRightPadding);
-    }
-
-    public LayoutNode ContentWidthDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Width);
-    }
-
-    public int ContentHeight
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentHeightCore(Height);
-    }
-
-    public LayoutNode ContentHeightDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Height);
-    }
-
-    public int TextTop
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetTextTopCore();
-    }
-
-    public LayoutNode TextTopDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _textTopReference ??= new TextTopNode(GetWeakReference());
-    }
-
-    public Point ContentLocation
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new Point(GetContentLeftCore(), GetContentTopCore());
-    }
-
-    public Point TextLocation
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new Point(GetContentLeftCore(), GetTextTopCore());
+        get => new Point(GetContentPageLeftCore(), GetContentPageTopCore());
     }
 
     public LayoutNode AutoWidthDefinition

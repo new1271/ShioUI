@@ -15,6 +15,20 @@ namespace ShioUI.Extensions;
 public static class UIElementExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T WithAutoWidth<T>(this T _this) where T : UIElement, IAutoWidthElement
+    {
+        _this.WidthExpression = _this.AutoWidthDefinition;
+        return _this;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T WithAutoHeight<T>(this T _this) where T : UIElement, IAutoHeightElement
+    {
+        _this.HeightExpression = _this.AutoHeightDefinition;
+        return _this;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Focus<TElement>(this TElement _this) where TElement : UIElement, IFocusChangedHandler
         => _this.RootWindow.ChangeFocusElement(_this);
 

@@ -8,6 +8,7 @@ using System.Threading;
 using InlineMethod;
 
 using RiceTea.Core.Collections;
+using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
@@ -24,10 +25,9 @@ namespace ShioUI.Controls;
 
 public sealed partial class GroupBox : UIElement, IElementContainer
 {
-    private const int ContentLeftPadding = UIConstants.ElementMarginDouble;
-    private const int ContentTopExtraPadding = UIConstants.ElementMargin;
-    private const int ContentRightPadding = UIConstants.ElementMarginDouble;
-    private const int ContentBottomPadding = UIConstants.ElementMarginDouble;
+    private const int ContentPageLeftPadding = UIConstants.ElementMargin;
+    private const int ContentPageRightPadding = UIConstants.ElementMargin;
+    private const int ContentPageBottomPadding = UIConstants.ElementMargin;
 
     private static readonly string[] _brushNames = new string[(int)Brush._Last]
     {
@@ -37,15 +37,14 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
-    private readonly LayoutNode?[] _contentLayoutDefinitions = new LayoutNode?[(int)LayoutProperty._Last]; 
     private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
     private readonly ObservableList<UIElement> _children;
 
     private WeakReference<GroupBox>? _reference;
-    private TextTopNode? _textTopReference;
     private DWriteTextLayout? _titleLayout, _textLayout;
     private string? _fontName;
     private string _title, _text;
+    private ContentPageScopeParams _contentPageScopeParams;
     private long _redrawTypeRaw, _rawUpdateFlags;
     private int _titleHeight;
 
@@ -61,33 +60,23 @@ public sealed partial class GroupBox : UIElement, IElementContainer
         EnablePartialRendering = true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode GetContentLayoutDefinition(LayoutProperty property)
+    public ContentPageScope EnterContentPageScope()
     {
-        if (property >= LayoutProperty._Last)
-            ArgumentOutOfRangeException.Throw(nameof(property));
-        return GetContentLayoutDefinitionCore((nuint)property);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LayoutNode GetContentLayoutDefinitionCore(nuint property)
-    {
-        ref LayoutNode? variable = ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_contentLayoutDefinitions), property);
-        if (variable is null)
+        ref ContentPageScopeParams @params = ref _contentPageScopeParams;
+        if (@params.PageLeftDefinition is null)
         {
             WeakReference<GroupBox> reference = GetWeakReference();
-            variable = property switch
+            @params = new()
             {
-                (nuint)LayoutProperty.Left => LayoutNode.Fixed(ContentLeftPadding),
-                (nuint)LayoutProperty.Top => new ContentTopNode(reference),
-                (nuint)LayoutProperty.Right => new ContentRightNode(reference),
-                (nuint)LayoutProperty.Bottom => new ContentBottomNode(reference),
-                (nuint)LayoutProperty.Width => new ContentWidthNode(reference),
-                (nuint)LayoutProperty.Height => new ContentHeightNode(reference),
-                _ => ArgumentOutOfRangeException.Throw<LayoutNode>(nameof(property))
+                PageLeftDefinition = LayoutNode.Fixed(ContentPageLeftPadding),
+                PageTopDefinition = new ContentTopNode(reference),
+                PageRightDefinition = new ContentRightNode(reference),
+                PageBottomDefinition = new ContentBottomNode(reference),
+                PageWidthDefinition = new ContentWidthNode(reference),
+                PageHeightDefinition = new ContentHeightNode(reference)
             };
         }
-        return variable;
+        return ContentPageScope.Create(this, @params);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -277,12 +266,12 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     {
         if (layout is null)
             return;
-        Rect bounds = Bounds;
         SizeF renderSize = context.Size;
-        Point location = TextLocation;
+        Point location = ContentPageOffset;
 
-        RectF textBounds = new RectF(location.X - bounds.X, location.Y - bounds.Y,
-            renderSize.Width - UIConstants.ElementMarginDouble, renderSize.Height - UIConstants.ElementMarginDouble);
+        RectF textBounds = new RectF(location.X + UIConstants.ElementMargin, location.Y,
+            renderSize.Width - (ContentPageRightPadding + UIConstants.ElementMargin),
+            renderSize.Height - (ContentPageBottomPadding + UIConstants.ElementMargin));
         if (!textBounds.IsValid)
             return;
         using RenderingClipScope clipToken = context.PushPixelAlignedClip(ref textBounds, D2D1AntialiasMode.Aliased);
@@ -297,24 +286,22 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static int GetContentLeftCore() => ContentLeftPadding;
+    private static int GetContentPageLeftCore() => ContentPageLeftPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private int GetContentTopCore() => GetTextTopCore() + ContentTopExtraPadding;
+    private int GetContentPageTopCore() => InterlockedHelper.Read(ref _titleHeight);
 
     [Inline(InlineBehavior.Remove)]
-    private static int GetContentRightCore(int width) => width - ContentRightPadding;
+    private static int GetContentPageRightCore(int width) => width - ContentPageRightPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private static int GetContentBottomCore(int height) => height - ContentBottomPadding;
-
-    private static int GetContentWidthCore(int width) => width - (ContentLeftPadding + ContentRightPadding);
+    private static int GetContentPageBottomCore(int height) => height - ContentPageBottomPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private int GetContentHeightCore(int height) => height - (ContentBottomPadding + ContentTopExtraPadding) - GetTextTopCore();
+    private static int GetContentPageWidthCore(int width) => width - (ContentPageLeftPadding + ContentPageRightPadding);
 
     [Inline(InlineBehavior.Remove)]
-    private int GetTextTopCore() => InterlockedHelper.Read(ref _titleHeight);
+    private int GetContentPageHeightCore(int height) => height - (GetContentPageTopCore() + ContentPageBottomPadding);
 
     protected override void DisposeCore(bool disposing)
     {

@@ -62,6 +62,8 @@ public sealed partial class PopupContainer : PopupElementBase, IElementContainer
 
     bool IElementContainer.IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque();
 
+    public ContentPageScope EnterContentPageScope() => ContentPageScope.Create(this);
+
     protected override bool RenderCore(in RegionalRenderingContext context)
     {
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);

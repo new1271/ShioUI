@@ -18,9 +18,9 @@ partial class GroupBox
             (int result, bool reversedFlow) = ContainerAutoSizeHelper.Compute(this, element, context,
                     deltaStart: LayoutProperty.Top, deltaEnd: LayoutProperty.Bottom, initialValue: context.PageSize.Height);
             if (reversedFlow)
-                return result + element.GetContentTopCore();
+                return result + element.GetContentPageTopCore();
             else
-                return result + ContentBottomPadding;
+                return result + InnerPageBottomPadding;
         }
     }
 }

@@ -11,6 +11,6 @@ partial class GroupBox
         public ContentWidthNode(WeakReference<GroupBox> reference) : base(reference) { }
 
         protected override int ComputeCore(GroupBox element, in LayoutContext context) 
-            => GetContentWidthCore(context.GetComputedValue(element, LayoutProperty.Width));
+            => GetInnerPageWidthCore(context.GetComputedValue(element, LayoutProperty.Width));
     }
 }

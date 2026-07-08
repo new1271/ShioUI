@@ -7,6 +7,7 @@ using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Utils;
 
 using RiceTea.Core.Helpers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ShioUI.Controls;
 
@@ -72,6 +73,7 @@ partial class TextBox : IAutoHeightElement
         }
     }
 
+    [AllowNull]
     public string Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -125,7 +127,7 @@ partial class TextBox : IAutoHeightElement
                 SurfaceSize = new Size(int.MaxValue, 0);
                 Text = FixString(text);
             }
-            Update();
+            Update(RenderObjectUpdateFlags.Format);
         }
     }
 

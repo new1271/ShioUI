@@ -173,7 +173,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string FixString(string value)
+    public string FixString(string? value)
     {
         if (value is null)
             return string.Empty;
@@ -211,7 +211,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             DWriteTextFormat? format = layout;
             if (CheckFormatIsNotAvailable(format, flags))
-                format = TextFormatHelper.CreateTextFormat(_alignment, NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+                format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
 
             string text = _text;
             if (!StringHelper.IsNullOrEmpty(text))
@@ -242,7 +242,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             DWriteTextFormat? format = watermarkLayout;
             if (CheckFormatIsNotAvailable(format, flags))
-                format = TextFormatHelper.CreateTextFormat(_alignment, NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+                format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
             watermarkLayout = SharedResources.DWriteFactory.CreateTextLayout(_watermark ?? string.Empty, format);
             format.Dispose();
         }
@@ -267,9 +267,19 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private DWriteTextLayout CreateVirtualTextLayout(string text)
     {
-        DWriteTextLayout result = TextFormatHelper.CreateTextLayout(text, NullSafetyHelper.ThrowIfNull(_fontName), _alignment, _fontSize);
+        DWriteTextLayout result = TextFormatHelper.CreateTextLayout(text, NullSafetyHelper.ThrowIfNull(_fontName), GetRealAlignment(), _fontSize);
         SetRenderingProperties(result);
         return result;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private TextAlignment GetRealAlignment()
+    {
+        TextAlignment alignment = _alignment;
+        if (_multiLine)
+            return alignment;
+        else
+            return (TextAlignment)((uint)alignment % 3);
     }
 
     private void SetRenderingProperties(DWriteTextLayout layout)
@@ -463,7 +473,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         context.FillRectangle(selectionBounds, _brushes[(int)Brush.ForeBrush]);
     }
 
-    private void UpdateTextAndCaretIndex(string text, int caretIndex, bool checkCaretIndex = true)
+    private void UpdateTextAndCaretIndex(string? text, int caretIndex, bool checkCaretIndex = true)
     {
         text = FixString(text);
 
