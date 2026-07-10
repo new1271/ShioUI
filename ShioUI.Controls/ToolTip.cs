@@ -31,12 +31,12 @@ public sealed class ToolTip : UIElement, IMouseMoveHandler
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider) { }
 
-    public void SetToolTip(string text)
+    public void SetToolTip(string? text)
     {
         SetToolTip(this, text);
     }
 
-    public void SetToolTip(UIElement element, string text)
+    public void SetToolTip(UIElement element, string? text)
     {
         if (toolTipTextDict.TryGetValue(element, out string? oldText))
         {

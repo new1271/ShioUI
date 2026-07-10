@@ -22,19 +22,6 @@ partial class GroupBox : IAutoWidthElement, IAutoHeightElement
         }
     }
 
-    public string Text
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
-        set
-        {
-            if (ReferenceEquals(_text, value))
-                return;
-            _text = value ?? string.Empty;
-            Update(RenderObjectUpdateFlags.Text, RedrawType.RedrawText);
-        }
-    }
-
     public UIElement? FirstChild
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
