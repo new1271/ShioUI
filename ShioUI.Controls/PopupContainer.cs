@@ -23,11 +23,11 @@ public sealed partial class PopupContainer : PopupElementBase, IElementContainer
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
-    private readonly ObservableList<UIElement> _children;
+    private readonly UIElementCollection _children;
 
     public PopupContainer(CoreWindow window) : base(window, "app.control")
     {
-        _children = new ObservableList<UIElement>(new UnwrappableList<UIElement>());
+        _children = new UIElementCollection(this);
     }
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
@@ -35,12 +35,6 @@ public sealed partial class PopupContainer : PopupElementBase, IElementContainer
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         UIElementHelper.ApplyThemeToElements(provider, _children);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetElements() => _children;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetActiveElements() => ElementContainerDefaults.GetActiveElements(this);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddChild(UIElement element) => _children.Add(element);
@@ -73,12 +67,18 @@ public sealed partial class PopupContainer : PopupElementBase, IElementContainer
         return true;
     }
 
+    IEnumerable<UIElement?> IElementContainer.GetElements() => _children;
+
+    IEnumerable<UIElement?> IElementContainer.GetActiveElements() => _children;
+
     protected override void DisposeCore(bool disposing)
     {
         base.DisposeCore(disposing);
         if (disposing)
+        {
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
+            _children.Dispose();
+        }
         SequenceHelper.Clear(_brushes);
-        ListHelper.CleanAllWeak<UIElement, ObservableList<UIElement>>(_children, disposing);
     }
 }

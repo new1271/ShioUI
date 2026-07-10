@@ -4,6 +4,7 @@ using ShioUI.Layout;
 using ShioUI.Graphics.Native.DirectWrite;
 
 using RiceTea.Core.Helpers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ShioUI.Controls;
 
@@ -69,13 +70,15 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
         }
     }
 
-    public string Text
+    public string? Text
     {
+        [return: NotNull]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _text;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
+            value ??= string.Empty;
             if (_text == value)
                 return;
             _text = value;

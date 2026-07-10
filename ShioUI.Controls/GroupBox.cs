@@ -37,7 +37,7 @@ public sealed partial class GroupBox : UIElement, IElementContainer
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
-    private readonly ObservableList<UIElement> _children;
+    private readonly UIElementCollection _children;
 
     private WeakReference<GroupBox>? _reference;
     private DWriteTextLayout? _titleLayout;
@@ -49,8 +49,7 @@ public sealed partial class GroupBox : UIElement, IElementContainer
 
     public GroupBox(IElementContainer parent) : base(parent, "app.groupBox")
     {
-        _children = new ObservableList<UIElement>(new UnwrappableList<UIElement>(capacity: 0));
-        _children.BeforeAdd += Children_BeforeAdded;
+        _children = new UIElementCollection(this);
         _title = string.Empty;
         _redrawTypeRaw = (long)RedrawType.RedrawAllContent;
         _rawUpdateFlags = (long)RenderObjectUpdateFlags.FlagsAllTrue;
@@ -92,12 +91,6 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetElements() => _children;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetActiveElements() => ElementContainerDefaults.GetActiveElements(this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddChild(UIElement element) => _children.Add(element);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,8 +119,6 @@ public sealed partial class GroupBox : UIElement, IElementContainer
 
     public void RenderBackground(UIElement element, in RegionalRenderingContext context)
         => RenderBackground(context, UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.BackBrush));
-
-    private void Children_BeforeAdded(object? sender, BeforeListAddOrRemoveEventArgs<UIElement> e) => e.Item.Parent = this;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected override void Update() => Update(RedrawType.RedrawAllContent);
@@ -265,6 +256,10 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     [Inline(InlineBehavior.Remove)]
     private int GetContentPageHeightCore(int height) => height - (GetContentPageTopCore() + ContentPageBottomPadding);
 
+    IEnumerable<UIElement?> IElementContainer.GetElements() => _children;
+
+    IEnumerable<UIElement?> IElementContainer.GetActiveElements() => _children;
+
     protected override void DisposeCore(bool disposing)
     {
         base.DisposeCore(disposing);
@@ -272,8 +267,8 @@ public sealed partial class GroupBox : UIElement, IElementContainer
         {
             DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
+            _children.Dispose();
         }
         SequenceHelper.Clear(_brushes);
-        ListHelper.CleanAllWeak<UIElement, ObservableList<UIElement>>(_children, disposing);
     }
 }
