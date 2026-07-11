@@ -112,5 +112,39 @@ public readonly ref struct ContentPageScope : IDisposable
         get => _leftDefinition;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ContentPageScope WithDefaultMargin()
+    {
+        LayoutNode marginNode = UIConstants.ElementMarginDefinition,
+            marginDoubleNode = UIConstants.ElementMarginDoubleDefinition;
+
+        return new ContentPageScope(_owner,
+            _leftDefinition + marginNode, _topDefinition + marginNode,
+            _rightDefinition - marginNode, _bottomDefinition - marginNode,
+            _widthDefinition - marginDoubleNode, _heightDefinition - marginDoubleNode);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ContentPageScope WithMargin(int margin)
+        => WithMargin(margin, margin, margin, margin);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ContentPageScope WithMargin(int marginLeft, int marginTop, int marginRight, int marginBottom)
+        => new ContentPageScope(_owner,
+            _leftDefinition + LayoutNode.Fixed(marginLeft), _topDefinition + LayoutNode.Fixed(marginTop),
+            _rightDefinition - LayoutNode.Fixed(marginRight), _bottomDefinition - LayoutNode.Fixed(marginBottom),
+            _widthDefinition - LayoutNode.Fixed(marginLeft + marginRight), _heightDefinition - LayoutNode.Fixed(marginTop + marginBottom));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ContentPageScope WithMargin(LayoutNode margin)
+        => WithMargin(margin, margin, margin, margin);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ContentPageScope WithMargin(LayoutNode marginLeft, LayoutNode marginTop, LayoutNode marginRight, LayoutNode marginBottom)
+        => new ContentPageScope(_owner,
+            _leftDefinition + marginLeft, _topDefinition + marginTop,
+            _rightDefinition - marginRight, _bottomDefinition - marginBottom,
+            _widthDefinition - (marginLeft + marginRight), _heightDefinition - (marginTop + marginBottom));
+
     public readonly void Dispose() { }
 }
