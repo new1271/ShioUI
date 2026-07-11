@@ -160,8 +160,9 @@ partial class MainWindow
             {
                 LeftExpression = leftNode,
                 BottomExpression = a.TopDefinition - UIConstants.ElementMarginDefinition,
+                WidthExpression = scope.PageWidthDefinition - UIConstants.ElementMarginDoubleDefinition,
                 Text = "可以勾選的方塊 B"
-            }.WithAutoWidth().WithAutoHeight());
+            }.WithAutoHeight());
             groupBox2.AddChild(c = new CheckBox(this)
             {
                 LeftExpression = leftNode,

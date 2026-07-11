@@ -103,13 +103,13 @@ public readonly ref struct ContentPageScope : IDisposable
     public LayoutNode PageWidthDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _leftDefinition;
+        get => _widthDefinition;
     }
 
     public LayoutNode PageHeightDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _leftDefinition;
+        get => _heightDefinition;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -230,8 +230,7 @@ public sealed partial class GroupBox : UIElement, IElementContainer
 
         RectF bounds = RectF.FromXYWH(UIConstants.ElementMargin, 0, layout.MaxWidth, layout.MaxHeight);
         using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
-        if (incremental)
-            RenderBackground(context, backBrush);
+        RenderBackground(context, backBrush);
         context.DrawTextLayout(bounds.Location, layout, textBrush, D2D1DrawTextOptions.Clip | D2D1DrawTextOptions.NoSnap);
         DisposeHelper.NullSwapOrDispose(ref _titleLayout, layout);
         if (incremental)
