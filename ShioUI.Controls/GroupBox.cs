@@ -22,7 +22,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
-public sealed partial class GroupBox : UIElement, IElementContainer
+public sealed partial class GroupBox : UIElement, IAppendableElementContainer
 {
     private const int ContentPageLeftPadding = UIConstants.ElementMargin;
     private const int ContentPageRightPadding = UIConstants.ElementMargin;

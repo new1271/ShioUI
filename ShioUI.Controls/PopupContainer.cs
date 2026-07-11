@@ -14,7 +14,7 @@ using RiceTea.Core.Helpers;
 
 namespace ShioUI.Controls;
 
-public sealed partial class PopupContainer : PopupElementBase, IElementContainer, IDisposable
+public sealed partial class PopupContainer : PopupElementBase, IAppendableElementContainer
 {
     private static readonly string[] _brushNames = new string[(int)Brush._Last]
     {

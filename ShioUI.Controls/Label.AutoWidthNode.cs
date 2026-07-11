@@ -19,6 +19,7 @@ partial class Label
                 return 0;
             using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text,
                 fontName, element._alignment, element._fontSize);
+            element._postActionForFormat?.Invoke(layout);
             return MathI.Ceiling(layout.GetMetrics().Width);
         }
     }

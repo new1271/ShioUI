@@ -22,10 +22,10 @@ public static class MathHelperExtensions
 
         [Inline(InlineBehavior.Keep, export: true)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static LayoutNode Max(LayoutNode left, LayoutNode right) => LayoutNode.Min(left, right);
+        public static LayoutNode Max(LayoutNode left, LayoutNode right) => LayoutNode.Max(left, right);
 
         [Inline(InlineBehavior.Keep, export: true)]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static FractionalLayoutNode Max(FractionalLayoutNode left, FractionalLayoutNode right) => FractionalLayoutNode.Min(left, right);
+        public static FractionalLayoutNode Max(FractionalLayoutNode left, FractionalLayoutNode right) => FractionalLayoutNode.Max(left, right);
     }
 }

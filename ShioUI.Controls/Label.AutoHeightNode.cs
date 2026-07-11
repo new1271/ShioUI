@@ -22,10 +22,19 @@ partial class Label
                 return 0;
             float fontSize = element._fontSize;
             string text = element._text;
-            if (SequenceHelper.Contains(text, '\n') && context.GetLayoutNodeOrNull(element, LayoutProperty.Width) is AutoWidthNode autoVariable)
+            if (element._wordWrap)
             {
-                using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text, fontName, element._alignment, fontSize);
-                layout.MaxWidth = context.GetComputedValue(autoVariable);
+                using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text,
+                    fontName, element._alignment, element._fontSize);
+                element._postActionForFormat?.Invoke(layout);
+                layout.MaxWidth = context.GetComputedValue(element, LayoutProperty.Width);
+                return MathI.Ceiling(layout.GetMetrics().Height);
+            }
+            if (SequenceHelper.Contains(text, '\n'))
+            {
+                using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text,
+                    fontName, element._alignment, element._fontSize);
+                element._postActionForFormat?.Invoke(layout);
                 return MathI.Ceiling(layout.GetMetrics().Height);
             }
             return MathI.Ceiling(FontHeightHelper.GetFontHeight(fontName, fontSize));

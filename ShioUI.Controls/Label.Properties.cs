@@ -5,6 +5,7 @@ using ShioUI.Graphics.Native.DirectWrite;
 
 using RiceTea.Core.Helpers;
 using System.Diagnostics.CodeAnalysis;
+using System;
 
 namespace ShioUI.Controls;
 
@@ -65,6 +66,21 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
             if (_fontStyle == value)
                 return;
             _fontStyle = value;
+            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            Update(RenderObjectUpdateFlags.Format);
+        }
+    }
+
+    public Action<DWriteTextFormat>? PostActionForBuildingFormat
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _postActionForFormat;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set
+        {
+            if (_postActionForFormat == value)
+                return;
+            _postActionForFormat = value;
             DisposeHelper.SwapDisposeInterlocked(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }

@@ -786,37 +786,13 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         UIElementHelper.ApplyThemeToElementsUnsafe(provider, in scope.GetReferenceOfFirstElement(), scope.Count);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual Point PageToWindow(Point point)
-    {
-        Point baseLoc = PageLocation;
-        return new Point(baseLoc.X + point.X, baseLoc.Y + point.Y);
-    }
+    public virtual Point PageToWindow(Point point) => GraphicsUtils.PointToPage(PageLocation, point);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual PointF PageToWindow(PointF point)
-    {
-        Point baseLoc = PageLocation;
-        return new PointF(baseLoc.X + point.X, baseLoc.Y + point.Y);
-    }
+    public virtual PointF PageToWindow(PointF point) => GraphicsUtils.PointToPage(PageLocation, point);
 
-    public virtual Point WindowToPage(Point point)
-    {
-        Point baseLoc = PageLocation;
-        return new Point(
-            x: point.X - baseLoc.X,
-            y: point.Y - baseLoc.Y
-            );
-    }
+    public virtual Point WindowToPage(Point point) => GraphicsUtils.PointToLocal(PageLocation, point);
 
-    public virtual PointF WindowToPage(PointF point)
-    {
-        PointF baseLoc = PageLocation;
-        return new PointF(
-            x: point.X - baseLoc.X,
-            y: point.Y - baseLoc.Y
-            );
-    }
+    public virtual PointF WindowToPage(PointF point) => GraphicsUtils.PointToLocal(PageLocation, point);
 
     protected virtual Point PointToPixel(Point point) => GraphicsUtils.ScalingPoint(point, _pixelsPerPoint);
 
@@ -2006,6 +1982,19 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         UIElementHelper.DisposeForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count);
     }
 
+    private static void SafeDispose(GCHandle[] handleArray)
+    {
+        int length = handleArray.Length;
+        if (length <= 0)
+            return;
+        ref GCHandle handleRef = ref UnsafeHelper.GetArrayDataReference(handleArray);
+        int i = 0;
+        do
+        {
+            SafeDispose(ref UnsafeHelper.AddTypedOffset(ref handleRef, i));
+        } while (++i < length);
+    }
+
     private static void SafeDispose(ref GCHandle handle)
     {
         if (handle.IsAllocated)
@@ -2035,6 +2024,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         _activeElementsCacheStore.Dispose();
         _elementsCacheStore.Dispose();
 
+        SafeDispose(_recordedMouseDownHitElementRefs);
         SafeDispose(ref _recordedLastMouseMoveHitElementRef);
         SafeDispose(ref _lastMouseMoveHitElementRef);
         SafeDispose(ref _focusElementRef);

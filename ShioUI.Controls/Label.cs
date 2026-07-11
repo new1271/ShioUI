@@ -15,6 +15,7 @@ using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Theme;
 
 using RiceTea.Core.Helpers;
+using System;
 
 namespace ShioUI.Controls;
 
@@ -28,6 +29,7 @@ public sealed partial class Label : UIElement
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
 
+    private Action<DWriteTextFormat>? _postActionForFormat;
     private DWriteTextLayout? _layout;
     private string? _fontName;
     private string _text;
@@ -77,7 +79,10 @@ public sealed partial class Label : UIElement
         {
             DWriteTextFormat? format = layout;
             if (CheckFormatIsNotAvailable(format, flags))
+            {
                 format = TextFormatHelper.CreateTextFormat(_alignment, NullSafetyHelper.ThrowIfNull(_fontName), _fontSize, _fontWeight, _fontStyle);
+                _postActionForFormat?.Invoke(format);
+            }
             string text = _text;
             if (StringHelper.IsNullOrEmpty(text))
                 layout = null;

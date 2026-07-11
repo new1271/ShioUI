@@ -81,19 +81,23 @@ public abstract partial class CoreWindow : NativeWindow
                     {
                         UIElement? element = scope.GetReferenceOfFirstElement();
                         if (element is IMouseInteractHandler handler)
-                            handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(args.Location)), args.Buttons, args.Delta));
+                        {
+                            PointF location = WindowToPage(args.Location);
+                            handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(location)), args.Buttons, args.Delta));
+                        }
                     }
                     break;
                 default:
                     if (count > 0)
                     {
+                        PointF location = WindowToPage(args.Location);
                         ref readonly UIElement? arrayRef = ref scope.GetReferenceOfFirstElement();
                         int i = 0;
                         do
                         {
                             UIElement? element = UnsafeHelper.AddTypedOffsetAsReadOnly(in arrayRef, i);
                             if (element is IMouseInteractHandler handler)
-                                handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(args.Location)), args.Buttons, args.Delta));
+                                handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(location)), args.Buttons, args.Delta));
                         } while (++i < count);
                     }
                     break;
