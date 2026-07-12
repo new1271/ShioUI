@@ -179,7 +179,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (_items.Count <= 0)
             return;
 
-        WindowMessageLoop.InvokeAsync<Action<ComboBox>>(static (_this) =>
+        WindowMessageLoop.InvokeAsync(static (_this) =>
         {
             EventHandler<DropdownListEventArgs>? eventHandler = _this.RequestDropdownListOpening;
             if (eventHandler is null)

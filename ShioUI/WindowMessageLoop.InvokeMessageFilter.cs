@@ -10,10 +10,6 @@ using RiceTea.Core;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
 
-
-
-
-
 #if NET472_OR_GREATER
 using RiceTea.Core.Extensions;
 #endif

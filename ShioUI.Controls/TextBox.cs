@@ -603,20 +603,18 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             case VirtualKey.Applications:
             case VirtualKey.F10 when Keys.IsKeyPressed(VirtualKey.Shift):
-                MouseNotifyEventHandler? eventHandlers = RequestContextMenu;
-                if (eventHandlers is not null)
+                MouseNotifyEventHandler? eventHandler = RequestContextMenu;
+                if (eventHandler is not null)
                 {
-                    Point location = ContentLocation;
+                    PointF location = ContentLocation;
                     Point viewportPoint = ViewportPoint;
-                    Point layoutPoint = new Point(location.X - viewportPoint.X, location.Y - viewportPoint.Y);
+                    PointF layoutPoint = new PointF(location.X - viewportPoint.X, location.Y - viewportPoint.Y);
                     using (DWriteTextLayout layout = CreateVirtualTextLayout())
                     {
                         layout.HitTestTextPosition(MathHelper.MakeUnsigned(_caretIndex), isTrailingHit: true, out float pointX, out float pointY);
-                        location = new Point(
-                            layoutPoint.X + MathI.Round(pointX, MidpointRounding.AwayFromZero),
-                            layoutPoint.Y + MathI.Round(pointY, MidpointRounding.AwayFromZero));
+                        location = new PointF(layoutPoint.X + pointX, layoutPoint.Y + pointY);
                     }
-                    eventHandlers.Invoke(this, new MouseEventArgs(location, MouseButtons.RightButton));
+                    eventHandler.Invoke(this, new MouseEventArgs(location, MouseButtons.RightButton));
                 }
                 break;
         }
@@ -1368,9 +1366,9 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (!Enabled || !args.Buttons.HasFlagFast(MouseButtons.RightButton))
             return;
         MouseNotifyEventHandler? eventHandler = RequestContextMenu;
-        if (eventHandler is null || !args.IsInSpecificSize(ContentSize))
+        if (eventHandler is null || !args.IsInSpecificSize(Size))
             return;
-        eventHandler.Invoke(this, in args);
+        eventHandler.Invoke(this, args);
     }
 
     private static unsafe int IndexOfWhiteSpace(string text, int startIndex, int endIndex, int step)

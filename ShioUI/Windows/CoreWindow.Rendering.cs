@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 using InlineMethod;
 
@@ -1774,32 +1775,65 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         }
     }
 
-    public UIElement? ChangeOverlayElement(UIElement? element)
+    public void ChangeOverlayElement(UIElement? element)
     {
-        using BatchUpdateScope scope = EnterBatchUpdateScope();
-        UIElement? oldElement;
-        lock (_syncLock)
-        {
-            oldElement = ReferenceHelper.Exchange(ref _overlayElement, element);
+        WindowMessageLoop.InvokeAsync(Core, this, element);
 
-            OnOverlayLayerChanged(element, oldElement);
+        static void Core(CoreWindow _this, UIElement? element)
+        {
+            using BatchUpdateScope scope = _this.EnterBatchUpdateScope();
+            UIElement? oldElement = null;
+            try
+            {
+                lock (_this._syncLock)
+                {
+                    oldElement = ReferenceHelper.Exchange(ref _this._overlayElement, element);
+                    _this.OnOverlayLayerChanged(element, oldElement);
+                }
+                _this.UpdateAndResize();
+            }
+            finally
+            {
+                oldElement?.Dispose();
+            }
         }
-        UpdateAndResize();
-        return oldElement;
+    }
+
+    public Task<UIElement?> ChangeOverlayElementAsync(UIElement? element)
+    {
+        return WindowMessageLoop.InvokeTaskAsync(Core, this, element);
+
+        static UIElement? Core(CoreWindow _this, UIElement? element)
+        {
+            using BatchUpdateScope scope = _this.EnterBatchUpdateScope();
+            UIElement? oldElement;
+            lock (_this._syncLock)
+            {
+                oldElement = ReferenceHelper.Exchange(ref _this._overlayElement, element);
+                _this.OnOverlayLayerChanged(element, oldElement);
+            }
+            _this.UpdateAndResize();
+            return oldElement;
+        }
     }
 
     public void ChangeOverlayElement(UIElement? element, UIElement? oldElement)
     {
-        using BatchUpdateScope scope = EnterBatchUpdateScope();
-        lock (_syncLock)
-        {
-            if (!ReferenceEquals(_overlayElement, oldElement))
-                return;
-            _overlayElement = element;
+        WindowMessageLoop.InvokeAsync(Core, this, element, oldElement);
 
-            OnOverlayLayerChanged(element, oldElement);
+        static void Core(CoreWindow _this, UIElement? element, UIElement? oldElement)
+        {
+            using BatchUpdateScope scope = _this.EnterBatchUpdateScope();
+            lock (_this._syncLock)
+            {
+                if (!ReferenceEquals(_this._overlayElement, oldElement))
+                    return;
+                _this._overlayElement = element;
+
+                _this.OnOverlayLayerChanged(element, oldElement);
+            }
+            _this.UpdateAndResize();
         }
-        UpdateAndResize();
     }
 
     private void OnOverlayLayerChanged(UIElement? element, UIElement? oldElement)
