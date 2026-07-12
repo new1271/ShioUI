@@ -1753,7 +1753,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             {
                 object? target = elementRef.Target;
                 if (!ReferenceEquals(element, target) && target is UIElement lastHitElement && target is IMouseMoveHandler handler)
-                    handler.OnMouseMove(new MouseEventArgs(lastHitElement.GlobalPageToLocalPage(lastHitElement.PageToLocal(args.Location)), args.Buttons, args.Delta));
+                    DoEvent(lastHitElement, handler, args);
                 elementRef.Target = element;
             }
             else
@@ -1769,10 +1769,19 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             {
                 object? target = elementRef.Target;
                 if (target is UIElement lastHitElement && target is IMouseMoveHandler handler)
-                    handler.OnMouseMove(new MouseEventArgs(lastHitElement.GlobalPageToLocalPage(lastHitElement.PageToLocal(args.Location)), args.Buttons, args.Delta));
+                    DoEvent(lastHitElement, handler, args);
                 elementRef.Target = null;
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void DoEvent(UIElement element, IMouseMoveHandler handler, in MouseEventArgs args)
+            => handler.OnMouseMove(new MouseEventArgs(
+                element.PageToLocal(element.GlobalPageToLocalPage(WindowToPage(args.Location))),
+                args.Buttons,
+                args.Delta
+                ));
+
     }
 
     public void ChangeOverlayElement(UIElement? element)
