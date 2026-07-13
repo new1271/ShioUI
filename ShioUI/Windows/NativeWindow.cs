@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 using InlineMethod;
 
+using RiceTea.Core.Helpers;
+
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Utils;
-
-using RiceTea.Core.Helpers;
 
 namespace ShioUI.Windows;
 
@@ -60,21 +60,21 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return;
-        WindowMessageLoop.Invoke(ShowCore);
+        WindowMessageLoop.Invoke(static window => window.ShowCore(), this);
     }
 
     public async Task ShowAsync()
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return;
-        await WindowMessageLoop.InvokeTaskAsync(ShowCore);
+        await WindowMessageLoop.InvokeTaskAsync(static window => window.ShowCore(), this);
     }
 
     public DialogResult ShowDialog()
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return DialogResult.Invalid;
-        WindowMessageLoop.Invoke(ShowDialogCore);
+        WindowMessageLoop.Invoke(static window => window.ShowDialogCore(), this);
         return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
     }
 
@@ -82,7 +82,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return DialogResult.Invalid;
-        await WindowMessageLoop.InvokeTaskAsync(ShowDialogCore);
+        await WindowMessageLoop.InvokeTaskAsync(static window => window.ShowDialogCore(), this).ConfigureAwait(false);
         return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
     }
 

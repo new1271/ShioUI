@@ -14,8 +14,11 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (_threadIdLocal.Value == messageLoopThreadId)
+        if (CurrentThreadId == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
             return func.Invoke();
+        }
         else
             return InvokeTaskCoreAsync(messageLoopThreadId, func, CancellationToken.None).Result;
     }
@@ -26,8 +29,11 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (_threadIdLocal.Value == messageLoopThreadId)
+        if (CurrentThreadId == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
             return func.Invoke(arg);
+        }
         else
             return InvokeTaskCoreAsync(messageLoopThreadId, func, arg, CancellationToken.None).Result;
     }
@@ -38,8 +44,11 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (_threadIdLocal.Value == messageLoopThreadId)
+        if (CurrentThreadId == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
             return func.Invoke(arg1, arg2);
+        }
         else
             return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, CancellationToken.None).Result;
     }
@@ -50,8 +59,11 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (_threadIdLocal.Value == messageLoopThreadId)
+        if (CurrentThreadId == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
             return func.Invoke(arg1, arg2, arg3);
+        }
         else
             return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, arg3, CancellationToken.None).Result;
     }

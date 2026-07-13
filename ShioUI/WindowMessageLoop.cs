@@ -20,7 +20,6 @@ public static partial class WindowMessageLoop
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
 
     private static readonly Action<NativeWindow> _windowShowAction = window => window.Show();
-    private static readonly ThreadLocal<uint> _threadIdLocal = new ThreadLocal<uint>(Kernel32.GetCurrentThreadId, trackAllValues: false);
     private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
         UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
 
@@ -28,9 +27,25 @@ public static partial class WindowMessageLoop
     private static InvokeMessageFilter? _invokeMessageFilter;
     private static uint _invokeBarrier, _threadIdForMessageLoop;
 
+    [ThreadStatic]
+    private static uint _threadId;
+
     public static event MessageLoopExceptionEventHandler? ExceptionCaught;
 
-    public static uint CurrentThreadId => _threadIdLocal.Value;
+    public static uint CurrentThreadId
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            uint result = _threadId;
+            if (result == default)
+            {
+                result = Kernel32.GetCurrentThreadId();
+                _threadId = result;
+            }
+            return result;
+        }
+    }
 
     public static bool IsMessageLoopThread
     {
@@ -38,7 +53,7 @@ public static partial class WindowMessageLoop
         get
         {
             uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-            return messageLoopThreadId != 0 && _threadIdLocal.Value == messageLoopThreadId;
+            return messageLoopThreadId != 0 && CurrentThreadId== messageLoopThreadId;
         }
     }
 
@@ -68,7 +83,7 @@ public static partial class WindowMessageLoop
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Start(NativeWindow mainWindow, bool catchAllExceptionIntoEventHandler = false)
     {
-        uint currentThreadId = _threadIdLocal.Value;
+        uint currentThreadId = CurrentThreadId;
         if (InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
             throw new InvalidOperationException("Message loop is already exists!");
         InvokeMessageFilter invokeMessageFilter =

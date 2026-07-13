@@ -19,9 +19,13 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            return null;
-        if (_threadIdLocal.Value == messageLoopThreadId)
+            InvalidOperationException.Throw();
+
+        if (CurrentThreadId == messageLoopThreadId)
+        {
+            ProcessAllInvoke(); 
             return @delegate.DynamicInvoke(null);
+        }
         return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None).Result;
     }
 
@@ -31,8 +35,11 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (_threadIdLocal.Value == messageLoopThreadId)
+        if (CurrentThreadId == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
             return @delegate.DynamicInvoke(args);
+        }
         return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, CancellationToken.None).Result;
     }
 
@@ -47,10 +54,10 @@ partial class WindowMessageLoop
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InvokeAsync(Delegate @delegate, params object?[]? args) 
+    public static void InvokeAsync(Delegate @delegate, params object?[]? args)
         => InvokeAsync(@delegate, args, CancellationToken.None);
 
-    public static void InvokeAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default) 
+    public static void InvokeAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
@@ -59,7 +66,7 @@ partial class WindowMessageLoop
         InvokeCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
     }
 
-    public static Task<object?> InvokeTaskAsync(Delegate @delegate) 
+    public static Task<object?> InvokeTaskAsync(Delegate @delegate)
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
@@ -70,10 +77,10 @@ partial class WindowMessageLoop
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<object?> InvokeTaskAsync(Delegate @delegate, params object?[]? args) 
+    public static Task<object?> InvokeTaskAsync(Delegate @delegate, params object?[]? args)
         => InvokeTaskAsync(@delegate, args, CancellationToken.None);
 
-    public static Task<object?> InvokeTaskAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default) 
+    public static Task<object?> InvokeTaskAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
@@ -110,5 +117,13 @@ partial class WindowMessageLoop
             return;
         User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioWindowInvoke, 0, 0);
         InterlockedHelper.Write(ref _invokeBarrier, Booleans.FalseInt);
+    }
+
+    private static void ProcessAllInvoke()
+    {
+        InvokeMessageFilter? filter = InterlockedHelper.Read(ref _invokeMessageFilter);
+        if (filter is null)
+            InvalidOperationException.Throw();
+        filter.ProcessAllInvoke();
     }
 }
