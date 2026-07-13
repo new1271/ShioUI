@@ -395,6 +395,6 @@ public abstract partial class CoreWindow : NativeWindow
         IntPtr handle = window.Handle;
         if (handle == IntPtr.Zero)
             return;
-        User32.PostMessageW(handle, CustomWindowMessages.ShioUpdateRefreshRate, 0, 0);
+        User32.PostMessageW(handle, CustomWindowMessages.ShioUI_UpdateRefreshRate, 0, 0);
     }
 }

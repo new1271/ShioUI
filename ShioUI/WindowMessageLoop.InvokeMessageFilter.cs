@@ -18,13 +18,15 @@ namespace ShioUI;
 
 partial class WindowMessageLoop
 {
-    private class InvokeMessageFilter : IWindowMessageFilter
+    private sealed class InvokeMessageFilter : IWindowMessageFilter
     {
+        public static readonly InvokeMessageFilter Instance = new InvokeMessageFilter();
+
         private readonly Swapable<Queue<IInvokeClosure>> _invokeClosureQueue = Swapable.CreateQueue<IInvokeClosure>(optimistic: true);
 
         private int _readBarrier;
 
-        public InvokeMessageFilter() => _readBarrier = 0;
+        private InvokeMessageFilter() => _readBarrier = 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddInvoke(IInvokeClosure closure)
@@ -37,7 +39,7 @@ partial class WindowMessageLoop
         public bool TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
         {
             result = 0;
-            if (hwnd != IntPtr.Zero || (uint)message != CustomWindowMessages.ShioWindowInvoke)
+            if (hwnd != IntPtr.Zero || (uint)message != CustomWindowMessages.ShioUI_WindowInvoke)
                 return false;
 
             ProcessAllInvoke();
@@ -67,22 +69,18 @@ partial class WindowMessageLoop
             }
         }
 
-        protected virtual void DoInvoke(IInvokeClosure closure) => closure.Invoke();
-    }
-
-    private sealed class InvokeMessageFilterSafe : InvokeMessageFilter
-    {
-        public InvokeMessageFilterSafe() { }
-
-        protected override void DoInvoke(IInvokeClosure closure)
+        private void DoInvoke(IInvokeClosure closure)
         {
             try
             {
-                base.DoInvoke(closure);
+                closure.Invoke();
             }
             catch (Exception ex)
             {
-                ExceptionCaught?.Invoke(this, new MessageLoopExceptionEventArgs(ex));
+                MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
+                if (eventHandler is null)
+                    throw;
+                eventHandler.Invoke(this, new MessageLoopExceptionEventArgs(ex));
             }
         }
     }

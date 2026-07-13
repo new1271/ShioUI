@@ -39,7 +39,7 @@ unsafe partial class NativeWindow
         IL.EnsureLocal(result);
 
         IL.Push(result);
-        IL.Push(CustomWindowMessages.ShioDestroyWindowAsync);
+        IL.Push(CustomWindowMessages.ShioUI_DestroyWindowAsync);
         IL.Emit.Ldftn(new MethodRef(typeof(NativeWindow), nameof(HandleShioDestroyWindowAsync)));
         IL.Emit.Call(new MethodRef(typeof(Dictionary<uint, nint>), nameof(Dictionary<uint, nint>.Add)));
 

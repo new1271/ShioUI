@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 using InlineMethod;
 
@@ -9,6 +11,7 @@ using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
+using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Utils;
 using ShioUI.Windows;
@@ -19,13 +22,14 @@ public static partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
 
-    private static readonly Action<NativeWindow> _windowShowAction = window => window.Show();
+    private static readonly ConcurrentStack<GCHandle> _handleStackForShowDialogMessage = new ConcurrentStack<GCHandle>();
+    private static readonly Action<NativeWindow> _windowShowAction = static window => window.Show();
     private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
         UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
 
     private static NativeWindow? _mainWindow;
-    private static InvokeMessageFilter? _invokeMessageFilter;
     private static uint _invokeBarrier, _threadIdForMessageLoop;
+    private static bool _isFirstTimeStart = true;
 
     [ThreadStatic]
     private static uint _threadId;
@@ -47,13 +51,23 @@ public static partial class WindowMessageLoop
         }
     }
 
+    public static bool HasMessageLoop
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+            return messageLoopThreadId != 0;
+        }
+    }
+
     public static bool IsMessageLoopThread
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-            return messageLoopThreadId != 0 && CurrentThreadId== messageLoopThreadId;
+            return messageLoopThreadId != 0 && CurrentThreadId == messageLoopThreadId;
         }
     }
 
@@ -61,7 +75,7 @@ public static partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            throw new InvalidOperationException("The message loop is not exists!");
+            InvalidOperationException.Throw("The message loop is not exists!");
         ChangeMainWindowCore(mainWindow, IsMessageLoopThread);
     }
 
@@ -81,40 +95,34 @@ public static partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Start(NativeWindow mainWindow, bool catchAllExceptionIntoEventHandler = false)
+    public static int Start(NativeWindow mainWindow)
     {
         uint currentThreadId = CurrentThreadId;
         if (InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
-            throw new InvalidOperationException("Message loop is already exists!");
-        InvokeMessageFilter invokeMessageFilter =
-            catchAllExceptionIntoEventHandler ? new InvokeMessageFilterSafe() : new InvokeMessageFilter();
-        AddMessageFilter(invokeMessageFilter);
-        InterlockedHelper.Exchange(ref _invokeMessageFilter, invokeMessageFilter)?.ProcessAllInvoke();
+            InvalidOperationException.Throw("Message loop is already exists!");
+        if (_isFirstTimeStart)
+        {
+            _isFirstTimeStart = false;
+            AddMessageFilter(InvokeMessageFilter.Instance);
+            AddMessageFilter(ShowDialogMessageFilter.Instance);
+        }
+        else
+        {
+            InvokeMessageFilter.Instance.ProcessAllInvoke();
+        }
 
         ChangeMainWindowCore(mainWindow, isMessageLoopThread: true);
-        int result = catchAllExceptionIntoEventHandler ? DoMessageLoop_CatchAllException() : DoMessageLoop();
+        int result = DoMessageLoop();
         InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
 
-        invokeMessageFilter = InterlockedHelper.CompareExchange(ref _invokeMessageFilter, null, invokeMessageFilter);
-        if (invokeMessageFilter is not null)
-        {
-            RemoveMessageFilter(invokeMessageFilter);
-            invokeMessageFilter.ProcessAllInvoke();
-        }
         ChangeMainWindowCore(null, isMessageLoopThread: false);
         return result;
     }
 
     internal static MessageLoopExceptionEventHandler? GetExceptionEventHandler() => ExceptionCaught;
 
-    private static int DoMessageLoop()
-        => DoMessageLoop_Model(catchException: false);
-
-    private static int DoMessageLoop_CatchAllException()
-        => DoMessageLoop_Model(catchException: true);
-
-    [Inline(InlineBehavior.Remove)]
-    private static unsafe int DoMessageLoop_Model([InlineParameter] bool catchException)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static unsafe int DoMessageLoop()
     {
         PumpingMessage msg;
         SysBool32 status;
@@ -123,7 +131,7 @@ public static partial class WindowMessageLoop
             if (status.IsFailed)
                 goto Failed;
 
-            if (TryFilterMessage(ref msg, catchException: false, out nint result))
+            if (TryFilterMessage(ref msg, out nint result))
             {
                 if (User32.InSendMessage())
                     User32.ReplyMessage(result);
@@ -137,28 +145,25 @@ public static partial class WindowMessageLoop
         return unchecked((int)msg.wParam);
 
     Failed:
-        if (catchException)
-        {
-            MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
-            if (eventHandler is not null)
-            {
-                Exception? exception = Marshal.GetExceptionForHR(Kernel32.GetLastError());
-                if (exception is not null)
-                    eventHandler.Invoke(null, new MessageLoopExceptionEventArgs(exception));
-            }
-        }
+        MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
+        if (eventHandler is null)
+            Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
         else
         {
-            Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
+            Exception? exception = Marshal.GetExceptionForHR(Kernel32.GetLastError());
+            if (exception is not null)
+                eventHandler.Invoke(null, new MessageLoopExceptionEventArgs(exception));
         }
         return -1;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     internal static unsafe void StartMiniLoop(CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
             return;
+
+        InvokeMessageFilter.Instance.ProcessAllInvoke();
 
         IntPtr timerHandle = Kernel32.CreateWaitableTimerW(null, true, null);
         StrongBox<IntPtr> timerHandleBox = new StrongBox<IntPtr>(timerHandle);
@@ -192,7 +197,7 @@ public static partial class WindowMessageLoop
                                 if (msg.message == WindowMessage.Quit)
                                     User32.PostQuitMessage(unchecked((int)msg.wParam));
 
-                                if (TryFilterMessage(ref msg, catchException: false, out nint result))
+                                if (TryFilterMessage(ref msg, out nint result))
                                 {
                                     if (User32.InSendMessage())
                                         User32.ReplyMessage(result);
@@ -209,7 +214,8 @@ public static partial class WindowMessageLoop
                         Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
                         return;
                     default:
-                        throw new InvalidOperationException("Invalid state!");
+                        InvalidOperationException.Throw("Invalid state!");
+                        return;
                 }
             }
         }
@@ -221,7 +227,7 @@ public static partial class WindowMessageLoop
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static bool TryFilterMessage(ref PumpingMessage msg, [InlineParameter] bool catchException, out nint result)
+    private static bool TryFilterMessage(ref PumpingMessage msg, out nint result)
     {
         UnwrappableList<IWindowMessageFilter> filters = _filters.Update();
         int count = filters.Count;
@@ -236,22 +242,17 @@ public static partial class WindowMessageLoop
         for (nuint i = 0, limit = unchecked((nuint)count); i < limit; i++)
         {
             IWindowMessageFilter filter = UnsafeHelper.AddTypedOffset(ref filterRef, i);
-            if (catchException)
-            {
-                try
-                {
-                    if (filter.TryProcessWindowMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam, out result))
-                        return true;
-                }
-                catch (Exception ex)
-                {
-                    ExceptionCaught?.Invoke(null, new MessageLoopExceptionEventArgs(ex));
-                }
-            }
-            else
+            try
             {
                 if (filter.TryProcessWindowMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam, out result))
                     return true;
+            }
+            catch (Exception ex)
+            {
+                MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
+                if (eventHandler is null)
+                    throw;
+                eventHandler.Invoke(filter, new MessageLoopExceptionEventArgs(ex));
             }
         }
 
@@ -261,13 +262,37 @@ public static partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Stop(int exitCode = 0)
-        => User32.PostQuitMessage(exitCode);
+    public static void Stop(int exitCode = 0) => User32.PostQuitMessage(exitCode);
 
-    private static void OnWindowDestroyed(object? sender, EventArgs e)
-        => Stop();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OnWindowDestroyed(object? sender, EventArgs e) => Stop();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddMessageFilter(IWindowMessageFilter messageFilter) => _filters.Add(messageFilter);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RemoveMessageFilter(IWindowMessageFilter messageFilter) => _filters.Remove(messageFilter);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Task PostShowDialogMessageAsync(NativeWindow window)
+    {
+        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        if (messageLoopThreadId == 0)
+            InvalidOperationException.Throw();
+
+        TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        ConcurrentStack<GCHandle> stack = _handleStackForShowDialogMessage;
+        if (stack.TryPop(out GCHandle handle))
+            handle.Target = window;
+        else
+            handle = GCHandle.Alloc(window, GCHandleType.Normal);
+        if (stack.TryPop(out GCHandle handle2))
+            handle2.Target = completionSource;
+        else
+            handle2 = GCHandle.Alloc(completionSource, GCHandleType.Normal);
+
+        User32.PostThreadMessageW(messageLoopThreadId, CustomWindowMessages.ShioUI_CallShowDialog, (nint)handle, (nint)handle2);
+        return completionSource.Task;
+    }
 }

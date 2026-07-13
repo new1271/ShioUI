@@ -89,41 +89,32 @@ partial class WindowMessageLoop
         return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
     }
 
-    private static void InvokeCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
-        invokeMessageFilter.AddInvoke(new InvokeClosure(@delegate, args, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
+    private static void InvokeCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default) 
+        => PostInvokeClosure(threadId, new InvokeClosure(@delegate, args, null, cancellationToken));
 
     private static Task<object?> InvokeTaskCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
     {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
         TaskCompletionSource<object?> completionSource = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new InvokeClosure(@delegate, args, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
+        PostInvokeClosure(threadId, new InvokeClosure(@delegate, args, completionSource, cancellationToken));
         return completionSource.Task;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void PostInvokeClosure(uint threadId, IInvokeClosure closure)
+    {
+        InvokeMessageFilter.Instance.AddInvoke(closure);
+        PostInvokeMessage(threadId);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PostInvokeMessage(uint threadId)
     {
         if (MathHelper.ToBooleanUnsafe(InterlockedHelper.CompareExchange(ref _invokeBarrier, Booleans.TrueInt, Booleans.FalseInt)))
             return;
-        User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioWindowInvoke, 0, 0);
+        User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioUI_WindowInvoke, 0, 0);
         InterlockedHelper.Write(ref _invokeBarrier, Booleans.FalseInt);
     }
 
-    private static void ProcessAllInvoke()
-    {
-        InvokeMessageFilter? filter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (filter is null)
-            InvalidOperationException.Throw();
-        filter.ProcessAllInvoke();
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void ProcessAllInvoke() => InvokeMessageFilter.Instance.ProcessAllInvoke();
 }

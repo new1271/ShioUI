@@ -75,7 +75,7 @@ partial class NativeWindow
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return;
-        User32.PostMessageW(handle, CustomWindowMessages.ShioDestroyWindowAsync, 0, 0);
+        User32.PostMessageW(handle, CustomWindowMessages.ShioUI_DestroyWindowAsync, 0, 0);
     }
 
     private void DestroyHandle()

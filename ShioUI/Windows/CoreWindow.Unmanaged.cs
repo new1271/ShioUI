@@ -508,7 +508,7 @@ public unsafe partial class CoreWindow
 
     protected override bool TryProcessCustomWindowMessage(IntPtr handle, uint message, nint wParam, nint lParam, out nint result)
     {
-        if (message == CustomWindowMessages.ShioUpdateRefreshRate)
+        if (message == CustomWindowMessages.ShioUI_UpdateRefreshRate)
         {
             UpdateWindowFps(handle);
             result = 0;

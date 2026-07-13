@@ -12,7 +12,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<TResult>();
 
         if (CurrentThreadId == messageLoopThreadId)
         {
@@ -27,7 +27,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<TResult>();
 
         if (CurrentThreadId == messageLoopThreadId)
         {
@@ -42,7 +42,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<TResult>();
 
         if (CurrentThreadId == messageLoopThreadId)
         {
@@ -57,7 +57,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<TResult>();
 
         if (CurrentThreadId == messageLoopThreadId)
         {
@@ -111,7 +111,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<Task<TResult>>();
 
         return InvokeTaskCoreAsync(messageLoopThreadId, func, cancellationToken);
     }
@@ -121,7 +121,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<Task<TResult>>();
 
         return InvokeTaskCoreAsync(messageLoopThreadId, func, arg, cancellationToken);
     }
@@ -131,7 +131,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<Task<TResult>>();
 
         return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, cancellationToken);
     }
@@ -141,100 +141,52 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+            return InvalidOperationException.Throw<Task<TResult>>();
 
         return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, arg3, cancellationToken);
     }
 
     private static void InvokeCoreAsync<TResult>(uint threadId, Func<TResult> func, CancellationToken cancellationToken = default)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TResult>(func, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
+        => PostInvokeClosure(threadId, new FuncInvokeClosure<TResult>(func, null, cancellationToken));
 
     private static void InvokeCoreAsync<TArg, TResult>(uint threadId, Func<TArg, TResult> func, TArg arg, CancellationToken cancellationToken = default)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TArg, TResult>(func, arg, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
+        => PostInvokeClosure(threadId, new FuncInvokeClosure<TArg, TResult>(func, arg, null, cancellationToken));
 
     private static void InvokeCoreAsync<TArg1, TArg2, TResult>(uint threadId,
         Func<TArg1, TArg2, TResult> func, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken = default)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TArg1, TArg2, TResult>(func, arg1, arg2, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
+        => PostInvokeClosure(threadId, new FuncInvokeClosure<TArg1, TArg2, TResult>(func, arg1, arg2, null, cancellationToken));
 
     private static void InvokeCoreAsync<TArg1, TArg2, TArg3, TResult>(uint threadId,
         Func<TArg1, TArg2, TArg3, TResult> func, TArg1 arg1, TArg2 arg2, TArg3 arg3, CancellationToken cancellationToken = default)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TArg1, TArg2, TArg3, TResult>(func, arg1, arg2, arg3, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
+        => PostInvokeClosure(threadId, new FuncInvokeClosure<TArg1, TArg2, TArg3, TResult>(func, arg1, arg2, arg3, null, cancellationToken));
 
     private static Task<TResult> InvokeTaskCoreAsync<TResult>(uint threadId, Func<TResult> func, CancellationToken cancellationToken = default)
     {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
         TaskCompletionSource<TResult> completionSource = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TResult>(func, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
+        PostInvokeClosure(threadId, new FuncInvokeClosure<TResult>(func, completionSource, cancellationToken));
         return completionSource.Task;
     }
 
     private static Task<TResult> InvokeTaskCoreAsync<TArg, TResult>(uint threadId, Func<TArg, TResult> func, TArg arg, CancellationToken cancellationToken = default)
     {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
         TaskCompletionSource<TResult> completionSource = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TArg, TResult>(func, arg, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
+        PostInvokeClosure(threadId, new FuncInvokeClosure<TArg, TResult>(func, arg, completionSource, cancellationToken));
         return completionSource.Task;
     }
 
     private static Task<TResult> InvokeTaskCoreAsync<TArg1, TArg2, TResult>(uint threadId,
         Func<TArg1, TArg2, TResult> func, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken = default)
     {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
         TaskCompletionSource<TResult> completionSource = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TArg1, TArg2, TResult>(func, arg1, arg2, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
+        PostInvokeClosure(threadId, new FuncInvokeClosure<TArg1, TArg2, TResult>(func, arg1, arg2, completionSource, cancellationToken));
         return completionSource.Task;
     }
 
     private static Task<TResult> InvokeTaskCoreAsync<TArg1, TArg2, TArg3, TResult>(uint threadId,
         Func<TArg1, TArg2, TArg3, TResult> func, TArg1 arg1, TArg2 arg2, TArg3 arg3, CancellationToken cancellationToken = default)
     {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            InvalidOperationException.Throw();
-
         TaskCompletionSource<TResult> completionSource = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new FuncInvokeClosure<TArg1, TArg2, TArg3, TResult>(func, arg1, arg2, arg3, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
+        PostInvokeClosure(threadId, new FuncInvokeClosure<TArg1, TArg2, TArg3, TResult>(func, arg1, arg2, arg3, completionSource, cancellationToken));
         return completionSource.Task;
     }
 }

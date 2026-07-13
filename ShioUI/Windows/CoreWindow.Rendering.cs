@@ -419,7 +419,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     {
         if (sender is not SimpleGraphicsHost host || !ReferenceEquals(host, InterlockedHelper.Read(ref _host)))
             return;
-        WindowMessageLoop.InvokeAsync((Action<CoreWindow>)(static window => window.OnDeviveRemoved()), this);
+        WindowMessageLoop.InvokeAsync(static window => window.OnDeviveRemoved(), this);
     }
 
     private void OnDeviveRemoved()
@@ -1492,7 +1492,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         return new CriticalUpdateScope(controller);
     }
 
-    [Inline(InlineBehavior.Remove)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ChangeDpi_RenderingPart(PointU dpi, Vector2 pointsPerPixel, Vector2 pixelsPerPoint)
     {
         SimpleGraphicsHost? host = InterlockedHelper.Read(ref _host);
@@ -1501,24 +1501,18 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         RenderingController? controller = GetRenderingController();
         if (controller is null)
             return;
-        controller.Lock();
-        controller.WaitForRendering();
-        try
+        using CriticalUpdateScope scope = EnterCriticalUpdateScopeCore(controller);
+        lock (_syncLock)
         {
-            lock (_syncLock)
-            {
-                host.GetDeviceContext().Dpi = new PointF(dpi.X, dpi.Y);
-                OnDpiChangedForElements(new DpiChangedEventArgs(dpi, pointsPerPixel, pixelsPerPoint));
-            }
+            host.GetDeviceContext().Dpi = new PointF(dpi.X, dpi.Y);
+            WindowMessageLoop.InvokeAsync(
+                static (window, tuple) => window.OnDpiChangedForElements(new DpiChangedEventArgs(tuple.dpi, tuple.pointsPerPixel, tuple.pixelsPerPoint)),
+                this, (dpi, pointsPerPixel, pixelsPerPoint));
         }
-        finally
-        {
-            UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
-            controller.Unlock();
-        }
+        UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
     }
 
-    [Inline(InlineBehavior.Remove)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnWindowStateChangedRenderingPart(in WindowStateChangedEventArgs args)
     {
         RenderingController? controller = GetRenderingController();
