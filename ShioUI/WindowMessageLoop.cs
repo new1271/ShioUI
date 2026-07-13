@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 
 using InlineMethod;
 
@@ -11,7 +9,6 @@ using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
-using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Utils;
 using ShioUI.Windows;
@@ -22,7 +19,6 @@ public static partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
 
-    private static readonly ConcurrentStack<GCHandle> _handleStackForShowDialogMessage = new ConcurrentStack<GCHandle>();
     private static readonly Action<NativeWindow> _windowShowAction = static window => window.Show();
     private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
         UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
@@ -104,7 +100,6 @@ public static partial class WindowMessageLoop
         {
             _isFirstTimeStart = false;
             AddMessageFilter(InvokeMessageFilter.Instance);
-            AddMessageFilter(ShowDialogMessageFilter.Instance);
         }
         else
         {
@@ -272,27 +267,4 @@ public static partial class WindowMessageLoop
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RemoveMessageFilter(IWindowMessageFilter messageFilter) => _filters.Remove(messageFilter);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Task PostShowDialogMessageAsync(NativeWindow window)
-    {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        ConcurrentStack<GCHandle> stack = _handleStackForShowDialogMessage;
-        if (stack.TryPop(out GCHandle handle))
-            handle.Target = window;
-        else
-            handle = GCHandle.Alloc(window, GCHandleType.Normal);
-        if (stack.TryPop(out GCHandle handle2))
-            handle2.Target = completionSource;
-        else
-            handle2 = GCHandle.Alloc(completionSource, GCHandleType.Normal);
-
-        User32.PostThreadMessageW(messageLoopThreadId, CustomWindowMessages.ShioUI_CallShowDialog, (nint)handle, (nint)handle2);
-        return completionSource.Task;
-    }
 }

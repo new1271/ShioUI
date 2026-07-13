@@ -24,6 +24,9 @@ partial class WindowMessageLoop
 
         private readonly Swapable<Queue<IInvokeClosure>> _invokeClosureQueue = Swapable.CreateQueue<IInvokeClosure>(optimistic: true);
 
+        [ThreadStatic]
+        private static Queue<IInvokeClosure>? _currentProcessingQueue;
+
         private int _readBarrier;
 
         private InvokeMessageFilter() => _readBarrier = 0;
@@ -49,24 +52,53 @@ partial class WindowMessageLoop
         public void ProcessAllInvoke()
         {
             if (InterlockedHelper.CompareExchange(ref _readBarrier, Booleans.TrueInt, Booleans.FalseInt) != Booleans.FalseInt)
+            {
+                ProcessAllInvoke_InInvokeCall();
                 return;
+            }
 
             Queue<IInvokeClosure> queue = _invokeClosureQueue.Swap();
+            _currentProcessingQueue = queue;
+            Monitor.Enter(queue);
             try
             {
-                lock (queue)
+                while (queue.TryDequeue(out IInvokeClosure? closure))
                 {
-                    while (queue.TryDequeue(out IInvokeClosure? closure))
+                    if (closure is not null)
                     {
-                        if (closure is not null)
-                            DoInvoke(closure);
+                        DoInvoke(closure);
+                        queue = _currentProcessingQueue;
                     }
                 }
             }
             finally
             {
+                _currentProcessingQueue = null;
+                Monitor.Exit(queue);
                 Interlocked.Exchange(ref _readBarrier, Booleans.FalseInt);
             }
+        }
+
+        private void ProcessAllInvoke_InInvokeCall()
+        {
+            Queue<IInvokeClosure>? queue = _currentProcessingQueue;
+            if (queue is null)
+                return;
+            try
+            {
+                while (queue.TryDequeue(out IInvokeClosure? closure))
+                {
+                    if (closure is not null)
+                        DoInvoke(closure);
+                }
+            }
+            finally
+            {
+                Monitor.Exit(queue);
+            }
+            queue = _invokeClosureQueue.Swap();
+            Monitor.Enter(queue);
+            _currentProcessingQueue = queue;
         }
 
         private void DoInvoke(IInvokeClosure closure)

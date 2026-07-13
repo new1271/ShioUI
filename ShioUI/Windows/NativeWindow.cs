@@ -18,6 +18,9 @@ namespace ShioUI.Windows;
 
 public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 {
+    private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowCore();
+    private static readonly Action<NativeWindow> ShowDialogCoreAction = static (window) => window.ShowDialogCore();
+
     private readonly GCHandle _parentReference;
     private readonly Lazy<IntPtr> _handleLazy;
 
@@ -65,7 +68,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             if (WindowMessageLoop.IsMessageLoopThread)
                 ShowCore();
             else
-                WindowMessageLoop.Invoke(static window => window.ShowCore(), this);
+                WindowMessageLoop.Invoke(ShowCoreAction, this);
         }
         else
             WindowMessageLoop.Start(this);
@@ -84,7 +87,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
                 goto Completed;
             }
             else
-                return WindowMessageLoop.InvokeTaskAsync(static window => window.ShowCore(), this);
+                return WindowMessageLoop.InvokeTaskAsync(ShowCoreAction, this);
         }
         else
         {
@@ -108,7 +111,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
                 ShowDialogCore();
             }
             else
-                WindowMessageLoop.PostShowDialogMessageAsync(this).Wait();
+                WindowMessageLoop.InvokeTaskAsync(ShowDialogCoreAction, this).Wait();
         }
         else
         {
@@ -139,7 +142,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 
         async Task<DialogResult> AsyncCore()
         {
-            await WindowMessageLoop.PostShowDialogMessageAsync(this).ConfigureAwait(continueOnCapturedContext: false);
+            await WindowMessageLoop.InvokeTaskAsync(ShowDialogCoreAction, this).ConfigureAwait(continueOnCapturedContext: false);
             return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
         }
     }
