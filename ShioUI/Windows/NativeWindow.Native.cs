@@ -69,7 +69,6 @@ partial class NativeWindow
     protected bool IsWindowDestroyed()
         => InterlockedHelper.Read(ref _windowFlags) == UnsafeHelper.GetMaxValue<nuint>();
 
-
     protected virtual void DisposeCore(bool disposing)
     {
         IntPtr handle = Handle;

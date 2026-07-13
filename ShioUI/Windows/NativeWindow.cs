@@ -188,9 +188,9 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     {
         IntPtr parent = FindParentHandleForDialog(handle: ShowCoreWithReturn());
         User32.EnableWindow(parent, false);
-        InterlockedHelper.Exchange(ref _dialogParent, parent);
+        InterlockedHelper.Write(ref _dialogParent, parent);
         CancellationTokenSource tokenSource = new CancellationTokenSource();
-        InterlockedHelper.Exchange(ref _dialogTokenSource, tokenSource);
+        InterlockedHelper.Write(ref _dialogTokenSource, tokenSource);
         WindowMessageLoop.StartMiniLoop(tokenSource.Token);
     }
 
@@ -203,7 +203,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return;
-        InterlockedHelper.Exchange(ref _closeReason, (uint)reason);
+        InterlockedHelper.Write(ref _closeReason, (uint)reason);
         User32.PostMessageW(handle, WindowMessage.Close, 0, 0);
     }
 
