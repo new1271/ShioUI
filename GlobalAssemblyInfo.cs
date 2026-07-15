@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCopyright("Copyright © RiceTea (new1271) 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: AssemblyVersion("2.0.0.0")]
+[assembly: AssemblyVersion("2.1.0.0")]
 [assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
 #if DEBUG
 [assembly: AssemblyConfiguration("Debug")]
