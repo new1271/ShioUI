@@ -6,10 +6,8 @@ internal sealed class FixedValueLayoutNode : LayoutNode
 {
     private readonly int _value;
 
-    public FixedValueLayoutNode(int value)
-    {
-        _value = value;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public FixedValueLayoutNode(int value) => _value = value;
 
     public int Value
     {
@@ -17,9 +15,21 @@ internal sealed class FixedValueLayoutNode : LayoutNode
         get => _value;
     }
 
-    public override int Compute(in LayoutNodeManager manager) => _value;
+    protected override int ComputeCore(in LayoutContext context) => _value;
 
-    public override bool Equals(object? obj) => obj is FixedValueLayoutNode fixedVariable && fixedVariable._value == _value;
+    public sealed class Fractional : FractionalLayoutNode
+    {
+        private readonly float _value;
 
-    public override int GetHashCode() => _value;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Fractional(float value) => _value = value;
+
+        public float Value
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _value;
+        }
+
+        protected override float ComputeCore(in LayoutContext context) => _value;
+    }
 }

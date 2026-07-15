@@ -8,7 +8,7 @@ using RiceTea.Core.Helpers;
 
 namespace ShioUI.Controls;
 
-partial class ComboBox
+partial class ComboBox : IAutoHeightElement
 {
     public event EventHandler? ItemClicked;
     public event EventHandler<DropdownListEventArgs>? RequestDropdownListOpening;
@@ -95,6 +95,6 @@ partial class ComboBox
     public LayoutNode AutoHeightDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _autoLayoutDefinitionCache[0] ??= new AutoHeightNode(this);
+        get => _autoLayoutDefinitions[0] ??= new AutoHeightNode(this);
     }
 }

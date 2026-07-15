@@ -10,10 +10,6 @@ using RiceTea.Core;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
 
-
-
-
-
 #if NET472_OR_GREATER
 using RiceTea.Core.Extensions;
 #endif
@@ -22,13 +18,18 @@ namespace ShioUI;
 
 partial class WindowMessageLoop
 {
-    private class InvokeMessageFilter : IWindowMessageFilter
+    private sealed class InvokeMessageFilter : IWindowMessageFilter
     {
+        public static readonly InvokeMessageFilter Instance = new InvokeMessageFilter();
+
         private readonly Swapable<Queue<IInvokeClosure>> _invokeClosureQueue = Swapable.CreateQueue<IInvokeClosure>(optimistic: true);
+
+        [ThreadStatic]
+        private static Queue<IInvokeClosure>? _currentProcessingQueue;
 
         private int _readBarrier;
 
-        public InvokeMessageFilter() => _readBarrier = 0;
+        private InvokeMessageFilter() => _readBarrier = 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddInvoke(IInvokeClosure closure)
@@ -41,7 +42,7 @@ partial class WindowMessageLoop
         public bool TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
         {
             result = 0;
-            if (hwnd != IntPtr.Zero || (uint)message != CustomWindowMessages.ShioWindowInvoke)
+            if (hwnd != IntPtr.Zero || (uint)message != CustomWindowMessages.ShioUI_WindowInvoke)
                 return false;
 
             ProcessAllInvoke();
@@ -51,42 +52,67 @@ partial class WindowMessageLoop
         public void ProcessAllInvoke()
         {
             if (InterlockedHelper.CompareExchange(ref _readBarrier, Booleans.TrueInt, Booleans.FalseInt) != Booleans.FalseInt)
+            {
+                ProcessAllInvoke_InInvokeCall();
                 return;
+            }
 
             Queue<IInvokeClosure> queue = _invokeClosureQueue.Swap();
+            _currentProcessingQueue = queue;
+            Monitor.Enter(queue);
             try
             {
-                lock (queue)
+                while (queue.TryDequeue(out IInvokeClosure? closure))
                 {
-                    while (queue.TryDequeue(out IInvokeClosure? closure))
+                    if (closure is not null)
                     {
-                        if (closure is not null)
-                            DoInvoke(closure);
+                        DoInvoke(closure);
+                        queue = _currentProcessingQueue;
                     }
                 }
             }
             finally
             {
+                _currentProcessingQueue = null;
+                Monitor.Exit(queue);
                 Interlocked.Exchange(ref _readBarrier, Booleans.FalseInt);
             }
         }
 
-        protected virtual void DoInvoke(IInvokeClosure closure) => closure.Invoke();
-    }
+        private void ProcessAllInvoke_InInvokeCall()
+        {
+            Queue<IInvokeClosure>? queue = _currentProcessingQueue;
+            if (queue is null)
+                return;
+            try
+            {
+                while (queue.TryDequeue(out IInvokeClosure? closure))
+                {
+                    if (closure is not null)
+                        DoInvoke(closure);
+                }
+            }
+            finally
+            {
+                Monitor.Exit(queue);
+            }
+            queue = _invokeClosureQueue.Swap();
+            Monitor.Enter(queue);
+            _currentProcessingQueue = queue;
+        }
 
-    private sealed class InvokeMessageFilterSafe : InvokeMessageFilter
-    {
-        public InvokeMessageFilterSafe() { }
-
-        protected override void DoInvoke(IInvokeClosure closure)
+        private void DoInvoke(IInvokeClosure closure)
         {
             try
             {
-                base.DoInvoke(closure);
+                closure.Invoke();
             }
             catch (Exception ex)
             {
-                ExceptionCaught?.Invoke(this, new MessageLoopExceptionEventArgs(ex));
+                MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
+                if (eventHandler is null)
+                    throw;
+                eventHandler.Invoke(this, new MessageLoopExceptionEventArgs(ex));
             }
         }
     }

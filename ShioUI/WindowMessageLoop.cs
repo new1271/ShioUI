@@ -1,21 +1,17 @@
 using System;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
-
-using ShioUI.Windows;
 
 using InlineMethod;
-using ShioUI.Internals;
-using ShioUI.Internals.Native;
-using ShioUI.Utils;
 
-using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+
+using ShioUI.Internals.Native;
+using ShioUI.Utils;
+using ShioUI.Windows;
 
 namespace ShioUI;
 
@@ -23,18 +19,43 @@ public static partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
 
-    private static readonly Action<NativeWindow> _windowShowAction = window => window.Show();
-    private static readonly ThreadLocal<uint> _threadIdLocal = new ThreadLocal<uint>(Kernel32.GetCurrentThreadId, trackAllValues: false);
+    private static readonly Action<NativeWindow> _windowShowAction = static window => window.Show();
     private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
         UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
 
     private static NativeWindow? _mainWindow;
-    private static InvokeMessageFilter? _invokeMessageFilter;
     private static uint _invokeBarrier, _threadIdForMessageLoop;
+    private static bool _isFirstTimeStart = true;
+
+    [ThreadStatic]
+    private static uint _threadId;
 
     public static event MessageLoopExceptionEventHandler? ExceptionCaught;
 
-    public static uint CurrentThreadId => _threadIdLocal.Value;
+    public static uint CurrentThreadId
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            uint result = _threadId;
+            if (result == default)
+            {
+                result = Kernel32.GetCurrentThreadId();
+                _threadId = result;
+            }
+            return result;
+        }
+    }
+
+    public static bool HasMessageLoop
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+            return messageLoopThreadId != 0;
+        }
+    }
 
     public static bool IsMessageLoopThread
     {
@@ -42,7 +63,7 @@ public static partial class WindowMessageLoop
         get
         {
             uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-            return messageLoopThreadId != 0 && _threadIdLocal.Value == messageLoopThreadId;
+            return messageLoopThreadId != 0 && CurrentThreadId == messageLoopThreadId;
         }
     }
 
@@ -50,7 +71,7 @@ public static partial class WindowMessageLoop
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            throw new InvalidOperationException("The message loop is not exists!");
+            InvalidOperationException.Throw("The message loop is not exists!");
         ChangeMainWindowCore(mainWindow, IsMessageLoopThread);
     }
 
@@ -70,40 +91,33 @@ public static partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Start(NativeWindow mainWindow, bool catchAllExceptionIntoEventHandler = false)
+    public static int Start(NativeWindow mainWindow)
     {
-        uint currentThreadId = _threadIdLocal.Value;
+        uint currentThreadId = CurrentThreadId;
         if (InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
-            throw new InvalidOperationException("Message loop is already exists!");
-        InvokeMessageFilter invokeMessageFilter =
-            catchAllExceptionIntoEventHandler ? new InvokeMessageFilterSafe() : new InvokeMessageFilter();
-        AddMessageFilter(invokeMessageFilter);
-        InterlockedHelper.Exchange(ref _invokeMessageFilter, invokeMessageFilter)?.ProcessAllInvoke();
+            InvalidOperationException.Throw("Message loop is already exists!");
+        if (_isFirstTimeStart)
+        {
+            _isFirstTimeStart = false;
+            AddMessageFilter(InvokeMessageFilter.Instance);
+        }
+        else
+        {
+            InvokeMessageFilter.Instance.ProcessAllInvoke();
+        }
 
         ChangeMainWindowCore(mainWindow, isMessageLoopThread: true);
-        int result = catchAllExceptionIntoEventHandler ? DoMessageLoop_CatchAllException() : DoMessageLoop();
+        int result = DoMessageLoop();
         InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
 
-        invokeMessageFilter = InterlockedHelper.CompareExchange(ref _invokeMessageFilter, null, invokeMessageFilter);
-        if (invokeMessageFilter is not null)
-        {
-            RemoveMessageFilter(invokeMessageFilter);
-            invokeMessageFilter.ProcessAllInvoke();
-        }
         ChangeMainWindowCore(null, isMessageLoopThread: false);
         return result;
     }
 
     internal static MessageLoopExceptionEventHandler? GetExceptionEventHandler() => ExceptionCaught;
 
-    private static int DoMessageLoop()
-        => DoMessageLoop_Model(catchException: false);
-
-    private static int DoMessageLoop_CatchAllException()
-        => DoMessageLoop_Model(catchException: true);
-
-    [Inline(InlineBehavior.Remove)]
-    private static unsafe int DoMessageLoop_Model([InlineParameter] bool catchException)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static unsafe int DoMessageLoop()
     {
         PumpingMessage msg;
         SysBool32 status;
@@ -112,7 +126,7 @@ public static partial class WindowMessageLoop
             if (status.IsFailed)
                 goto Failed;
 
-            if (TryFilterMessage(ref msg, catchException: false, out nint result))
+            if (TryFilterMessage(ref msg, out nint result))
             {
                 if (User32.InSendMessage())
                     User32.ReplyMessage(result);
@@ -126,28 +140,25 @@ public static partial class WindowMessageLoop
         return unchecked((int)msg.wParam);
 
     Failed:
-        if (catchException)
-        {
-            MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
-            if (eventHandler is not null)
-            {
-                Exception? exception = Marshal.GetExceptionForHR(Kernel32.GetLastError());
-                if (exception is not null)
-                    eventHandler.Invoke(null, new MessageLoopExceptionEventArgs(exception));
-            }
-        }
+        MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
+        if (eventHandler is null)
+            Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
         else
         {
-            Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
+            Exception? exception = Marshal.GetExceptionForHR(Kernel32.GetLastError());
+            if (exception is not null)
+                eventHandler.Invoke(null, new MessageLoopExceptionEventArgs(exception));
         }
         return -1;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     internal static unsafe void StartMiniLoop(CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
             return;
+
+        InvokeMessageFilter.Instance.ProcessAllInvoke();
 
         IntPtr timerHandle = Kernel32.CreateWaitableTimerW(null, true, null);
         StrongBox<IntPtr> timerHandleBox = new StrongBox<IntPtr>(timerHandle);
@@ -181,7 +192,7 @@ public static partial class WindowMessageLoop
                                 if (msg.message == WindowMessage.Quit)
                                     User32.PostQuitMessage(unchecked((int)msg.wParam));
 
-                                if (TryFilterMessage(ref msg, catchException: false, out nint result))
+                                if (TryFilterMessage(ref msg, out nint result))
                                 {
                                     if (User32.InSendMessage())
                                         User32.ReplyMessage(result);
@@ -198,7 +209,8 @@ public static partial class WindowMessageLoop
                         Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
                         return;
                     default:
-                        throw new InvalidOperationException("Invalid state!");
+                        InvalidOperationException.Throw("Invalid state!");
+                        return;
                 }
             }
         }
@@ -210,7 +222,7 @@ public static partial class WindowMessageLoop
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static bool TryFilterMessage(ref PumpingMessage msg, [InlineParameter] bool catchException, out nint result)
+    private static bool TryFilterMessage(ref PumpingMessage msg, out nint result)
     {
         UnwrappableList<IWindowMessageFilter> filters = _filters.Update();
         int count = filters.Count;
@@ -225,22 +237,17 @@ public static partial class WindowMessageLoop
         for (nuint i = 0, limit = unchecked((nuint)count); i < limit; i++)
         {
             IWindowMessageFilter filter = UnsafeHelper.AddTypedOffset(ref filterRef, i);
-            if (catchException)
-            {
-                try
-                {
-                    if (filter.TryProcessWindowMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam, out result))
-                        return true;
-                }
-                catch (Exception ex)
-                {
-                    ExceptionCaught?.Invoke(null, new MessageLoopExceptionEventArgs(ex));
-                }
-            }
-            else
+            try
             {
                 if (filter.TryProcessWindowMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam, out result))
                     return true;
+            }
+            catch (Exception ex)
+            {
+                MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
+                if (eventHandler is null)
+                    throw;
+                eventHandler.Invoke(filter, new MessageLoopExceptionEventArgs(ex));
             }
         }
 
@@ -250,405 +257,14 @@ public static partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Stop(int exitCode = 0)
-        => User32.PostQuitMessage(exitCode);
+    public static void Stop(int exitCode = 0) => User32.PostQuitMessage(exitCode);
 
-    private static void OnWindowDestroyed(object? sender, EventArgs e)
-        => Stop();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void OnWindowDestroyed(object? sender, EventArgs e) => Stop();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddMessageFilter(IWindowMessageFilter messageFilter) => _filters.Add(messageFilter);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RemoveMessageFilter(IWindowMessageFilter messageFilter) => _filters.Remove(messageFilter);
-
-    public static object? Invoke<TDelegate>(TDelegate @delegate) where TDelegate : Delegate
-    {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return null;
-        if (_threadIdLocal.Value == messageLoopThreadId)
-        {
-            if (typeof(TDelegate) == typeof(Action))
-            {
-                UnsafeHelper.As<Delegate, Action>(@delegate).Invoke();
-                return null;
-            }
-            return @delegate.DynamicInvoke(null);
-        }
-        if (typeof(TDelegate) == typeof(Action))
-            return InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action>(@delegate), CancellationToken.None).Result;
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None).Result;
-    }
-
-    public static object? Invoke<TDelegate, TArg>(TDelegate @delegate, TArg arg) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return null;
-
-        if (_threadIdLocal.Value == messageLoopThreadId)
-        {
-            if (typeof(TDelegate) == typeof(Action<TArg>))
-            {
-                UnsafeHelper.As<Delegate, Action<TArg>>(@delegate).Invoke(arg);
-                return null;
-            }
-            return @delegate.DynamicInvoke(arg);
-        }
-        if (typeof(TDelegate) == typeof(Action<TArg>))
-            return InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action<TArg>>(@delegate), arg, CancellationToken.None).Result;
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, [arg], CancellationToken.None).Result;
-    }
-
-    public static object? Invoke<TDelegate, TArg1, TArg2>(TDelegate @delegate, TArg1 arg1, TArg2 arg2) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return null;
-
-        if (_threadIdLocal.Value == messageLoopThreadId)
-        {
-            if (typeof(TDelegate) == typeof(Action<TArg1, TArg2>))
-            {
-                UnsafeHelper.As<Delegate, Action<TArg1, TArg2>>(@delegate).Invoke(arg1, arg2);
-                return null;
-            }
-            return @delegate.DynamicInvoke(arg1, arg2);
-        }
-        if (typeof(TDelegate) == typeof(Action<TArg1, TArg2>))
-            return InvokeTaskCoreAsync(messageLoopThreadId,
-                 UnsafeHelper.As<Delegate, Action<TArg1, TArg2>>(@delegate), arg1, arg2, CancellationToken.None);
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, [arg1, arg2], CancellationToken.None).Result;
-    }
-
-    public static object? Invoke<TDelegate, TArg1, TArg2, TArg3>(TDelegate @delegate, TArg1 arg1, TArg2 arg2, TArg3 arg3) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return null;
-
-        if (_threadIdLocal.Value == messageLoopThreadId)
-        {
-            if (typeof(TDelegate) == typeof(Action<TArg1, TArg2, TArg3>))
-            {
-                UnsafeHelper.As<Delegate, Action<TArg1, TArg2, TArg3>>(@delegate).Invoke(arg1, arg2, arg3);
-                return null;
-            }
-            return @delegate.DynamicInvoke(arg1, arg2);
-        }
-        if (typeof(TDelegate) == typeof(Action<TArg1, TArg2, TArg3>))
-            return InvokeTaskCoreAsync(messageLoopThreadId,
-                    UnsafeHelper.As<Delegate, Action<TArg1, TArg2, TArg3>>(@delegate), arg1, arg2, arg3, CancellationToken.None).Result;
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, [arg1, arg2, arg3], CancellationToken.None).Result;
-    }
-
-    public static object? Invoke<TDelegate>(TDelegate @delegate, params object?[]? args) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action) && args is not null && args.Length != 0)
-            throw new TargetParameterCountException(nameof(args));
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return null;
-
-        if (_threadIdLocal.Value == messageLoopThreadId)
-        {
-            if (typeof(TDelegate) == typeof(Action))
-            {
-                UnsafeHelper.As<Delegate, Action>(@delegate).Invoke();
-                return null;
-            }
-            return @delegate.DynamicInvoke(args);
-        }
-        if (typeof(TDelegate) == typeof(Action))
-        {
-            InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action>(@delegate), CancellationToken.None).Wait();
-            return null;
-        }
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, CancellationToken.None).Result;
-    }
-
-    public static void InvokeAsync<TDelegate>(TDelegate @delegate) where TDelegate : Delegate
-    {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return;
-        if (typeof(TDelegate) == typeof(Action))
-        {
-            InvokeCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action>(@delegate), CancellationToken.None);
-            return;
-        }
-        InvokeCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-    }
-
-    public static void InvokeAsync<TDelegate, TArg>(TDelegate @delegate, TArg arg) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return;
-        if (typeof(TDelegate) == typeof(Action<TArg>))
-        {
-            InvokeCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action<TArg>>(@delegate), arg, CancellationToken.None);
-            return;
-        }
-        InvokeCoreAsync(messageLoopThreadId, @delegate, [arg], CancellationToken.None);
-    }
-
-    public static void InvokeAsync<TDelegate, TArg1, TArg2>(TDelegate @delegate, TArg1 arg1, TArg2 arg2) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return;
-        if (typeof(TDelegate) == typeof(Action<TArg1, TArg2>))
-        {
-            InvokeCoreAsync(messageLoopThreadId,
-                UnsafeHelper.As<Delegate, Action<TArg1, TArg2>>(@delegate), arg1, arg2, CancellationToken.None);
-            return;
-        }
-        InvokeCoreAsync(messageLoopThreadId, @delegate, [arg1, arg2], CancellationToken.None);
-    }
-
-    public static void InvokeAsync<TDelegate, TArg1, TArg2, TArg3>(TDelegate @delegate, TArg1 arg1, TArg2 arg2, TArg3 arg3) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return;
-        if (typeof(TDelegate) == typeof(Action<TArg1, TArg2, TArg3>))
-        {
-            InvokeCoreAsync(messageLoopThreadId,
-                UnsafeHelper.As<Delegate, Action<TArg1, TArg2, TArg3>>(@delegate), arg1, arg2, arg3, CancellationToken.None);
-            return;
-        }
-        InvokeCoreAsync(messageLoopThreadId, @delegate, [arg1, arg2, arg3], CancellationToken.None);
-    }
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InvokeAsync<TDelegate>(TDelegate @delegate, params object?[]? args) where TDelegate : Delegate
-        => InvokeAsync(@delegate, args, CancellationToken.None);
-
-    public static void InvokeAsync<TDelegate>(TDelegate @delegate, object?[]? args, CancellationToken cancellationToken) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action) && args is not null && args.Length != 0)
-            throw new TargetParameterCountException(nameof(args));
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return;
-
-        if (typeof(TDelegate) == typeof(Action))
-        {
-            InvokeCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action>(@delegate), cancellationToken);
-            return;
-        }
-        InvokeCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-    }
-
-    public static Task<object?> InvokeTaskAsync<TDelegate>(TDelegate @delegate) where TDelegate : Delegate
-    {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return Task.FromResult<object?>(null);
-
-        if (typeof(TDelegate) == typeof(Action))
-            return InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action>(@delegate), CancellationToken.None);
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-    }
-
-    public static Task<object?> InvokeTaskAsync<TDelegate, TArg>(TDelegate @delegate, TArg arg) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return Task.FromResult<object?>(null);
-
-        if (typeof(TDelegate) == typeof(Action<TArg>))
-            return InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action<TArg>>(@delegate), arg, CancellationToken.None);
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, [arg], CancellationToken.None);
-    }
-
-    public static Task<object?> InvokeTaskAsync<TDelegate, TArg1, TArg2>(TDelegate @delegate, TArg1 arg1, TArg2 arg2) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return Task.FromResult<object?>(null);
-
-        if (typeof(TDelegate) == typeof(Action<TArg1, TArg2>))
-            return InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action<TArg1, TArg2>>(@delegate), arg1, arg2, CancellationToken.None);
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, [arg1, arg2], CancellationToken.None);
-    }
-
-    public static Task<object?> InvokeTaskAsync<TDelegate, TArg1, TArg2, TArg3>(TDelegate @delegate, TArg1 arg1, TArg2 arg2, TArg3 arg3) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action))
-            throw new TargetParameterCountException();
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return Task.FromResult<object?>(null);
-
-        if (typeof(TDelegate) == typeof(Action<TArg1, TArg2>))
-            return InvokeTaskCoreAsync(messageLoopThreadId,
-                UnsafeHelper.As<Delegate, Action<TArg1, TArg2, TArg3>>(@delegate), arg1, arg2, arg3, CancellationToken.None);
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, [arg1, arg2, arg3], CancellationToken.None);
-    }
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<object?> InvokeTaskAsync<TDelegate>(TDelegate @delegate, params object?[]? args) where TDelegate : Delegate
-        => InvokeTaskAsync(@delegate, args, CancellationToken.None);
-
-    public static Task<object?> InvokeTaskAsync<TDelegate>(TDelegate @delegate, object?[]? args, CancellationToken cancellationToken) where TDelegate : Delegate
-    {
-        if (typeof(TDelegate) == typeof(Action) && args is not null && args.Length != 0)
-            throw new TargetParameterCountException(nameof(args));
-
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            return Task.FromResult<object?>(null);
-
-        if (typeof(TDelegate) == typeof(Action))
-            return InvokeTaskCoreAsync(messageLoopThreadId, UnsafeHelper.As<Delegate, Action>(@delegate), cancellationToken);
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-    }
-
-    private static void InvokeCoreAsync(uint threadId, Action action, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return;
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure(action, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
-
-    private static void InvokeCoreAsync<TArg>(uint threadId, Action<TArg> action, TArg arg, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return;
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure<TArg>(action, arg, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
-
-    private static void InvokeCoreAsync<TArg1, TArg2>(uint threadId,
-        Action<TArg1, TArg2> action, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return;
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure<TArg1, TArg2>(action, arg1, arg2, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
-
-    private static void InvokeCoreAsync<TArg1, TArg2, TArg3>(uint threadId,
-        Action<TArg1, TArg2, TArg3> action, TArg1 arg1, TArg2 arg2, TArg3 arg3, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return;
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure<TArg1, TArg2, TArg3>(action, arg1, arg2, arg3, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
-
-    private static void InvokeCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return;
-        invokeMessageFilter.AddInvoke(new InvokeClosure(@delegate, args, null, cancellationToken));
-        PostInvokeMessage(threadId);
-    }
-
-    private static async Task<object?> InvokeTaskCoreAsync(uint threadId, Action action, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return null;
-
-        TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure(action, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
-        await completionSource.Task;
-        return null;
-    }
-
-    private static async Task<object?> InvokeTaskCoreAsync<TArg>(uint threadId, Action<TArg> action, TArg arg, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return null;
-
-        TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure<TArg>(action, arg, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
-        await completionSource.Task;
-        return null;
-    }
-
-    private static async Task<object?> InvokeTaskCoreAsync<TArg1, TArg2>(uint threadId,
-        Action<TArg1, TArg2> action, TArg1 arg1, TArg2 arg2, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return null;
-
-        TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure<TArg1, TArg2>(action, arg1, arg2, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
-        await completionSource.Task;
-        return null;
-    }
-
-    private static async Task<object?> InvokeTaskCoreAsync<TArg1, TArg2, TArg3>(uint threadId,
-        Action<TArg1, TArg2, TArg3> action, TArg1 arg1, TArg2 arg2, TArg3 arg3, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return null;
-
-        TaskCompletionSource<bool> completionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new SimpleInvokeClosure<TArg1, TArg2, TArg3>(action, arg1, arg2, arg3, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
-        await completionSource.Task;
-        return null;
-    }
-
-    private static Task<object?> InvokeTaskCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken)
-    {
-        InvokeMessageFilter? invokeMessageFilter = InterlockedHelper.Read(ref _invokeMessageFilter);
-        if (invokeMessageFilter is null)
-            return Task.FromResult<object?>(null);
-
-        TaskCompletionSource<object?> completionSource = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        invokeMessageFilter.AddInvoke(new InvokeClosure(@delegate, args, completionSource, cancellationToken));
-        PostInvokeMessage(threadId);
-        return completionSource.Task;
-    }
-
-    private static void PostInvokeMessage(uint threadId)
-    {
-        if (MathHelper.ToBooleanUnsafe(InterlockedHelper.CompareExchange(ref _invokeBarrier, Booleans.TrueInt, Booleans.FalseInt)))
-            return;
-        User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioWindowInvoke, 0, 0);
-        InterlockedHelper.Write(ref _invokeBarrier, Booleans.FalseInt);
-    }
 }

@@ -15,17 +15,26 @@ partial class Label
     {
         public AutoHeightNode(Label element) : base(element) { }
 
-        protected override int Compute(Label element, in LayoutNodeManager manager)
+        protected override int ComputeCore(Label element, in LayoutContext context)
         {
             string? fontName = element._fontName;
             if (fontName is null)
                 return 0;
             float fontSize = element._fontSize;
             string text = element._text;
-            if (SequenceHelper.Contains(text, '\n') && manager.GetLayoutNodeOrNull(element, LayoutProperty.Width) is AutoWidthNode autoVariable)
+            if (element._wordWrap)
             {
-                using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text, fontName, element._alignment, fontSize);
-                layout.MaxWidth = manager.GetComputedValue(autoVariable);
+                using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text,
+                    fontName, element._alignment, element._fontSize);
+                element._postActionForFormat?.Invoke(layout);
+                layout.MaxWidth = context.GetComputedValue(element, LayoutProperty.Width);
+                return MathI.Ceiling(layout.GetMetrics().Height);
+            }
+            if (SequenceHelper.Contains(text, '\n'))
+            {
+                using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text,
+                    fontName, element._alignment, element._fontSize);
+                element._postActionForFormat?.Invoke(layout);
                 return MathI.Ceiling(layout.GetMetrics().Height);
             }
             return MathI.Ceiling(FontHeightHelper.GetFontHeight(fontName, fontSize));

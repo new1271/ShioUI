@@ -1,14 +1,11 @@
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-
-using ShioUI.Utils;
-using ShioUI.Windows;
-using ShioUI.Graphics;
-using ShioUI.Theme;
 
 using RiceTea.Core;
-using RiceTea.Core.Extensions;
+
+using ShioUI.Graphics;
+using ShioUI.Theme;
+using ShioUI.Utils;
+using ShioUI.Windows;
 
 namespace ShioUI.Controls;
 
@@ -21,29 +18,7 @@ public sealed partial class PopupPanel : PopupElementBase, IElementContainer, IC
         _collection = new OneUIElementCollection(this);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetElements() => _collection;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetElementsForRender() => ElementContainerDefaults.GetActiveElements(this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddChild(UIElement? element) => _collection.Value ??= element;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddChildren(params UIElement[] elements) => AddChild(elements.FirstOrDefault());
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AddChildren(IEnumerable<UIElement> elements) => AddChild(elements.FirstOrDefault());
-
-    public void RemoveChild(UIElement element)
-    {
-        OneUIElementCollection collection = _collection;
-        if (collection.Value == element)
-            collection.Value = null;
-    }
-
-    protected override void ApplyThemeCore(IThemeResourceProvider provider) => UIElementHelper.ApplyTheme(provider, _collection.Value);
+    protected override void ApplyThemeCore(IThemeResourceProvider provider) => UIElementHelper.ApplyThemeToElement(provider, _collection.Value);
 
     protected override bool RenderCore(in RegionalRenderingContext context) => true;
 
@@ -53,11 +28,9 @@ public sealed partial class PopupPanel : PopupElementBase, IElementContainer, IC
 
     IEnumerable<UIElement> IElementContainer.GetActiveElements() => _collection;
 
-    IRenderer IElementContainer.GetRenderer() => Renderer;
-
-    CoreWindow IElementContainer.GetWindow() => Window;
-
     bool IElementContainer.IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque();
+
+    public ContentPageScope EnterContentPageScope() => ContentPageScope.Create(this);
 
     protected override void DisposeCore(bool disposing)
     {

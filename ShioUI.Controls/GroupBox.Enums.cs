@@ -7,7 +7,7 @@ partial class GroupBox
     private enum RedrawType : long
     {
         NoRedraw,
-        RedrawText,
+        RedrawTitle,
         RedrawAllContent
     }
 
@@ -15,9 +15,8 @@ partial class GroupBox
     private enum RenderObjectUpdateFlags : long
     {
         None = 0,
-        Title = 0b001,
-        Text = 0b010,
-        Format = 0b111,
+        Title = 0b01,
+        Format = 0b11,
         FlagsAllTrue = -1L
     }
 

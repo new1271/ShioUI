@@ -1,20 +1,21 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Layout;
-using ShioUI.Utils;
-
 using InlineMethod;
+
+using RiceTea.Core.Helpers;
+
 using ShioUI.Controls.Internals;
 using ShioUI.Graphics;
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Layout;
 using ShioUI.Theme;
-
-using RiceTea.Core.Helpers;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -32,9 +33,10 @@ public sealed partial class Button : ButtonBase
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
-    private readonly LayoutNode?[] _autoLayoutDefinitionCache = new LayoutNode?[2];
+    private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
 
     private DWriteTextLayout? _layout;
+    private WeakReference<Button>? _reference;
     private string? _fontName;
     private string _text;
 
@@ -49,22 +51,22 @@ public sealed partial class Button : ButtonBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Button WithAutoWidth()
+    private WeakReference<Button> GetWeakReference()
     {
-        WidthExpression = AutoWidthDefinition;
-        return this;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Button WithAutoHeight()
-    {
-        HeightExpression = AutoHeightDefinition;
-        return this;
+        WeakReference<Button>? reference = InterlockedHelper.Read(ref _reference);
+        if (reference is null)
+        {
+            reference = new WeakReference<Button>(this);
+            WeakReference<Button>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
+            if (oldReference is not null)
+                reference = oldReference;
+        }
+        return reference;
     }
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
     {
-        UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         _fontName = provider.FontName;
         DisposeHelper.SwapDisposeInterlocked(ref _layout);
         Update(RenderObjectUpdateFlags.Format);

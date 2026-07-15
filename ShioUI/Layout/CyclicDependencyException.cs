@@ -4,16 +4,16 @@ namespace ShioUI.Layout;
 
 public sealed class CyclicDependencyException : Exception
 {
-    private readonly LayoutNode[] _walkedNodes;
+    private readonly LayoutNodeBase[] _walkedNodes;
 
-    public LayoutNode[] WalkedNodes => _walkedNodes;
+    public LayoutNodeBase[] WalkedNodes => _walkedNodes;
 
-    public CyclicDependencyException(LayoutNode[] walkedNodes)
+    public CyclicDependencyException(LayoutNodeBase[] walkedNodes)
     {
         _walkedNodes = walkedNodes;
     }
 
-    public CyclicDependencyException(string? message, LayoutNode[] walkedNodes) : base(message)
+    public CyclicDependencyException(string? message, LayoutNodeBase[] walkedNodes) : base(message)
     {
         _walkedNodes = walkedNodes;
     }

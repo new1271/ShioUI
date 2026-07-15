@@ -4,10 +4,12 @@ using ShioUI.Layout;
 using ShioUI.Graphics.Native.DirectWrite;
 
 using RiceTea.Core.Helpers;
+using System.Diagnostics.CodeAnalysis;
+using System;
 
 namespace ShioUI.Controls;
 
-partial class Label
+partial class Label : IAutoWidthElement, IAutoHeightElement
 {
     public TextAlignment Alignment
     {
@@ -69,13 +71,30 @@ partial class Label
         }
     }
 
-    public string Text
+    public Action<DWriteTextFormat>? PostActionForBuildingFormat
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _postActionForFormat;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set
+        {
+            if (_postActionForFormat == value)
+                return;
+            _postActionForFormat = value;
+            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            Update(RenderObjectUpdateFlags.Format);
+        }
+    }
+
+    public string? Text
+    {
+        [return: NotNull]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _text;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
+            value ??= string.Empty;
             if (_text == value)
                 return;
             _text = value;
@@ -100,12 +119,12 @@ partial class Label
     public LayoutNode AutoWidthDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _autoLayoutDefinitionCache[0] ??= new AutoWidthNode(this);
+        get => _autoLayoutDefinitions[0] ??= new AutoWidthNode(this);
     }
 
     public LayoutNode AutoHeightDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _autoLayoutDefinitionCache[1] ??= new AutoHeightNode(this);
+        get => _autoLayoutDefinitions[1] ??= new AutoHeightNode(this);
     }
 }

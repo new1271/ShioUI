@@ -56,15 +56,11 @@ public static class GraphicsUtils
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Point AdjustPoint(PointF rawPoint)
-        => new Point(MathI.Floor(rawPoint.X), MathI.Floor(rawPoint.Y));
+        => new Point(MathI.Round(rawPoint.X, MidpointRounding.AwayFromZero), MathI.Round(rawPoint.Y, MidpointRounding.AwayFromZero));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PointF AdjustPointF(PointF rawPoint)
-        => new PointF(MathF.Floor(rawPoint.X), MathF.Floor(rawPoint.Y));
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static PointF AdjustPointF2(PointF rawPoint)
-        => new PointF(MathF.Floor(rawPoint.X), MathF.Ceiling(rawPoint.Y));
+        => new PointF(MathF.Round(rawPoint.X, MidpointRounding.AwayFromZero), MathF.Round(rawPoint.Y, MidpointRounding.AwayFromZero));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Size ScalingSize(SizeF original, Vector2 scaleFactor)

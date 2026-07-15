@@ -48,7 +48,7 @@ public sealed partial class ListBox : ScrollableElementBase
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly D2D1Brush?[] _checkBoxBrushes = new D2D1Brush[(int)CheckBoxBrush._Last];
-    private readonly LayoutNode?[] _autoLayoutDefinitionCache = new LayoutNode?[2];
+    private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
     private readonly BitList _stateVectorList;
     private readonly ObservableList<string> _items;
 
@@ -72,20 +72,6 @@ public sealed partial class ListBox : ScrollableElementBase
         _selectedIndex = -1;
         _recalcFormat = Booleans.TrueLong;
         _checkBoxThemePrefix = "app.checkBox";
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ListBox WithAutoWidth()
-    {
-        WidthExpression = AutoWidthDefinition;
-        return this;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ListBox WithAutoHeight()
-    {
-        HeightExpression = AutoHeightDefinition;
-        return this;
     }
 
     public void CopySelectedItemsToBuffer(string[] destination, int startIndex, out int itemCopied)
@@ -135,8 +121,8 @@ public sealed partial class ListBox : ScrollableElementBase
         base.ApplyThemeCore(provider);
         string fontName = provider.FontName;
         _fontName = fontName;
-        UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
-        UIElementHelper.ApplyThemeUnsafe(provider, _checkBoxBrushes, _checkBoxBrushNames, _checkBoxThemePrefix, (nuint)CheckBoxBrush._Last);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _checkBoxBrushes, _checkBoxBrushNames, _checkBoxThemePrefix, (nuint)CheckBoxBrush._Last);
         DisposeHelper.SwapDisposeInterlocked(ref _format);
         InterlockedHelper.Write(ref _recalcFormat, Booleans.TrueLong);
         InterlockedHelper.Write(ref _itemHeight, MathI.Ceiling(FontHeightHelper.GetFontHeight(fontName, _fontSize)) + 2);
@@ -187,7 +173,7 @@ public sealed partial class ListBox : ScrollableElementBase
             format = BuildTextFormat();
         SizeF renderSize = context.Size;
         ListBoxMode mode = Mode;
-        float itemHeight = RenderingHelper.RoundInPixel(_itemHeight, Renderer.GetPixelsPerPoint().Y);
+        float itemHeight = RenderingHelper.RoundInPixel(_itemHeight, Window.GetPixelsPerPoint().Y);
         int currentTop = ViewportPoint.Y;
         int startIndex = (int)(currentTop / itemHeight);
         int endIndex = MathI.Ceiling((currentTop + renderSize.Height) / itemHeight);

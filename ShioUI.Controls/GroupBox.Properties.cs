@@ -1,15 +1,14 @@
-using System;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 
-using ShioUI.Layout;
-
 using RiceTea.Core.Extensions;
-using RiceTea.Core.Helpers;
+
+using ShioUI.Layout;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
-partial class GroupBox
+partial class GroupBox : IAutoWidthElement, IAutoHeightElement
 {
     public string Title
     {
@@ -24,160 +23,75 @@ partial class GroupBox
         }
     }
 
-    public string Text
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
-        set
-        {
-            if (ReferenceEquals(_text, value))
-                return;
-            _text = value ?? string.Empty;
-            Update(RenderObjectUpdateFlags.Text, RedrawType.RedrawText);
-        }
-    }
-
     public UIElement? FirstChild
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _children.GetUnderlyingList().FirstOrDefault();
+        get => _children.FirstOrDefault();
     }
 
     public UIElement? LastChild
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _children.GetUnderlyingList().LastOrDefault();
+        get => _children.LastOrDefault();
     }
 
-    public int ContentLeft
+    public UIElementCollection Children
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLeftCore(Left);
+        get => _children;
     }
 
-    public LayoutNode ContentLeftDefinition
+    public int ContentPageLeft
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Left);
+        get => GetContentPageLeftCore();
     }
 
-    public int ContentTop
+    public int ContentPageTop
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentTopCore(Top);
+        get => GetContentPageTopCore();
     }
 
-    public LayoutNode ContentTopDefinition
+    public int ContentPageRight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Top);
+        get => GetContentPageRightCore(Width);
     }
 
-    public int ContentRight
+    public int ContentPageBottom
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentRightCore(Right);
+        get => GetContentPageBottomCore(Height);
     }
 
-    public LayoutNode ContentRightDefinition
+    public int ContentPageWidth
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Right);
+        get => GetContentPageWidthCore(Width);
     }
 
-    public int ContentBottom
+    public int ContentPageHeight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentBottomCore(Bottom);
+        get => GetContentPageHeightCore(Height);
     }
 
-    public LayoutNode ContentBottomDefinition
+    public Point ContentPageOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Bottom);
+        get => new Point(GetContentPageLeftCore(), GetContentPageTopCore());
     }
 
-    public int ContentWidth
+    public LayoutNode AutoWidthDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            Rectangle bounds = Bounds;
-            int left = GetContentLeftCore(bounds.Left);
-            int right = GetContentRightCore(bounds.Right);
-            return right - left;
-        }
+        get => _autoLayoutDefinitions.AsUnsafeRef()[0] ??= new AutoWidthNode(GetWeakReference());
     }
 
-    public LayoutNode ContentWidthDefinition
+    public LayoutNode AutoHeightDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Width);
-    }
-
-    public int ContentHeight
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            Rectangle bounds = Bounds;
-            int top = GetContentTopCore(bounds.Top);
-            int bottom = GetContentBottomCore(bounds.Bottom);
-            return bottom - top;
-        }
-    }
-
-    public LayoutNode ContentHeightDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetContentLayoutDefinitionCore((nuint)LayoutProperty.Height);
-    }
-
-    public int TextTop
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetTextTopCore(Location.Y);
-    }
-
-    public LayoutNode TextTopDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            TextTopNode? result = _textTopReference;
-            if (result is null)
-            {
-                WeakReference<GroupBox>? reference = InterlockedHelper.Read(ref _reference);
-                if (reference is null)
-                {
-                    reference = new WeakReference<GroupBox>(this);
-                    WeakReference<GroupBox>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
-                    if (oldReference is not null)
-                        reference = oldReference;
-                }
-                _textTopReference = result = new TextTopNode(reference);
-            }
-            return result;
-        }
-    }
-
-    public Point ContentLocation
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            Point location = Location;
-            return new Point(GetContentLeftCore(location.X), GetContentTopCore(location.Y));
-        }
-    }
-
-    public Point TextLocation
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            Point location = Location;
-            return new Point(GetContentLeftCore(location.X), GetTextTopCore(location.Y));
-        }
+        get => _autoLayoutDefinitions.AsUnsafeRef()[1] ??= new AutoHeightNode(GetWeakReference());
     }
 }

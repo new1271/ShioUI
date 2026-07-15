@@ -3,19 +3,20 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 
+using RiceTea.Core.Buffers;
+using RiceTea.Core.Collections;
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Structures;
+
+using ShioUI.Controls;
+using ShioUI.Extensions;
 using ShioUI.Graphics;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Theme;
 using ShioUI.Utils;
-
-using RiceTea.Core.Collections;
-using RiceTea.Core.Helpers;
-using RiceTea.Core.Structures;
-using RiceTea.Core.Threading;
 
 namespace ShioUI.Windows;
 
@@ -23,7 +24,6 @@ public abstract partial class CoreWindow : NativeWindow
 {
     #region Static Fields
     private static readonly UnwrappableList<GCHandle> _rootWindowList = new UnwrappableList<GCHandle>();
-    private static readonly Func<WeakReference> _weakReferenceFactory = static () => new WeakReference(null);
     #endregion
 
     #region Fields
@@ -51,28 +51,92 @@ public abstract partial class CoreWindow : NativeWindow
 
     protected virtual void OnMouseDown(ref HandleableMouseEventArgs args)
     {
-        if (args.Handled)
-            return;
+        HitTestData data = default;
         HandleableMouseEventArgs relativeArgs = new HandleableMouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta);
-        OnMouseDownForElements(ref relativeArgs);
-        if (relativeArgs.Handled)
-            args.Handle();
+        try
+        {
+            OnMouseDownForElements(ref relativeArgs, ref data);
+            if (relativeArgs.Handled)
+                args.Handle();
+        }
+        finally
+        {
+            ChangeLastMouseDownHitElement(data.LastHitElement, args.Buttons);
+            ChangeFocusElement(data.LastHitElement);
+        }
     }
 
     protected virtual void OnMouseUp(in MouseEventArgs args)
-        => OnMouseUpForElements(new MouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta));
+    {
+        ArrayPool<UIElement?>.RentScope scope = _elementArrayPool.EnterRentScope();
+        try
+        {
+            GetAndClearLastMouseDownHitElements(ref scope, args.Buttons);
+            int count = scope.Count;
+            switch (count)
+            {
+                case 0:
+                    break;
+                case 1:
+                    {
+                        UIElement? element = scope.GetReferenceOfFirstElement();
+                        if (element is IMouseInteractHandler handler)
+                        {
+                            PointF location = WindowToPage(args.Location);
+                            handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(location)), args.Buttons, args.Delta));
+                        }
+                    }
+                    break;
+                default:
+                    if (count > 0)
+                    {
+                        PointF location = WindowToPage(args.Location);
+                        ref readonly UIElement? arrayRef = ref scope.GetReferenceOfFirstElement();
+                        int i = 0;
+                        do
+                        {
+                            UIElement? element = UnsafeHelper.AddTypedOffsetAsReadOnly(in arrayRef, i);
+                            if (element is IMouseInteractHandler handler)
+                                handler.OnMouseUp(new MouseEventArgs(element.PageToLocal(element.GlobalPageToLocalPage(location)), args.Buttons, args.Delta));
+                        } while (++i < count);
+                    }
+                    break;
+            }
+        }
+        finally
+        {
+            scope.Dispose();
+        }
+        OnMouseUpForElements(new MouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta));
+    }
 
     protected virtual void OnMouseMove(in MouseEventArgs args)
-        => OnMouseMoveForElements(new MouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta));
+    {
+        MouseMoveData data = default;
+        try
+        {
+            OnMouseMoveForElements(new MouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta), ref data);
+        }
+        finally
+        {
+            Cursor = SystemCursors.GetSystemCursor(data.CursorType ?? SystemCursorType.Default);
+            ChangeLastMouseMoveHitElement(data.LastHitElement, args);
+        }
+    }
 
     protected virtual void OnMouseScroll(ref HandleableMouseEventArgs args)
     {
-        if (args.Handled)
-            return;
+        HitTestData data = default;
         HandleableMouseEventArgs relativeArgs = new HandleableMouseEventArgs(WindowToPage(args.Location), args.Buttons, args.Delta);
-        OnMouseScrollForElements(ref relativeArgs);
-        if (relativeArgs.Handled)
-            args.Handle();
+        try
+        {
+            OnMouseScrollForElements(ref relativeArgs, ref data);
+        }
+        finally
+        {
+            if (relativeArgs.Handled)
+                args.Handle();
+        }
     }
 
     protected virtual void OnKeyDown(ref KeyEventArgs args)
@@ -263,15 +327,19 @@ public abstract partial class CoreWindow : NativeWindow
         }
     }
     #endregion
-    protected CoreWindow() : this(deviceProvider: null) { }
-
-    protected CoreWindow(GraphicsDeviceProvider? deviceProvider) : base(null)
+    protected unsafe CoreWindow() : this(deviceProvider: null)
     {
         _parent = null;
-        Func<WeakReference> weakReferenceFactory = _weakReferenceFactory;
-        _focusElementRefLazy = new LazyTiny<WeakReference>(weakReferenceFactory, LazyThreadSafetyMode.PublicationOnly);
-        _recordedLastHitElementRefLazy = new LazyTiny<WeakReference>(weakReferenceFactory, LazyThreadSafetyMode.PublicationOnly);
-        _lastHitElementRefLazy = new LazyTiny<WeakReference>(weakReferenceFactory, LazyThreadSafetyMode.None);
+        _activeElementsCacheStore = new(this, &CreateSnapshotForActiveElements, &DropSnapshot);
+        _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
+    }
+
+    protected unsafe CoreWindow(GraphicsDeviceProvider? deviceProvider) : base(null)
+    {
+        _parent = null;
+        _activeElementsCacheStore = new(this, &CreateSnapshotForActiveElements, &DropSnapshot);
+        _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
+
         _graphicsDeviceProvider = deviceProvider;
         _windowMaterial = ShioSettings.WindowMaterial;
         UnwrappableList<GCHandle> windowList = _rootWindowList;
@@ -280,13 +348,12 @@ public abstract partial class CoreWindow : NativeWindow
         InitUnmanagedPart();
     }
 
-    protected CoreWindow(CoreWindow? parent, bool passParentToUnderlyingWindow = false) : base(passParentToUnderlyingWindow ? parent : null)
+    protected unsafe CoreWindow(CoreWindow? parent, bool passParentToUnderlyingWindow = false) : base(passParentToUnderlyingWindow ? parent : null)
     {
         _parent = parent;
-        Func<WeakReference> weakReferenceFactory = _weakReferenceFactory;
-        _focusElementRefLazy = new LazyTiny<WeakReference>(weakReferenceFactory, LazyThreadSafetyMode.PublicationOnly);
-        _recordedLastHitElementRefLazy = new LazyTiny<WeakReference>(weakReferenceFactory, LazyThreadSafetyMode.PublicationOnly);
-        _lastHitElementRefLazy = new LazyTiny<WeakReference>(weakReferenceFactory, LazyThreadSafetyMode.None);
+        _activeElementsCacheStore = new(this, &CreateSnapshotForActiveElements, &DropSnapshot);
+        _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
+
         UnwrappableList<GCHandle> windowList;
         if (parent is null)
         {
@@ -328,10 +395,6 @@ public abstract partial class CoreWindow : NativeWindow
         IntPtr handle = window.Handle;
         if (handle == IntPtr.Zero)
             return;
-        User32.PostMessageW(handle, CustomWindowMessages.ShioUpdateRefreshRate, 0, 0);
+        User32.PostMessageW(handle, CustomWindowMessages.ShioUI_UpdateRefreshRate, 0, 0);
     }
-
-    #region Overrides Methods
-    PointF IRenderer.GetMousePosition() => PointToClient(MouseHelper.GetMousePosition());
-    #endregion
 }

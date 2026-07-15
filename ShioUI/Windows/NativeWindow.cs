@@ -8,16 +8,19 @@ using System.Threading.Tasks;
 
 using InlineMethod;
 
+using RiceTea.Core.Helpers;
+
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Utils;
-
-using RiceTea.Core.Helpers;
 
 namespace ShioUI.Windows;
 
 public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 {
+    private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowCore();
+    private static readonly Action<NativeWindow> ShowDialogCoreAction = static (window) => window.ShowDialogCore();
+
     private readonly GCHandle _parentReference;
     private readonly Lazy<IntPtr> _handleLazy;
 
@@ -60,30 +63,88 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return;
-        WindowMessageLoop.Invoke(ShowCore);
+        if (WindowMessageLoop.HasMessageLoop)
+        {
+            if (WindowMessageLoop.IsMessageLoopThread)
+                ShowCore();
+            else
+                WindowMessageLoop.Invoke(ShowCoreAction, this);
+        }
+        else
+            WindowMessageLoop.Start(this);
     }
 
-    public async Task ShowAsync()
+    public Task ShowAsync()
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
-            return;
-        await WindowMessageLoop.InvokeTaskAsync(ShowCore);
+            goto Completed;
+        if (WindowMessageLoop.HasMessageLoop)
+        {
+            if (WindowMessageLoop.IsMessageLoopThread)
+            {
+                WindowMessageLoop.ProcessAllInvoke();
+                ShowCore();
+                goto Completed;
+            }
+            else
+                return WindowMessageLoop.InvokeTaskAsync(ShowCoreAction, this);
+        }
+        else
+        {
+            WindowMessageLoop.Start(this);
+            goto Completed;
+        }
+
+    Completed:
+        return Task.CompletedTask;
     }
 
     public DialogResult ShowDialog()
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return DialogResult.Invalid;
-        WindowMessageLoop.Invoke(ShowDialogCore);
+        if (WindowMessageLoop.HasMessageLoop)
+        {
+            if (WindowMessageLoop.IsMessageLoopThread)
+            {
+                WindowMessageLoop.ProcessAllInvoke();
+                ShowDialogCore();
+            }
+            else
+                WindowMessageLoop.InvokeTaskAsync(ShowDialogCoreAction, this).Wait();
+        }
+        else
+        {
+            WindowMessageLoop.Start(this);
+        }
         return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
     }
 
-    public async Task<DialogResult> ShowDialogAsync()
+    public Task<DialogResult> ShowDialogAsync()
     {
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
-            return DialogResult.Invalid;
-        await WindowMessageLoop.InvokeTaskAsync(ShowDialogCore);
-        return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
+            return Task.FromResult(DialogResult.Invalid);
+        if (WindowMessageLoop.HasMessageLoop)
+        {
+            if (WindowMessageLoop.IsMessageLoopThread)
+            {
+                WindowMessageLoop.ProcessAllInvoke();
+                ShowDialogCore();
+            }
+            else
+                return AsyncCore();
+        }
+        else
+        {
+            WindowMessageLoop.Start(this);
+        }
+        return Task.FromResult((DialogResult)InterlockedHelper.Read(ref _dialogResult));
+
+        async Task<DialogResult> AsyncCore()
+        {
+            await WindowMessageLoop.InvokeTaskAsync(ShowDialogCoreAction, this).ConfigureAwait(continueOnCapturedContext: false);
+            return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
+        }
     }
 
     private void WakeUpCore()
@@ -119,13 +180,17 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         return handle;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void ShowDialogInternal(NativeWindow window)
+        => window.ShowDialogCore();
+
     private void ShowDialogCore()
     {
         IntPtr parent = FindParentHandleForDialog(handle: ShowCoreWithReturn());
         User32.EnableWindow(parent, false);
-        InterlockedHelper.Exchange(ref _dialogParent, parent);
+        InterlockedHelper.Write(ref _dialogParent, parent);
         CancellationTokenSource tokenSource = new CancellationTokenSource();
-        InterlockedHelper.Exchange(ref _dialogTokenSource, tokenSource);
+        InterlockedHelper.Write(ref _dialogTokenSource, tokenSource);
         WindowMessageLoop.StartMiniLoop(tokenSource.Token);
     }
 
@@ -138,7 +203,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return;
-        InterlockedHelper.Exchange(ref _closeReason, (uint)reason);
+        InterlockedHelper.Write(ref _closeReason, (uint)reason);
         User32.PostMessageW(handle, WindowMessage.Close, 0, 0);
     }
 

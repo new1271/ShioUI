@@ -1,20 +1,19 @@
 using System;
 using System.Drawing;
 using System.Numerics;
-using System.Threading;
-
-using ShioUI.Graphics.Helpers;
-using ShioUI.Utils;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Native.Direct2D;
-using ShioUI.Graphics.Native.Direct2D.Brushes;
-using ShioUI.Graphics.Native.DirectWrite;
-using ShioUI.Theme;
 
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+
+using ShioUI.Graphics;
+using ShioUI.Graphics.Helpers;
+using ShioUI.Graphics.Native.Direct2D;
+using ShioUI.Graphics.Native.Direct2D.Brushes;
+using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Theme;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -32,57 +31,59 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
+    private readonly DWriteTextLayout?[] _layouts;
+    private readonly Point _initialLocation;
 
-    private DWriteTextLayout[]? _layouts;
-    private float _itemHeight;
+    private SizeF _itemSize;
     private int _hoveredIndex;
     private bool _isPressed;
 
-    public ContextMenu(IElementContainer parent, ContextMenuItem[] items) : base(parent, "app.contextMenu")
+    public ContextMenu(IElementContainer parent, Item[] items, Point initialLocation) : base(parent, "app.contextMenu")
     {
         MenuItems = items;
+        _initialLocation = initialLocation;
+        _layouts = new DWriteTextLayout[items.Length];
+        WeakReference<ContextMenu> reference = new WeakReference<ContextMenu>(this);
+        LeftExpression = new DefaultLeftNode(reference);
+        TopExpression = new DefaultTopNode(reference);
+        WidthExpression = new DefaultWidthNode(reference);
+        HeightExpression = new DefaultHeightNode(reference);
     }
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
     {
-        UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         DWriteFactory factory = SharedResources.DWriteFactory;
 
-        ContextMenuItem[] items = MenuItems;
+        Item[] items = MenuItems;
         float itemHeight = 0f, itemWidth = 0f;
-        Vector2 pixelsPerPoint = Renderer.GetPixelsPerPoint();
+        Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
         int count = items.Length;
-        DWriteTextLayout[] layouts = new DWriteTextLayout[count];
-        using (DWriteTextFormat format = factory.CreateTextFormat(provider.FontName, UIConstants.BoxFontSize))
+        DWriteTextLayout?[] layouts = _layouts;
+        using DWriteTextFormat format = factory.CreateTextFormat(provider.FontName, UIConstants.BoxFontSize);
+        format.ParagraphAlignment = DWriteParagraphAlignment.Center;
+
+        ref Item itemArrayRef = ref UnsafeHelper.GetArrayDataReference(items);
+        ref DWriteTextLayout? layoutArrayRef = ref UnsafeHelper.GetArrayDataReference(layouts);
+        for (int i = 0; i < count; i++)
         {
-            format.ParagraphAlignment = DWriteParagraphAlignment.Center;
-            ref ContextMenuItem itemArrayRef = ref UnsafeHelper.GetArrayDataReference(items);
-            ref DWriteTextLayout layoutArrayRef = ref UnsafeHelper.GetArrayDataReference(layouts);
-            for (int i = 0; i < count; i++)
-            {
-                string text = UnsafeHelper.AddTypedOffset(ref itemArrayRef, i).Text;
-                DWriteTextLayout layout = factory.CreateTextLayout(items[i].Text, format);
-                DWriteTextMetrics metrics = layout.GetMetrics();
-                itemWidth = MathHelper.Max(itemWidth, metrics.Width);
-                itemHeight = MathHelper.Max(itemHeight, metrics.Height);
-                UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i) = layout;
-            }
-            itemWidth = RenderingHelper.CeilingInPixel(itemWidth, pixelsPerPoint.X);
-            itemHeight = RenderingHelper.CeilingInPixel(itemHeight + UIConstants.ElementMarginHalf, pixelsPerPoint.Y);
-            for (int i = 0; i < count; i++)
-            {
-                DWriteTextLayout layout = UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);
-                layout.MaxWidth = itemWidth;
-                layout.MaxHeight = itemHeight;
-            }
+            string text = UnsafeHelper.AddTypedOffset(ref itemArrayRef, i).Text;
+            DWriteTextLayout layout = factory.CreateTextLayout(items[i].Text, format);
+            DWriteTextMetrics metrics = layout.GetMetrics();
+            itemWidth = MathHelper.Max(itemWidth, metrics.Width);
+            itemHeight = MathHelper.Max(itemHeight, metrics.Height);
+            DisposeHelper.SwapDispose(ref UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i), layout);
         }
-        float borderWidth = RenderingHelper.GetDefaultBorderWidth(pixelsPerPoint.X);
-        Size size = new Size(
-            width: MathI.Floor(itemWidth + UIConstants.ElementMargin + borderWidth * 2),
-            height: MathI.Floor(itemHeight * count + borderWidth * 2));
-        _itemHeight = itemHeight + borderWidth;
-        Size = size;
-        DisposeHelper.SwapDisposeInterlocked(ref _layouts, layouts);
+        itemWidth = RenderingHelper.CeilingInPixel(itemWidth, pixelsPerPoint.X);
+        itemHeight = RenderingHelper.CeilingInPixel(itemHeight + UIConstants.ElementMarginHalf, pixelsPerPoint.Y);
+        for (int i = 0; i < count; i++)
+        {
+            DWriteTextLayout? layout = UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);
+            DebugHelper.ThrowIf(layout is null);
+            layout.MaxWidth = itemWidth;
+            layout.MaxHeight = itemHeight;
+        }
+        _itemSize = new SizeF(itemWidth, itemHeight);
     }
 
     protected override bool IsBackgroundOpaqueCore() => GraphicsUtils.CheckBrushIsSolid(
@@ -96,11 +97,12 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
         D2D1Brush backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush),
             borderBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush);
         RenderBackground(context, backBrush);
-        DWriteTextLayout[]? layouts = Interlocked.Exchange(ref _layouts, null);
-        if (layouts is not null && layouts.Length > 0)
+        DWriteTextLayout?[] layouts = _layouts;
+        int length;
+        if ((length = layouts.Length) > 0)
         {
-            ref ContextMenuItem itemArrayRef = ref UnsafeHelper.GetArrayDataReference(MenuItems);
-            ref DWriteTextLayout layoutArrayRef = ref UnsafeHelper.GetArrayDataReference(layouts);
+            ref Item itemArrayRef = ref UnsafeHelper.GetArrayDataReference(MenuItems);
+            ref DWriteTextLayout? layoutArrayRef = ref UnsafeHelper.GetArrayDataReference(layouts);
             D2D1Brush foreBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush),
                 foreDisabledBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextInactiveBrush);
             int hoveredIndex = _hoveredIndex;
@@ -108,31 +110,42 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
                 textLeft = itemLeft + UIConstants.ElementMarginHalf,
                 itemTop = borderWidth,
                 itemRight = renderSize.Width - borderWidth;
-            for (int i = 0, count = layouts.Length; i < count; i++)
+            int i = 0;
+            do
             {
-                DWriteTextLayout layout = UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);
-                bool isEnabled = UnsafeHelper.AddTypedOffset(ref itemArrayRef, i).Enabled;
-                float itemHeight = layout.MaxHeight;
-                D2D1Brush currentForeBrush;
-                if (isEnabled)
+                ref DWriteTextLayout? layoutRef = ref UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);
+                DWriteTextLayout? layout = InterlockedHelper.Exchange(ref layoutRef, null);
+                if (layout is null)
+                    continue;
+                try
                 {
-                    if (i == hoveredIndex && isEnabled)
+                    bool isEnabled = UnsafeHelper.AddTypedOffset(ref itemArrayRef, i).Enabled;
+                    float itemHeight = layout.MaxHeight;
+                    D2D1Brush currentForeBrush;
+                    if (isEnabled)
                     {
-                        using RenderingClipScope scope = context.PushAxisAlignedClip(
-                            new RectF(itemLeft, itemTop, itemRight, itemTop + itemHeight), D2D1AntialiasMode.Aliased);
-                        D2D1Brush currentBackBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackHoveredBrush + MathHelper.BooleanToNativeUnsigned(_isPressed));
-                        currentForeBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextHoveredBrush);
-                        RenderBackground(context, currentBackBrush);
+                        if (i == hoveredIndex && isEnabled)
+                        {
+                            using RenderingClipScope scope = context.PushAxisAlignedClip(
+                                new RectF(itemLeft, itemTop, itemRight, itemTop + itemHeight), D2D1AntialiasMode.Aliased);
+                            D2D1Brush currentBackBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackHoveredBrush + MathHelper.BooleanToNativeUnsigned(_isPressed));
+                            currentForeBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextHoveredBrush);
+                            RenderBackground(context, currentBackBrush);
+                        }
+                        else
+                            currentForeBrush = foreBrush;
                     }
                     else
-                        currentForeBrush = foreBrush;
+                        currentForeBrush = foreDisabledBrush;
+                    context.DrawTextLayout(new PointF(textLeft, itemTop), layout, currentForeBrush, D2D1DrawTextOptions.NoSnap);
+                    itemTop += itemHeight;
                 }
-                else
-                    currentForeBrush = foreDisabledBrush;
-                context.DrawTextLayout(new PointF(textLeft, itemTop), layout, currentForeBrush, D2D1DrawTextOptions.NoSnap);
-                itemTop += itemHeight;
-            }
-            DisposeHelper.NullSwapOrDispose(ref _layouts, layouts);
+                finally
+                {
+                    DisposeHelper.NullSwapOrDispose(ref layoutRef, layout);
+                }
+            } while (++i < length);
+
         }
         context.DrawBorder(borderBrush);
         return true;
@@ -161,10 +174,10 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
             return;
         _isPressed = false;
         int hoveredIndex = _hoveredIndex;
-        ContextMenuItem[] items = MenuItems;
-        if (items.Length > hoveredIndex && hoveredIndex != -1)
+        Item[] items = MenuItems;
+        if (items.Length > hoveredIndex && hoveredIndex >= 0)
         {
-            ContextMenuItem item = items[hoveredIndex];
+            Item item = items[hoveredIndex];
             ItemClicked?.Invoke(this, EventArgs.Empty);
             item.OnClick();
             Close();
@@ -180,7 +193,7 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
             hoveredIndex = -1;
         else
         {
-            float itemHeight = _itemHeight;
+            float itemHeight = _itemSize.Height;
             hoveredIndex = (int)((args.Y - Location.Y) / itemHeight);
             if (MenuItems.Length <= hoveredIndex)
                 hoveredIndex = -1;
@@ -210,14 +223,13 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
     protected override void DisposeCore(bool disposing)
     {
         base.DisposeCore(disposing);
-        DWriteTextLayout[]? layouts = InterlockedHelper.Read(ref _layouts);
+        DWriteTextLayout?[] layouts = _layouts;
         if (disposing)
         {
             DisposeHelper.DisposeAll(layouts);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
-        if (layouts is not null)
-            SequenceHelper.Clear(layouts);
+        SequenceHelper.Clear(layouts);
         SequenceHelper.Clear(_brushes);
     }
 }

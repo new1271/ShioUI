@@ -1,18 +1,25 @@
+using System.Runtime.CompilerServices;
+
 namespace ShioUI.Layout.Internals;
 
 internal sealed class NegativeOperatorLayoutNode : LayoutNode
 {
     private readonly LayoutNode _variable;
 
-    public NegativeOperatorLayoutNode(LayoutNode variable)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public NegativeOperatorLayoutNode(LayoutNode variable) => _variable = variable;
+
+    protected override int ComputeCore(in LayoutContext context)
+        => -context.GetComputedValue(_variable); 
+    
+    public sealed class Fractional : FractionalLayoutNode
     {
-        _variable = variable;
+        private readonly FractionalLayoutNode _variable;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Fractional(FractionalLayoutNode variable) => _variable = variable;
+
+        protected override float ComputeCore(in LayoutContext context)
+            => -context.GetComputedValue(_variable);
     }
-
-    public override int Compute(in LayoutNodeManager manager)
-        => -manager.GetComputedValue(_variable);
-
-    public override bool Equals(object? obj) => obj is NegativeOperatorLayoutNode another && _variable.Equals(another._variable);
-
-    public override int GetHashCode() => _variable.GetHashCode();
 }

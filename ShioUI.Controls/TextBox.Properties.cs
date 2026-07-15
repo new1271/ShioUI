@@ -7,10 +7,11 @@ using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Utils;
 
 using RiceTea.Core.Helpers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ShioUI.Controls;
 
-partial class TextBox
+partial class TextBox : IAutoHeightElement
 {
     #region Events
     public event MouseNotifyEventHandler? RequestContextMenu;
@@ -72,6 +73,7 @@ partial class TextBox
         }
     }
 
+    [AllowNull]
     public string Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -125,7 +127,7 @@ partial class TextBox
                 SurfaceSize = new Size(int.MaxValue, 0);
                 Text = FixString(text);
             }
-            Update();
+            Update(RenderObjectUpdateFlags.Format);
         }
     }
 
@@ -165,7 +167,7 @@ partial class TextBox
     public new LayoutNode AutoHeightDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _autoLayoutDefinitionCache[0] ??= new AutoHeightNode(this);
+        get => _autoLayoutDefinitions[0] ??= new AutoHeightNode(this);
     }
     #endregion
 }

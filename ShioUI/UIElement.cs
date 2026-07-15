@@ -4,20 +4,19 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-using ShioUI.Layout;
-using ShioUI.Layout.Internals;
-using ShioUI.Theme;
-using ShioUI.Utils;
-using ShioUI.Windows;
-
 using InlineMethod;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Native.Direct2D.Brushes;
 
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Threading;
+
+using ShioUI.Graphics;
+using ShioUI.Graphics.Native.Direct2D.Brushes;
+using ShioUI.Layout;
+using ShioUI.Layout.Internals;
+using ShioUI.Theme;
+using ShioUI.Utils;
 
 namespace ShioUI;
 
@@ -107,7 +106,7 @@ public abstract partial class UIElement : ICheckableDisposable
     {
         if (InterlockedHelper.Read(ref _themeContext) is not null)
             return;
-        IThemeResourceProvider? provider = Window.GetThemeResourceProvider();
+        IThemeResourceProvider? provider = Window.GetDefaultThemeResourceProvider();
         if (provider is null)
             return;
         lock (_themeAccessLock)
@@ -127,12 +126,19 @@ public abstract partial class UIElement : ICheckableDisposable
     public void UpdateLayoutTimestamp(ulong timestamp) => InterlockedHelper.Write(ref _layoutTimestamp, timestamp);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void UpdateLayoutTimestamp(in Rectangle bounds, ulong timestamp)
+    {
+        SetBoundsCore_Pure(bounds);
+        UpdateLayoutTimestamp(timestamp);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool CheckLayoutOutdated(ulong timestamp)
     {
         if (InterlockedHelper.Read(ref _layoutTimestamp) != timestamp || InterlockedHelper.Read(ref _themeContext) is not null)
             return true;
 
-        IThemeResourceProvider? provider = Window.GetThemeResourceProvider();
+        IThemeResourceProvider? provider = Window.GetDefaultThemeResourceProvider();
         if (provider is null)
             return false;
         lock (_themeAccessLock)
@@ -193,7 +199,7 @@ public abstract partial class UIElement : ICheckableDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void UpdateCore() => Renderer.Refresh();
+    protected void UpdateCore() => Window.Refresh();
 
     public void Render(in RegionalRenderingContext context, ulong timestamp)
     {
@@ -279,11 +285,11 @@ public abstract partial class UIElement : ICheckableDisposable
     private void ApplyThemeContext(IThemeContext? value)
     {
         IElementContainer parent = Parent;
-        CoreWindow window = parent.GetWindow();
+        IRenderWindow window = parent.Window;
 
         if (value is null)
         {
-            IThemeResourceProvider? provider = window.GetThemeResourceProvider();
+            IThemeResourceProvider? provider = window.GetDefaultThemeResourceProvider();
             _themeResourceProviderReference.Target = provider;
             if (provider is not null)
             {
@@ -295,9 +301,7 @@ public abstract partial class UIElement : ICheckableDisposable
         {
             _themeResourceProviderReference.Target = null;
 
-            IRenderer renderer = parent.GetRenderer();
-            IThemeResourceProvider provider = ThemeResourceProvider.CreateResourceProvider(
-                renderer.GetDeviceContext(), value, window.ActualWindowMaterial);
+            IThemeResourceProvider provider = window.CreateThemeResourceProvider(value);
             try
             {
                 lock (_syncLock)
@@ -313,92 +317,7 @@ public abstract partial class UIElement : ICheckableDisposable
 
     protected abstract void ApplyThemeCore(IThemeResourceProvider provider);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void SetBoundsInternal(in Rectangle bounds, ulong timestamp)
-    {
-        SetBoundsCore_Pure(bounds);
-        UpdateLayoutTimestamp(timestamp);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Point LocalToPage(Point point) => GraphicsUtils.PointToPage(GetLocationCore(), point);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PointF LocalToPage(PointF point) => GraphicsUtils.PointToPage(GetLocationCore(), point);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Point PageToLocal(Point point) => GraphicsUtils.PointToLocal(GetLocationCore(), point);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PointF PageToLocal(PointF point) => GraphicsUtils.PointToLocal(GetLocationCore(), point);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Point PageToWindow(Point point)
-    {
-        UIElement element = this;
-        IElementContainer container = Parent;
-        while (container is UIElement containerElement)
-        {
-            element = containerElement;
-            container = containerElement.Parent;
-        }
-        if (container is ICoordinateTranslator translator)
-            return translator.PageToWindow(element, point);
-        else
-            return point;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PointF PageToWindow(PointF point)
-    {
-        UIElement element = this;
-        IElementContainer container = Parent;
-        while (container is UIElement containerElement)
-        {
-            element = containerElement;
-            container = containerElement.Parent;
-        }
-        if (container is ICoordinateTranslator translator)
-            return translator.PageToWindow(element, point);
-        else
-            return point;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Point WindowToPage(Point point)
-    {
-        UIElement element = this;
-        IElementContainer container = Parent;
-        while (container is UIElement containerElement)
-        {
-            element = containerElement;
-            container = containerElement.Parent;
-        }
-        if (container is ICoordinateTranslator translator)
-            return translator.WindowToPage(element, point);
-        else
-            return point;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PointF WindowToPage(PointF point)
-    {
-        UIElement element = this;
-        IElementContainer container = Parent;
-        while (container is UIElement containerElement)
-        {
-            element = containerElement;
-            container = containerElement.Parent;
-        }
-        if (container is ICoordinateTranslator translator)
-            return translator.WindowToPage(element, point);
-        else
-            return point;
-    }
-
     public override int GetHashCode() => _identifier;
-
-    public override bool Equals(object? obj) => ReferenceEquals(obj, this);
 
     protected virtual void DisposeCore(bool disposing)
     {

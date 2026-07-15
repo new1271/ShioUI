@@ -23,7 +23,7 @@ public static class MessageBox
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DialogResult Show(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
-        => (DialogResult)WindowMessageLoop.Invoke(() => ShowDirectly(hWnd, text, caption, flags))!;
+        => WindowMessageLoop.Invoke(() => ShowDirectly(hWnd, text, caption, flags));
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -36,8 +36,8 @@ public static class MessageBox
         => ShowAsync(IntPtr.Zero, text, caption, flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async Task<DialogResult> ShowAsync(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
-        => (DialogResult)(await WindowMessageLoop.InvokeTaskAsync(() => ShowDirectly(hWnd, text, caption, flags)))!;
+    public static Task<DialogResult> ShowAsync(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
+        => WindowMessageLoop.InvokeTaskAsync(() => ShowDirectly(hWnd, text, caption, flags));
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

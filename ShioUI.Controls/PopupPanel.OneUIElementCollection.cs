@@ -2,17 +2,20 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Threading;
 
 namespace ShioUI.Controls;
 
 public sealed partial class PopupPanel
 {
-    private sealed class OneUIElementCollection : IReadOnlyCollection<UIElement>, ICheckableDisposable
+    private sealed class OneUIElementCollection : IReadOnlyCollection<UIElement>, ILockable, ICheckableDisposable
     {
         private readonly PopupPanel _owner;
+        private readonly Lock _lock = new Lock();
 
         private UIElement? _element;
         private bool _disposed;
@@ -23,25 +26,24 @@ public sealed partial class PopupPanel
             get => _disposed;
         }
 
-        public OneUIElementCollection(PopupPanel owner)
-        {
-            _owner = owner;
-        }
+        public OneUIElementCollection(PopupPanel owner) => _owner = owner;
 
-        public int Count => MathHelper.BooleanToInt32(_element is null);
+        public Lock.Scope EnterLockScope() => _lock.EnterScope();
+
+        public int Count => MathHelper.BooleanToInt32(InterlockedHelper.Read(ref _element) is null);
 
         public UIElement? Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => _element;
+            get => InterlockedHelper.Read(ref _element);
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
+                using var scope = EnterLockScope();
                 UIElement? oldElement = _element;
                 if (oldElement == value)
                 {
-                    if (oldElement is not null)
-                        oldElement.Parent = _owner.Window;
+                    oldElement?.Parent = _owner.RootWindow;
                     return;
                 }
                 _element = value;
@@ -52,32 +54,27 @@ public sealed partial class PopupPanel
 
         public IEnumerator<UIElement> GetEnumerator()
         {
+            using var scope = EnterLockScope();
             UIElement? element = _element;
             if (element is null)
                 return CollectionHelper.EmptyEnumerator<UIElement>();
             return new Enumerator(element);
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            UIElement? element = _element;
-            if (element is null)
-                return CollectionHelper.EmptyEnumerator();
-            return new Enumerator(element);
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        private void Dispose(bool disposing)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void DisposeCore()
         {
             if (ReferenceHelper.Exchange(ref _disposed, true))
                 return;
+            using var scope = EnterLockScope();
             DisposeHelper.SwapDisposeWeak(ref _element);
         }
 
-        ~OneUIElementCollection() => Dispose(disposing: false);
-
         public void Dispose()
         {
-            Dispose(disposing: true);
+            DisposeCore();
             GC.SuppressFinalize(this);
         }
 

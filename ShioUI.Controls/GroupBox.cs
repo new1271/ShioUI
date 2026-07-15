@@ -5,26 +5,29 @@ using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Controls.Internals;
-using ShioUI.Layout;
-using ShioUI.Utils;
-using ShioUI.Windows;
-
 using InlineMethod;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Native.Direct2D;
-using ShioUI.Graphics.Native.Direct2D.Brushes;
-using ShioUI.Graphics.Native.DirectWrite;
-using ShioUI.Theme;
 
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
+using ShioUI.Controls.Internals;
+using ShioUI.Graphics;
+using ShioUI.Graphics.Native.Direct2D;
+using ShioUI.Graphics.Native.Direct2D.Brushes;
+using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Layout;
+using ShioUI.Theme;
+using ShioUI.Utils;
+
 namespace ShioUI.Controls;
 
-public sealed partial class GroupBox : UIElement, IElementContainer
+public sealed partial class GroupBox : UIElement, IAppendableElementContainer
 {
+    private const int ContentPageLeftPadding = UIConstants.ElementMargin;
+    private const int ContentPageRightPadding = UIConstants.ElementMargin;
+    private const int ContentPageBottomPadding = UIConstants.ElementMargin;
+
     private static readonly string[] _brushNames = new string[(int)Brush._Last]
     {
         "back",
@@ -33,70 +36,59 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
-    private readonly LayoutNode?[] _contentLayoutDefinitions = new LayoutNode?[(int)LayoutProperty._Last];
-    private readonly ObservableList<UIElement> _children;
+    private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
+    private readonly UIElementCollection _children;
 
     private WeakReference<GroupBox>? _reference;
-    private TextTopNode? _textTopReference;
-    private DWriteTextLayout? _titleLayout, _textLayout;
+    private DWriteTextLayout? _titleLayout;
     private string? _fontName;
-    private string _title, _text;
+    private string _title;
+    private ContentPageScopeParams _contentPageScopeParams;
     private long _redrawTypeRaw, _rawUpdateFlags;
     private int _titleHeight;
 
     public GroupBox(IElementContainer parent) : base(parent, "app.groupBox")
     {
-        _children = new ObservableList<UIElement>(new UnwrappableList<UIElement>(capacity: 0));
-        _children.BeforeAdd += Children_BeforeAdded;
+        _children = new UIElementCollection(this);
         _title = string.Empty;
-        _text = string.Empty;
         _redrawTypeRaw = (long)RedrawType.RedrawAllContent;
         _rawUpdateFlags = (long)RenderObjectUpdateFlags.FlagsAllTrue;
 
         EnablePartialRendering = true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public LayoutNode GetContentLayoutDefinition(LayoutProperty property)
+    public ContentPageScope EnterContentPageScope()
     {
-        if (property >= LayoutProperty._Last)
-            ArgumentOutOfRangeException.Throw(nameof(property));
-        return GetContentLayoutDefinitionCore((nuint)property);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private LayoutNode GetContentLayoutDefinitionCore(nuint property)
-    {
-        ref LayoutNode? variable = ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_contentLayoutDefinitions), property);
-        if (variable is null)
+        ref ContentPageScopeParams @params = ref _contentPageScopeParams;
+        if (@params.PageLeftDefinition is null)
         {
-            WeakReference<GroupBox>? reference = InterlockedHelper.Read(ref _reference);
-            if (reference is null)
+            WeakReference<GroupBox> reference = GetWeakReference();
+            @params = new()
             {
-                reference = new WeakReference<GroupBox>(this);
-                WeakReference<GroupBox>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
-                if (oldReference is not null)
-                    reference = oldReference;
-            }
-            variable = property switch
-            {
-                (nuint)LayoutProperty.Left => new ContentLeftNode(reference),
-                (nuint)LayoutProperty.Top => new ContentTopNode(reference),
-                (nuint)LayoutProperty.Right => new ContentRightNode(reference),
-                (nuint)LayoutProperty.Bottom => new ContentBottomNode(reference),
-                (nuint)LayoutProperty.Width => new ContentWidthNode(reference),
-                (nuint)LayoutProperty.Height => new ContentHeightNode(reference),
-                _ => ArgumentOutOfRangeException.Throw<LayoutNode>(nameof(property))
+                PageLeftDefinition = LayoutNode.Fixed(ContentPageLeftPadding),
+                PageTopDefinition = new ContentTopNode(reference),
+                PageRightDefinition = new ContentRightNode(reference),
+                PageBottomDefinition = new ContentBottomNode(reference),
+                PageWidthDefinition = new ContentWidthNode(reference),
+                PageHeightDefinition = new ContentHeightNode(reference)
             };
         }
-        return variable;
+        return ContentPageScope.Create(this, @params);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetElements() => _children;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IEnumerable<UIElement?> GetActiveElements() => ElementContainerDefaults.GetActiveElements(this);
+    private WeakReference<GroupBox> GetWeakReference()
+    {
+        WeakReference<GroupBox>? reference = InterlockedHelper.Read(ref _reference);
+        if (reference is null)
+        {
+            reference = new WeakReference<GroupBox>(this);
+            WeakReference<GroupBox>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
+            if (oldReference is not null)
+                reference = oldReference;
+        }
+        return reference;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddChild(UIElement element) => _children.Add(element);
@@ -112,8 +104,8 @@ public sealed partial class GroupBox : UIElement, IElementContainer
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
     {
-        UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
-        UIElementHelper.ApplyTheme(provider, _children);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
+        UIElementHelper.ApplyThemeToElements(provider, _children);
         string fontName = provider.FontName;
         _fontName = fontName;
         using DWriteTextFormat format = SharedResources.DWriteFactory.CreateTextFormat(fontName, UIConstants.DefaultFontSize);
@@ -122,14 +114,11 @@ public sealed partial class GroupBox : UIElement, IElementContainer
         format.WordWrapping = DWriteWordWrapping.NoWrap;
         Interlocked.Exchange(ref _titleHeight, GraphicsUtils.MeasureTextHeightAsInt("Ty", format));
         DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
-        DisposeHelper.SwapDisposeInterlocked(ref _textLayout);
         Update(RenderObjectUpdateFlags.Format, RedrawType.RedrawAllContent);
     }
 
     public void RenderBackground(UIElement element, in RegionalRenderingContext context)
         => RenderBackground(context, UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.BackBrush));
-
-    private void Children_BeforeAdded(object? sender, BeforeListAddOrRemoveEventArgs<UIElement> e) => e.Item.Parent = this;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected override void Update() => Update(RedrawType.RedrawAllContent);
@@ -166,10 +155,9 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void GetLayouts(RenderObjectUpdateFlags flags, out DWriteTextLayout? titleLayout, out DWriteTextLayout? textLayout)
+    private void GetLayouts(RenderObjectUpdateFlags flags, out DWriteTextLayout? titleLayout)
     {
         titleLayout = Interlocked.Exchange(ref _titleLayout, null);
-        textLayout = Interlocked.Exchange(ref _textLayout, null);
 
         DWriteFactory factory = SharedResources.DWriteFactory;
         if ((flags & RenderObjectUpdateFlags.Title) == RenderObjectUpdateFlags.Title)
@@ -181,18 +169,6 @@ public sealed partial class GroupBox : UIElement, IElementContainer
             format.Dispose();
             titleLayout.MaxWidth = titleLayout.GetMetrics().Width + UIConstants.ElementMarginDouble;
             titleLayout.MaxHeight = InterlockedHelper.Read(ref _titleHeight);
-        }
-        if ((flags & RenderObjectUpdateFlags.Text) == RenderObjectUpdateFlags.Text)
-        {
-            DWriteTextFormat? format = textLayout;
-            if (CheckFormatIsNotAvailable(format, flags))
-            {
-                format = TextFormatHelper.CreateTextFormat(TextAlignment.TopLeft, NullSafetyHelper.ThrowIfNull(_fontName), UIConstants.DefaultFontSize);
-                format.SetLineSpacing(DWriteLineSpacingMethod.Uniform, 20, 16);
-                format.WordWrapping = DWriteWordWrapping.EmergencyBreak;
-            }
-            textLayout = factory.CreateTextLayout(_text ?? string.Empty, format);
-            format.Dispose();
         }
     }
 
@@ -221,7 +197,7 @@ public sealed partial class GroupBox : UIElement, IElementContainer
             redrawType = RedrawType.RedrawAllContent;
         else if (redrawType == RedrawType.NoRedraw)
             return true;
-        GetLayouts(GetAndCleanRenderObjectUpdateFlags(), out DWriteTextLayout? titleLayout, out DWriteTextLayout? textLayout);
+        GetLayouts(GetAndCleanRenderObjectUpdateFlags(), out DWriteTextLayout? titleLayout);
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
         D2D1Brush backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush);
         D2D1Brush textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush);
@@ -233,13 +209,12 @@ public sealed partial class GroupBox : UIElement, IElementContainer
                     RectF borderBounds = new RectF(0, _titleHeight * 0.5f, renderSize.Width, renderSize.Height);
                     RenderBackground(context, backBrush);
                     context.DrawBorder(borderBounds, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush));
-                    RenderTitle(context, backBrush, textBrush, titleLayout);
-                    RenderText(context.WithEmptyDirtyCollector(), backBrush, textBrush, textLayout);
+                    RenderTitle(context, backBrush, textBrush, titleLayout, incremental: false);
                     context.MarkAsDirty();
                 }
                 break;
-            case RedrawType.RedrawText:
-                RenderText(in context, backBrush, textBrush, textLayout);
+            case RedrawType.RedrawTitle:
+                RenderTitle(context, backBrush, textBrush, titleLayout, incremental: true);
                 if (titleLayout is not null)
                     DisposeHelper.NullSwapOrDispose(ref _titleLayout, titleLayout);
                 break;
@@ -248,7 +223,7 @@ public sealed partial class GroupBox : UIElement, IElementContainer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RenderTitle(in RegionalRenderingContext context, D2D1Brush backBrush, D2D1Brush textBrush, DWriteTextLayout? layout)
+    private void RenderTitle(in RegionalRenderingContext context, D2D1Brush backBrush, D2D1Brush textBrush, DWriteTextLayout? layout, bool incremental)
     {
         if (layout is null)
             return;
@@ -258,50 +233,31 @@ public sealed partial class GroupBox : UIElement, IElementContainer
         RenderBackground(context, backBrush);
         context.DrawTextLayout(bounds.Location, layout, textBrush, D2D1DrawTextOptions.Clip | D2D1DrawTextOptions.NoSnap);
         DisposeHelper.NullSwapOrDispose(ref _titleLayout, layout);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RenderText(in RegionalRenderingContext context, D2D1Brush backBrush, D2D1Brush textBrush, DWriteTextLayout? layout)
-    {
-        if (layout is null)
-            return;
-        Rect bounds = Bounds;
-        SizeF renderSize = context.Size;
-        Point location = TextLocation;
-
-        RectF textBounds = new RectF(location.X - bounds.X, location.Y - bounds.Y,
-            renderSize.Width - UIConstants.ElementMarginDouble, renderSize.Height - UIConstants.ElementMarginDouble);
-        if (!textBounds.IsValid)
-            return;
-        using RenderingClipScope clipToken = context.PushPixelAlignedClip(ref textBounds, D2D1AntialiasMode.Aliased);
-        layout.MaxWidth = textBounds.Width;
-        if (context.HasDirtyCollector)
-        {
-            RenderBackground(context, backBrush);
-            context.MarkAsDirty(textBounds);
-        }
-        context.DrawTextLayout(textBounds.Location, layout, textBrush, D2D1DrawTextOptions.None);
-        DisposeHelper.NullSwapOrDispose(ref _textLayout, layout);
+        if (incremental)
+            context.MarkAsDirty(bounds);
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static int GetContentLeftCore(int x) => x + UIConstants.ElementMarginDouble;
+    private static int GetContentPageLeftCore() => ContentPageLeftPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private int GetContentTopCore(int y) => GetTextTopCore(y) + UIConstants.ElementMargin;
+    private int GetContentPageTopCore() => InterlockedHelper.Read(ref _titleHeight);
 
     [Inline(InlineBehavior.Remove)]
-    private static int GetContentRightCore(int right) => right - UIConstants.ElementMarginDouble;
+    private static int GetContentPageRightCore(int width) => width - ContentPageRightPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private static int GetContentBottomCore(int bottom) => bottom - UIConstants.ElementMarginDouble;
+    private static int GetContentPageBottomCore(int height) => height - ContentPageBottomPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private int GetTextTopCore(int y) => y + InterlockedHelper.Read(ref _titleHeight);
+    private static int GetContentPageWidthCore(int width) => width - (ContentPageLeftPadding + ContentPageRightPadding);
 
-    IRenderer IElementContainer.GetRenderer() => Renderer;
+    [Inline(InlineBehavior.Remove)]
+    private int GetContentPageHeightCore(int height) => height - (GetContentPageTopCore() + ContentPageBottomPadding);
 
-    CoreWindow IElementContainer.GetWindow() => Window;
+    IEnumerable<UIElement?> IElementContainer.GetElements() => _children;
+
+    IEnumerable<UIElement?> IElementContainer.GetActiveElements() => _children;
 
     protected override void DisposeCore(bool disposing)
     {
@@ -309,10 +265,9 @@ public sealed partial class GroupBox : UIElement, IElementContainer
         if (disposing)
         {
             DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
-            DisposeHelper.SwapDisposeInterlocked(ref _textLayout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
+            _children.Dispose();
         }
         SequenceHelper.Clear(_brushes);
-        ListHelper.CleanAllWeak<UIElement, ObservableList<UIElement>>(_children, disposing);
     }
 }

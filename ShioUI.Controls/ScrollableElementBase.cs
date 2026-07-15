@@ -4,21 +4,21 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Graphics.Helpers;
-using ShioUI.Layout;
-using ShioUI.Utils;
-
 using InlineMethod;
-using ShioUI.Controls.Internals;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Native.Direct2D;
-using ShioUI.Graphics.Native.Direct2D.Brushes;
-using ShioUI.Theme;
 
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Threading;
+
+using ShioUI.Controls.Internals;
+using ShioUI.Graphics;
+using ShioUI.Graphics.Helpers;
+using ShioUI.Graphics.Native.Direct2D;
+using ShioUI.Graphics.Native.Direct2D.Brushes;
+using ShioUI.Layout;
+using ShioUI.Theme;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -74,7 +74,7 @@ public abstract partial class ScrollableElementBase : UIElement,
     protected virtual D2D1Brush? GetBorderBrush() => null;
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
-        => UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, _scrollBarThemePrefix, (nuint)Brush._Last);
+        => UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, _scrollBarThemePrefix, (nuint)Brush._Last);
 
     protected override void Update() => Update(ScrollableElementUpdateFlags.Content);
 
@@ -586,13 +586,6 @@ public abstract partial class ScrollableElementBase : UIElement,
             return;
         args.Handle();
         Scrolling(-args.Delta);
-        CallMouseMove(args);
-    }
-
-    protected virtual void CallMouseMove(in MouseEventArgs args)
-    {
-        OnMouseMoveGlobally(new MouseEventArgs(LocalToPage(args.Location), args.Buttons, args.Delta));
-        OnMouseMove(in args);
     }
 
     protected override void DisposeCore(bool disposing)

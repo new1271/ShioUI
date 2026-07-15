@@ -37,7 +37,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
-    private readonly LayoutNode?[] _autoLayoutDefinitionCache = new LayoutNode?[1];
+    private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[1];
     private readonly ObservableList<string> _items;
 
     private DWriteTextLayout? _layout;
@@ -60,16 +60,9 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         _rawUpdateFlags = -1L;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ComboBox WithAutoHeight()
-    {
-        HeightExpression = AutoHeightDefinition;
-        return this;
-    }
-
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
     {
-        UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         _fontName = provider.FontName;
         DisposeHelper.SwapDisposeInterlocked(ref _layout);
         Update(RenderObjectUpdateFlags.Format);
@@ -186,7 +179,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (_items.Count <= 0)
             return;
 
-        WindowMessageLoop.InvokeAsync<Action<ComboBox>>(static (_this) =>
+        WindowMessageLoop.InvokeAsync(static (_this) =>
         {
             EventHandler<DropdownListEventArgs>? eventHandler = _this.RequestDropdownListOpening;
             if (eventHandler is null)

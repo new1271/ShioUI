@@ -5,20 +5,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Graphics.Helpers;
-using ShioUI.Layout;
-using ShioUI.Utils;
-
 using InlineMethod;
 
 using LocalsInit;
-using ShioUI.Controls.Internals;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Native.Direct2D;
-using ShioUI.Graphics.Native.Direct2D.Brushes;
-using ShioUI.Graphics.Native.DirectWrite;
-using ShioUI.Input;
-using ShioUI.Theme;
 
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
@@ -28,10 +17,22 @@ using RiceTea.Core.Structures;
 using RiceTea.Core.Text;
 using RiceTea.Core.Threading;
 
+using ShioUI.Controls.Internals;
+using ShioUI.Extensions;
+using ShioUI.Graphics;
+using ShioUI.Graphics.Helpers;
+using ShioUI.Graphics.Native.Direct2D;
+using ShioUI.Graphics.Native.Direct2D.Brushes;
+using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Input;
+using ShioUI.Layout;
+using ShioUI.Theme;
+using ShioUI.Utils;
+
 namespace ShioUI.Controls;
 
 public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler, ICharacterInputHandler,
-    IGlobalMouseInteractHandler, IKeyboardInteractHandler,
+    IKeyboardInteractHandler,
     ICursorStateHandler, IFocusChangedHandler
 {
     private static readonly LazyTiny<GraphemeInfo> EmptyGraphemeInfoLazy =
@@ -49,7 +50,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
-    private readonly LayoutNode?[] _autoLayoutDefinitionCache = new LayoutNode?[1];
+    private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[1];
     private readonly InputMethod? _ime;
     private readonly Timer _caretTimer;
 
@@ -94,17 +95,10 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         _imeEnabled = ime is not null;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TextBox WithAutoHeight()
-    {
-        HeightExpression = AutoHeightDefinition;
-        return this;
-    }
-
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
     {
         base.ApplyThemeCore(provider);
-        UIElementHelper.ApplyThemeUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
+        UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         _fontName = provider.FontName;
         DisposeHelper.SwapDispose(ref _layout);
         DisposeHelper.SwapDispose(ref _watermarkLayout);
@@ -179,7 +173,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string FixString(string value)
+    public string FixString(string? value)
     {
         if (value is null)
             return string.Empty;
@@ -217,7 +211,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             DWriteTextFormat? format = layout;
             if (CheckFormatIsNotAvailable(format, flags))
-                format = TextFormatHelper.CreateTextFormat(_alignment, NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+                format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
 
             string text = _text;
             if (!StringHelper.IsNullOrEmpty(text))
@@ -248,7 +242,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             DWriteTextFormat? format = watermarkLayout;
             if (CheckFormatIsNotAvailable(format, flags))
-                format = TextFormatHelper.CreateTextFormat(_alignment, NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+                format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
             watermarkLayout = SharedResources.DWriteFactory.CreateTextLayout(_watermark ?? string.Empty, format);
             format.Dispose();
         }
@@ -273,13 +267,23 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private DWriteTextLayout CreateVirtualTextLayout(string text)
     {
-        DWriteTextLayout result = TextFormatHelper.CreateTextLayout(text, NullSafetyHelper.ThrowIfNull(_fontName), _alignment, _fontSize);
+        DWriteTextLayout result = TextFormatHelper.CreateTextLayout(text, NullSafetyHelper.ThrowIfNull(_fontName), GetRealAlignment(), _fontSize);
         SetRenderingProperties(result);
         return result;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private TextAlignment GetRealAlignment()
+    {
+        TextAlignment alignment = _alignment;
+        if (_multiLine)
+            return alignment;
+        else
+            return (TextAlignment)((uint)alignment % 3);
+    }
+
     private void SetRenderingProperties(DWriteTextLayout layout)
-        => SetRenderingProperties(layout, ContentSize, Renderer.GetPixelsPerPoint(), _multiLine);
+        => SetRenderingProperties(layout, ContentSize, Window.GetPixelsPerPoint(), _multiLine);
 
     [Inline(InlineBehavior.Remove)]
     private void SetRenderingProperties(DWriteTextLayout layout, SizeF size, Vector2 pointsPerPixel, bool multiLine)
@@ -411,7 +415,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             int length = metricsArray is null ? 0 : metricsArray.Length;
             if (length > 0)
             {
-                Vector2 pixelsPerPoint = Renderer.GetPixelsPerPoint();
+                Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
                 for (int i = 0; i < length; i++)
                 {
                     DWriteHitTestMetrics rangeMetrics = metricsArray![i];
@@ -462,14 +466,14 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             return;
         if (returnCount < 1)
             return;
-        Vector2 pixelsPerPoint = Renderer.GetPixelsPerPoint();
+        Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
         RectF selectionBounds = RenderingHelper.RoundInPixel(RectF.FromXYWH(
             layoutPoint.X + rangeMetrics.Left, layoutPoint.Y + rangeMetrics.Top, 1.0f, rangeMetrics.Height),
             pixelsPerPoint);
         context.FillRectangle(selectionBounds, _brushes[(int)Brush.ForeBrush]);
     }
 
-    private void UpdateTextAndCaretIndex(string text, int caretIndex, bool checkCaretIndex = true)
+    private void UpdateTextAndCaretIndex(string? text, int caretIndex, bool checkCaretIndex = true)
     {
         text = FixString(text);
 
@@ -599,20 +603,18 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             case VirtualKey.Applications:
             case VirtualKey.F10 when Keys.IsKeyPressed(VirtualKey.Shift):
-                MouseNotifyEventHandler? eventHandlers = RequestContextMenu;
-                if (eventHandlers is not null)
+                MouseNotifyEventHandler? eventHandler = RequestContextMenu;
+                if (eventHandler is not null)
                 {
-                    Point location = ContentLocation;
+                    PointF location = ContentLocation;
                     Point viewportPoint = ViewportPoint;
-                    Point layoutPoint = new Point(location.X - viewportPoint.X, location.Y - viewportPoint.Y);
+                    PointF layoutPoint = new PointF(location.X - viewportPoint.X, location.Y - viewportPoint.Y);
                     using (DWriteTextLayout layout = CreateVirtualTextLayout())
                     {
                         layout.HitTestTextPosition(MathHelper.MakeUnsigned(_caretIndex), isTrailingHit: true, out float pointX, out float pointY);
-                        location = new Point(
-                            layoutPoint.X + MathI.Round(pointX, MidpointRounding.AwayFromZero),
-                            layoutPoint.Y + MathI.Round(pointY, MidpointRounding.AwayFromZero));
+                        location = new PointF(layoutPoint.X + pointX, layoutPoint.Y + pointY);
                     }
-                    eventHandlers.Invoke(this, new MouseEventArgs(location, MouseButtons.RightButton));
+                    eventHandler.Invoke(this, new MouseEventArgs(location, MouseButtons.RightButton));
                 }
                 break;
         }
@@ -726,13 +728,13 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
 
     private (PointF caretPoint, Vector2 pointsPerPixel) UpdateIMECaret(InputMethodContext context, int caretIndex)
     {
-        Vector2 pixelsPerPoint = Renderer.GetPixelsPerPoint();
+        Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
 
         PointF caretPoint = GetPointFromCaretIndex(caretIndex - 1, isTrailingHit: false, out DWriteHitTestMetrics metrics);
         PointF bottomRightPoint = new PointF(caretPoint.X + metrics.Width, caretPoint.Y + metrics.Height);
 
-        caretPoint = GraphicsUtils.ScalingPoint(PageToWindow(caretPoint), pixelsPerPoint);
-        bottomRightPoint = GraphicsUtils.ScalingPoint(PageToWindow(bottomRightPoint), pixelsPerPoint);
+        caretPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(caretPoint), pixelsPerPoint);
+        bottomRightPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(bottomRightPoint), pixelsPerPoint);
 
         context.SetCandidateWindow(new IMECandidateForm()
         {
@@ -1219,15 +1221,6 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     }
 
     #region Mouse Events Handling
-    void IGlobalMouseInteractHandler.OnMouseDownGlobally(in MouseEventArgs args)
-    {
-        if (args.Buttons.HasFlagFast(MouseButtons.LeftButton) && ContentBounds.Contains(args.Location))
-            return;
-        Window.ClearFocusElement(this);
-    }
-
-    void IGlobalMouseInteractHandler.OnMouseUpGlobally(in MouseEventArgs args) { }
-
     protected override void OnMouseDown(ref HandleableMouseEventArgs args)
     {
         base.OnMouseDown(ref args);
@@ -1243,7 +1236,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             }
             return;
         }
-        PointF location = LocalToPage(args.Location);
+        PointF location = this.LocalToPage(args.Location);
         if (!ContentBounds.Contains(location))
         {
             _drag = false;
@@ -1373,9 +1366,9 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (!Enabled || !args.Buttons.HasFlagFast(MouseButtons.RightButton))
             return;
         MouseNotifyEventHandler? eventHandler = RequestContextMenu;
-        if (eventHandler is null || !args.IsInSpecificSize(ContentSize))
+        if (eventHandler is null || !args.IsInSpecificSize(Size))
             return;
-        eventHandler.Invoke(this, in args);
+        eventHandler.Invoke(this, args);
     }
 
     private static unsafe int IndexOfWhiteSpace(string text, int startIndex, int endIndex, int step)

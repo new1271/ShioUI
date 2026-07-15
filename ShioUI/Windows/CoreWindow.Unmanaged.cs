@@ -25,7 +25,7 @@ namespace ShioUI.Windows;
 public unsafe partial class CoreWindow
 {
     #region Fields
-    private UnwrappableList<IWindowMessageFilter> _filterList = new UnwrappableList<IWindowMessageFilter>(1);
+    private readonly UnwrappableList<IWindowMessageFilter> _filterList = new UnwrappableList<IWindowMessageFilter>(1);
     private SizeF _minimumSize, _maximumSize;
     private MouseButtons _lastMouseDownButtons;
     private IntPtr _associatedMonitor;
@@ -508,7 +508,7 @@ public unsafe partial class CoreWindow
 
     protected override bool TryProcessCustomWindowMessage(IntPtr handle, uint message, nint wParam, nint lParam, out nint result)
     {
-        if (message == CustomWindowMessages.ShioUpdateRefreshRate)
+        if (message == CustomWindowMessages.ShioUI_UpdateRefreshRate)
         {
             UpdateWindowFps(handle);
             result = 0;
