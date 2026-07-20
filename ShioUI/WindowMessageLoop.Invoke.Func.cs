@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 
 namespace ShioUI;
 
@@ -14,7 +15,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<TResult>();
 
-        if (CurrentThreadId == messageLoopThreadId)
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
             ProcessAllInvoke();
             return func.Invoke();
@@ -29,7 +30,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<TResult>();
 
-        if (CurrentThreadId == messageLoopThreadId)
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
             ProcessAllInvoke();
             return func.Invoke(arg);
@@ -44,7 +45,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<TResult>();
 
-        if (CurrentThreadId == messageLoopThreadId)
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
             ProcessAllInvoke();
             return func.Invoke(arg1, arg2);
@@ -59,7 +60,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<TResult>();
 
-        if (CurrentThreadId == messageLoopThreadId)
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
             ProcessAllInvoke();
             return func.Invoke(arg1, arg2, arg3);

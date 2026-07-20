@@ -7,6 +7,7 @@ using InlineMethod;
 
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
@@ -21,7 +22,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (CurrentThreadId == messageLoopThreadId)
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
             ProcessAllInvoke(); 
             return @delegate.DynamicInvoke(null);
@@ -35,7 +36,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
-        if (CurrentThreadId == messageLoopThreadId)
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
             ProcessAllInvoke();
             return @delegate.DynamicInvoke(args);

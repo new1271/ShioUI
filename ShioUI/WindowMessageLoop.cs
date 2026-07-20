@@ -7,6 +7,7 @@ using InlineMethod;
 
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 
 using ShioUI.Internals.Native;
@@ -27,25 +28,7 @@ public static partial class WindowMessageLoop
     private static uint _invokeBarrier, _threadIdForMessageLoop;
     private static bool _isFirstTimeStart = true;
 
-    [ThreadStatic]
-    private static uint _threadId;
-
     public static event MessageLoopExceptionEventHandler? ExceptionCaught;
-
-    public static uint CurrentThreadId
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            uint result = _threadId;
-            if (result == default)
-            {
-                result = Kernel32.GetCurrentThreadId();
-                _threadId = result;
-            }
-            return result;
-        }
-    }
 
     public static bool HasMessageLoop
     {
@@ -63,7 +46,7 @@ public static partial class WindowMessageLoop
         get
         {
             uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
-            return messageLoopThreadId != 0 && CurrentThreadId == messageLoopThreadId;
+            return messageLoopThreadId != 0 && NativeMethods.GetCurrentThreadId() == messageLoopThreadId;
         }
     }
 
@@ -88,12 +71,14 @@ public static partial class WindowMessageLoop
         NativeWindow? oldWindow = InterlockedHelper.Exchange(ref _mainWindow, mainWindow);
         if (oldWindow is not null)
             oldWindow.Destroyed -= OnWindowDestroyed;
+
+        static void OnWindowDestroyed(object? sender, EventArgs e) => Stop();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Start(NativeWindow mainWindow)
     {
-        uint currentThreadId = CurrentThreadId;
+        uint currentThreadId = NativeMethods.GetCurrentThreadId();
         if (InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
             InvalidOperationException.Throw("Message loop is already exists!");
         if (_isFirstTimeStart)
@@ -258,9 +243,6 @@ public static partial class WindowMessageLoop
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Stop(int exitCode = 0) => User32.PostQuitMessage(exitCode);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void OnWindowDestroyed(object? sender, EventArgs e) => Stop();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddMessageFilter(IWindowMessageFilter messageFilter) => _filters.Add(messageFilter);
