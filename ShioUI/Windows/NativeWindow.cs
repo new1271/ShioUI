@@ -18,7 +18,7 @@ namespace ShioUI.Windows;
 
 public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 {
-    private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowInternal();
+    private static readonly Action<NativeWindow> ShowInternalAction = static (window) => window.ShowInternal();
     private static readonly Action<NativeWindow> ShowDialogCoreAction = static (window) => window.ShowDialogCore();
 
     private readonly GCHandle _parentReference;
@@ -68,7 +68,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             if (WindowMessageLoop.IsMessageLoopThread)
                 ShowInternal();
             else
-                WindowMessageLoop.Invoke(ShowCoreAction, this);
+                WindowMessageLoop.Invoke(ShowInternalAction, this);
         }
         else
             WindowMessageLoop.Start(this);
@@ -87,7 +87,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
                 goto Completed;
             }
             else
-                return WindowMessageLoop.InvokeTaskAsync(ShowCoreAction, this);
+                return WindowMessageLoop.InvokeTaskAsync(ShowInternalAction, this);
         }
         else
         {
