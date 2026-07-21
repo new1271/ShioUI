@@ -142,6 +142,7 @@ unsafe partial class NativeWindow
         OnClosing(ref args);
         if (args.Cancelled)
             return true;
+        OnClosed(EventArgs.Empty);
         IntPtr dialogParent = InterlockedHelper.Exchange(ref _dialogParent, IntPtr.Zero);
         if (dialogParent != IntPtr.Zero)
         {

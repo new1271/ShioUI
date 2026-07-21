@@ -14,6 +14,7 @@ partial class NativeWindow
     public event EventHandler? Resized; 
     public event WindowStateChangedEventHandler? WindowStateChanged;
     public event ClosingEventHandler? Closing;
+    public event EventHandler? Closed;
 
     protected virtual void OnShown(EventArgs args) => Shown?.Invoke(this, args);
     protected virtual void OnDestroyed(EventArgs args) => Destroyed?.Invoke(this, args);
@@ -22,6 +23,7 @@ partial class NativeWindow
     protected virtual void OnResized(EventArgs args) => Resized?.Invoke(this, args);
     protected virtual void OnWindowStateChanged(in WindowStateChangedEventArgs args) => WindowStateChanged?.Invoke(this, args);
     protected virtual void OnClosing(ref ClosingEventArgs args) => Closing?.Invoke(this, ref args);
+    protected virtual void OnClosed(EventArgs args) => Closed?.Invoke(this, args);
 }
 
 public ref struct ClosingEventArgs
