@@ -11,7 +11,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
-public abstract class PagedWindow : CoreWindow
+public abstract class MultiPageWindow : CoreWindow
 {
     #region Fields
     private uint _pageIndex;
@@ -43,11 +43,11 @@ public abstract class PagedWindow : CoreWindow
     #endregion
 
     #region Constuctor       
-    protected PagedWindow() : base() { }
+    protected MultiPageWindow() : base() { }
 
-    protected PagedWindow(GraphicsDeviceProvider? deviceProvider) : base(deviceProvider) { }
+    protected MultiPageWindow(GraphicsDeviceProvider? deviceProvider) : base(deviceProvider) { }
 
-    protected PagedWindow(CoreWindow? parent, bool passParentToUnderlyingWindow = false) : base(parent, passParentToUnderlyingWindow) { }
+    protected MultiPageWindow(CoreWindow? parent, bool passParentToUnderlyingWindow = false) : base(parent, passParentToUnderlyingWindow) { }
     #endregion
 
     #region Event Triggers

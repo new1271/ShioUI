@@ -17,7 +17,7 @@ using RiceTea.Core.Structures;
 
 namespace ShioUI.Windows;
 
-public abstract class TabbedWindow : PagedWindow
+public abstract class TabbedWindow : MultiPageWindow
 {
     #region Enums
     protected new enum Brush : uint

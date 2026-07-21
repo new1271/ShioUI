@@ -21,7 +21,7 @@ using RiceTea.Core.Structures;
 
 namespace ShioUI.Windows;
 
-public abstract class WizardWindow : PagedWindow
+public abstract class WizardWindow : MultiPageWindow
 {
     #region Enums
     [Flags]
