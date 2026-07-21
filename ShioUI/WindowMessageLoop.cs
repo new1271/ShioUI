@@ -20,7 +20,7 @@ public static partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
 
-    private static readonly Action<NativeWindow> _windowShowAction = static window => window.Show();
+    private static readonly Action<NativeWindow> _windowShowAction = static window => window.ShowInternal();
     private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
         UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
 
@@ -64,7 +64,7 @@ public static partial class WindowMessageLoop
         {
             mainWindow.Destroyed += OnWindowDestroyed;
             if (isMessageLoopThread)
-                mainWindow.Show();
+                mainWindow.ShowInternal();
             else
                 InvokeAsync(_windowShowAction, mainWindow);
         }

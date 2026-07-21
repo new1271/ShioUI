@@ -18,7 +18,7 @@ namespace ShioUI.Windows;
 
 public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 {
-    private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowCore();
+    private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowInternal();
     private static readonly Action<NativeWindow> ShowDialogCoreAction = static (window) => window.ShowDialogCore();
 
     private readonly GCHandle _parentReference;
@@ -66,7 +66,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         if (WindowMessageLoop.HasMessageLoop)
         {
             if (WindowMessageLoop.IsMessageLoopThread)
-                ShowCore();
+                ShowInternal();
             else
                 WindowMessageLoop.Invoke(ShowCoreAction, this);
         }
@@ -83,7 +83,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             if (WindowMessageLoop.IsMessageLoopThread)
             {
                 WindowMessageLoop.ProcessAllInvoke();
-                ShowCore();
+                ShowInternal();
                 goto Completed;
             }
             else
@@ -153,16 +153,16 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             handle = Handle;
         else
-            handle = ShowCoreWithReturn();
+            handle = ShowCore();
         if (User32.IsIconic(handle))
             User32.ShowWindow(handle, ShowWindowCommands.Restore);
         User32.SwitchToThisWindow(handle, fUnknown: true);
         User32.SetForegroundWindow(handle);
     }
 
-    private void ShowCore() => ShowCoreWithReturn();
+    internal void ShowInternal() => ShowCore();
 
-    private IntPtr ShowCoreWithReturn()
+    private IntPtr ShowCore()
     {
         Lazy<IntPtr> handleLazy = _handleLazy;
         IntPtr handle;
@@ -186,7 +186,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 
     private void ShowDialogCore()
     {
-        IntPtr parent = FindParentHandleForDialog(handle: ShowCoreWithReturn());
+        IntPtr parent = FindParentHandleForDialog(handle: ShowCore());
         User32.EnableWindow(parent, false);
         InterlockedHelper.Write(ref _dialogParent, parent);
         CancellationTokenSource tokenSource = new CancellationTokenSource();
