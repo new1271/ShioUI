@@ -50,7 +50,7 @@ public static partial class WindowMessageLoop
         }
     }
 
-    public static void ChangeMainWindow(NativeWindow mainWindow)
+    public static void ChangeMainWindow(NativeWindow? mainWindow)
     {
         uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
@@ -69,14 +69,17 @@ public static partial class WindowMessageLoop
                 InvokeAsync(_windowShowAction, mainWindow);
         }
         NativeWindow? oldWindow = InterlockedHelper.Exchange(ref _mainWindow, mainWindow);
-        if (oldWindow is not null)
+        if (oldWindow is not null && !ReferenceEquals(oldWindow, mainWindow))
             oldWindow.Destroyed -= OnWindowDestroyed;
 
         static void OnWindowDestroyed(object? sender, EventArgs e) => Stop();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Start(NativeWindow mainWindow)
+    public static int Start() => Start(mainWindow: null);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Start(NativeWindow? mainWindow)
     {
         uint currentThreadId = NativeMethods.GetCurrentThreadId();
         if (InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
