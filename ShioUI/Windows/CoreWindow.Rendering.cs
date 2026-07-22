@@ -384,7 +384,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
         SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
         SystemEvents.SessionSwitch += SystemEvents_SessionSwitch;
-        ShioUtils.ApplyWindowStyle(this, out _fixLagObject);
+        MaterialHelper.ApplyWindowMaterial(this, out _fixLagObject);
     }
 
     private bool InitRenderObjectsCore(IntPtr handle, GraphicsDeviceProvider provider, [NotNullWhen(true)] out D2D1DeviceContext? deviceContext)
@@ -775,7 +775,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         _clearDCColor = provider.TryGetColor(ThemeConstants.ClearDCColorNode, out D2D1ColorF color) ? color : default;
         _windowBaseColor = provider.TryGetColor(ThemeConstants.WindowBaseColorNode, out color) ? color : default;
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, (nuint)Brush._Last);
-        ShioUtils.ResetBlur(this);
+        MaterialHelper.ResetBlur(this);
 
         UIElementHelper.ApplyThemeToElement(provider, GetOverlayElement());
         ApplyThemeToElements(provider);
@@ -1424,7 +1424,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     private void ResetBlur()
     {
-        ShioUtils.ResetBlur(this);
+        MaterialHelper.ResetBlur(this);
     }
 
     protected override void OnResized(EventArgs args)

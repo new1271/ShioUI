@@ -7,9 +7,9 @@ using ShioUI.Internals.NativeHelpers;
 
 namespace ShioUI.Internals;
 
-internal static class ShioUtils
+internal static class MaterialHelper
 {
-    public static void ApplyWindowStyle(CoreWindow window, out object? fixLagObject)
+    public static void ApplyWindowMaterial(CoreWindow window, out object? fixLagObject)
     {
         IntPtr handle = window.Handle;
         WindowMaterial material = window.ActualWindowMaterial;
