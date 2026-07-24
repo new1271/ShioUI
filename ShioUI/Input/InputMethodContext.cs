@@ -197,7 +197,7 @@ public sealed class InputMethodContext : CriticalFinalizerObject, ICheckableDisp
 
     private void DisposeCore()
     {
-        if (ReferenceHelper.Exchange(ref _disposed, true))
+        if (Cells.Exchange(ref _disposed, true))
             return;
         IntPtr himc = _himc;
         IntPtr hwnd = _hwnd;

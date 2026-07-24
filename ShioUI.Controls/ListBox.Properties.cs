@@ -74,7 +74,7 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
     public int ItemHeight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => InterlockedHelper.Read(ref _itemHeight);
+        get => Atomics.Read(ref _itemHeight);
     }
 
     public ListBoxMode Mode

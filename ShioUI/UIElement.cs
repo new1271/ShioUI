@@ -44,7 +44,7 @@ public abstract partial class UIElement : ICheckableDisposable
     public UIElement(IElementContainer parent, string themePrefix)
     {
         _parent = parent;
-        _identifier = InterlockedHelper.GetAndIncrement(ref _identifierGenerator);
+        _identifier = Atomics.GetAndIncrement(ref _identifierGenerator);
         _themePrefix = themePrefix;
         _requestRedraw = UnsafeHelper.GetMaxValue<nuint>();
         _themeResourceProviderReference = GCHandle.Alloc(null, GCHandleType.Weak);
@@ -92,19 +92,19 @@ public abstract partial class UIElement : ICheckableDisposable
 
     [Inline(InlineBehavior.Remove)]
     private LayoutNode? GetLayoutExpressionCore(nuint property)
-        => InterlockedHelper.Read(ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_layoutExpressions), property));
+        => Atomics.Read(ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_layoutExpressions), property));
 
     [Inline(InlineBehavior.Remove)]
     private void SetLayoutExpressionCore(nuint property, LayoutNode? variable)
     {
-        InterlockedHelper.Write(ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_layoutExpressions), property), variable);
+        Atomics.Write(ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_layoutExpressions), property), variable);
         ResetLayoutTimestamp();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void EnsureThemeIsApplied()
     {
-        if (InterlockedHelper.Read(ref _themeContext) is not null)
+        if (Atomics.Read(ref _themeContext) is not null)
             return;
         IThemeResourceProvider? provider = Window.GetDefaultThemeResourceProvider();
         if (provider is null)
@@ -120,10 +120,10 @@ public abstract partial class UIElement : ICheckableDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ResetLayoutTimestamp() => InterlockedHelper.Write(ref _layoutTimestamp, 0);
+    public void ResetLayoutTimestamp() => Atomics.Write(ref _layoutTimestamp, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void UpdateLayoutTimestamp(ulong timestamp) => InterlockedHelper.Write(ref _layoutTimestamp, timestamp);
+    public void UpdateLayoutTimestamp(ulong timestamp) => Atomics.Write(ref _layoutTimestamp, timestamp);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UpdateLayoutTimestamp(in Rectangle bounds, ulong timestamp)
@@ -135,7 +135,7 @@ public abstract partial class UIElement : ICheckableDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool CheckLayoutOutdated(ulong timestamp)
     {
-        if (InterlockedHelper.Read(ref _layoutTimestamp) != timestamp || InterlockedHelper.Read(ref _themeContext) is not null)
+        if (Atomics.Read(ref _layoutTimestamp) != timestamp || Atomics.Read(ref _themeContext) is not null)
             return true;
 
         IThemeResourceProvider? provider = Window.GetDefaultThemeResourceProvider();
@@ -147,15 +147,15 @@ public abstract partial class UIElement : ICheckableDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ResetRenderCheckTimestamp()
-        => InterlockedHelper.Write(ref _renderCheckTimestamp, 0);
+        => Atomics.Write(ref _renderCheckTimestamp, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SyncRenderCheckTimestamp(ulong timestamp)
-        => InterlockedHelper.Write(ref _renderCheckTimestamp, timestamp);
+        => Atomics.Write(ref _renderCheckTimestamp, timestamp);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TrySyncRenderCheckTimestamp(ulong oldTimestamp, ulong newTimestamp)
-        => InterlockedHelper.CompareExchange(ref _renderCheckTimestamp, newTimestamp, oldTimestamp) == oldTimestamp;
+        => Atomics.CompareExchange(ref _renderCheckTimestamp, newTimestamp, oldTimestamp) == oldTimestamp;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected Lock.Scope EnterSyncScope() => _syncLock.EnterScope();
@@ -168,17 +168,17 @@ public abstract partial class UIElement : ICheckableDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void FreezeUpdate()
     {
-        if (InterlockedHelper.Read(ref _disposed) != default || InterlockedHelper.LimitedIncrement(ref _freezeCount, UnsafeHelper.GetMaxValue<nuint>()) != 1)
+        if (Atomics.Read(ref _disposed) != default || Atomics.LimitedIncrement(ref _freezeCount, UnsafeHelper.GetMaxValue<nuint>()) != 1)
             return;
-        InterlockedHelper.Exchange(ref _shouldUpdateWhenUnfreeze, 0);
+        Atomics.Exchange(ref _shouldUpdateWhenUnfreeze, 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void UnfreezeUpdate(bool forceUpdate)
     {
-        if (InterlockedHelper.Read(ref _disposed) != default ||
-            InterlockedHelper.LimitedDecrement(ref _freezeCount, 0) > 0 ||
-            (!forceUpdate && InterlockedHelper.Exchange(ref _shouldUpdateWhenUnfreeze, default) == default))
+        if (Atomics.Read(ref _disposed) != default ||
+            Atomics.LimitedDecrement(ref _freezeCount, 0) > 0 ||
+            (!forceUpdate && Atomics.Exchange(ref _shouldUpdateWhenUnfreeze, default) == default))
             return;
         Update();
     }
@@ -188,12 +188,12 @@ public abstract partial class UIElement : ICheckableDisposable
     {
         const nuint RequestRedrawBit = 0b01;
 
-        if (InterlockedHelper.Read(ref _disposed) != default)
+        if (Atomics.Read(ref _disposed) != default)
             return;
 
-        InterlockedHelper.CompareExchange(ref _shouldUpdateWhenUnfreeze, UnsafeHelper.GetMaxValue<nuint>(), 0);
-        if (InterlockedHelper.Read(ref _freezeCount) != default ||
-            !CheckIsRenderedOnce(InterlockedHelper.Or(ref _requestRedraw, RequestRedrawBit)))
+        Atomics.CompareExchange(ref _shouldUpdateWhenUnfreeze, UnsafeHelper.GetMaxValue<nuint>(), 0);
+        if (Atomics.Read(ref _freezeCount) != default ||
+            !CheckIsRenderedOnce(Atomics.Or(ref _requestRedraw, RequestRedrawBit)))
             return;
         UpdateCore();
     }
@@ -248,10 +248,10 @@ public abstract partial class UIElement : ICheckableDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual bool NeedRefresh() => InterlockedHelper.Read(ref _requestRedraw) != default;
+    public virtual bool NeedRefresh() => Atomics.Read(ref _requestRedraw) != default;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ResetNeedRefreshFlag() => InterlockedHelper.Exchange(ref _requestRedraw, default);
+    protected void ResetNeedRefreshFlag() => Atomics.Exchange(ref _requestRedraw, default);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CheckIsRenderedOnce(ulong requestRedraw)
@@ -269,7 +269,7 @@ public abstract partial class UIElement : ICheckableDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ApplyTheme(IThemeResourceProvider provider)
     {
-        if (InterlockedHelper.Read(ref _themeContext) is not null)
+        if (Atomics.Read(ref _themeContext) is not null)
             return;
 
         lock (_themeAccessLock)
@@ -337,7 +337,7 @@ public abstract partial class UIElement : ICheckableDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Dispose(bool disposing)
     {
-        if (InterlockedHelper.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != default)
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != default)
             return;
         DisposeCore(disposing);
     }
@@ -367,7 +367,7 @@ public abstract partial class UIElement : ICheckableDisposable
     private bool SetLocationCore_Pure(in Point value)
     {
         ulong val = BoundsHelper.ConvertPointToUInt64(value);
-        return InterlockedHelper.Exchange(ref _location, val) != val;
+        return Atomics.Exchange(ref _location, val) != val;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -395,7 +395,7 @@ public abstract partial class UIElement : ICheckableDisposable
     private bool SetSizeCore_Pure(in Size value)
     {
         ulong val = BoundsHelper.ConvertSizeToUInt64(value);
-        return InterlockedHelper.Exchange(ref _size, val) != val;
+        return Atomics.Exchange(ref _size, val) != val;
     }
 
     [Inline(InlineBehavior.Remove)]

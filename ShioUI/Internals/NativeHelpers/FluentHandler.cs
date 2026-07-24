@@ -7,8 +7,8 @@ using Microsoft.Win32;
 using ShioUI.Internals.Native;
 
 using RiceTea.Core.Extensions;
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Internals.NativeHelpers;
 
@@ -211,7 +211,7 @@ internal static class FluentHandler
 
         private void DisposeCore()
         {
-            if (ReferenceHelper.Exchange(ref _disposed, true) || !_windowReference.TryGetTarget(out CoreWindow? window))
+            if (Cells.Exchange(ref _disposed, true) || !_windowReference.TryGetTarget(out CoreWindow? window))
                 return;
             window.RemoveMessageFilter(this);
         }

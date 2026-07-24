@@ -70,7 +70,7 @@ public sealed partial class DirtyAreaCollector
             host.Present();
             return;
         }
-        if (host is not OptimizedGraphicsHost host1 || ReferenceHelper.Exchange(ref _presentAllMode, false))
+        if (host is not OptimizedGraphicsHost host1 || Cells.Exchange(ref _presentAllMode, false))
         {
             list.Clear();
             host.Present();
@@ -104,7 +104,7 @@ public sealed partial class DirtyAreaCollector
         UnwrappableList<RectF>? list = _list;
         if (list is null)
             return host.TryPresent();
-        if (host is not OptimizedGraphicsHost host1 || ReferenceHelper.Exchange(ref _presentAllMode, false))
+        if (host is not OptimizedGraphicsHost host1 || Cells.Exchange(ref _presentAllMode, false))
         {
             list.Clear();
             return host.TryPresent();

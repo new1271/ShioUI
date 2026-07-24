@@ -5,7 +5,6 @@ using ShioUI.Internals.Native;
 using ShioUI.Utils;
 
 using RiceTea.Core;
-using RiceTea.Core.Helpers;
 
 namespace ShioUI.Input;
 
@@ -166,7 +165,7 @@ public sealed class InputMethod : IWindowMessageFilter, ICheckableDisposable
 
     private void DisposeCore()
     {
-        if (ReferenceHelper.Exchange(ref _disposed, true))
+        if (Cells.Exchange(ref _disposed, true))
             return;
         _owner.RemoveMessageFilter(this);
         _context?.Dispose();

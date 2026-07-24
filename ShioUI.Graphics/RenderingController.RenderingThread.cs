@@ -4,9 +4,9 @@ using System.Threading;
 
 using ShioUI.Graphics.Internals;
 
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.Helpers;
+using RiceTea.Core;
 
 namespace ShioUI.Graphics;
 
@@ -24,7 +24,7 @@ partial class RenderingController
         private uint _renderingThreadId;
         private bool _disposed;
 
-        public uint RenderingThreadId => InterlockedHelper.Read(ref _renderingThreadId);
+        public uint RenderingThreadId => Atomics.Read(ref _renderingThreadId);
 
         public RenderingThread(RenderingController controller, IFrameWaiter frameWaiter)
         {
@@ -43,7 +43,7 @@ partial class RenderingController
 
         private void Resume()
         {
-            IntPtr handle = InterlockedHelper.Read(ref _renderingWaitingHandle);
+            IntPtr handle = Atomics.Read(ref _renderingWaitingHandle);
             if (handle == IntPtr.Zero)
                 return;
             Thread.MemoryBarrier();
@@ -52,7 +52,7 @@ partial class RenderingController
 
         public void StartNextWaiting()
         {
-            IntPtr handle = InterlockedHelper.Read(ref _renderingWaitingHandle);
+            IntPtr handle = Atomics.Read(ref _renderingWaitingHandle);
             if (handle == IntPtr.Zero)
                 return;
             NativeMethods.ResetWaitingHandle(handle);
@@ -63,8 +63,8 @@ partial class RenderingController
         {
             const uint Infinite = unchecked((uint)Timeout.Infinite);
 
-            ThreadHelper.SetCurrentThreadName("Shio UI Rendering Thread #" + InterlockedHelper.GetAndIncrement(ref _idCounter).ToString("D"));
-            InterlockedHelper.Write(ref _renderingThreadId, NativeMethods.GetCurrentThreadId());
+            ThreadHelper.SetCurrentThreadName("Shio UI Rendering Thread #" + Atomics.GetAndIncrement(ref _idCounter).ToString("D"));
+            Atomics.Write(ref _renderingThreadId, NativeMethods.GetCurrentThreadId());
 
             RenderingController controller = _controller;
             IFrameWaiter frameWaiter = _frameWaiter;
@@ -72,12 +72,12 @@ partial class RenderingController
             IntPtr exitTriggerHandle = NativeMethods.CreateWaitingHandle(autoReset: false);
             try
             {
-                if (InterlockedHelper.CompareExchange(ref _exitTriggerHandle, exitTriggerHandle, IntPtr.Zero) != IntPtr.Zero)
+                if (Atomics.CompareExchange(ref _exitTriggerHandle, exitTriggerHandle, IntPtr.Zero) != IntPtr.Zero)
                     return;
                 IntPtr renderingWaitingHandle = NativeMethods.CreateWaitingHandle(autoReset: false);
                 try
                 {
-                    if (InterlockedHelper.CompareExchange(ref _renderingWaitingHandle, renderingWaitingHandle, IntPtr.Zero) != IntPtr.Zero)
+                    if (Atomics.CompareExchange(ref _renderingWaitingHandle, renderingWaitingHandle, IntPtr.Zero) != IntPtr.Zero)
                         return;
                     NativeMethods.WaitForWaitingHandle(renderingWaitingHandle, timeout: Infinite);
                     do
@@ -91,13 +91,13 @@ partial class RenderingController
                 }
                 finally
                 {
-                    InterlockedHelper.CompareExchange(ref _renderingWaitingHandle, IntPtr.Zero, renderingWaitingHandle);
+                    Atomics.CompareExchange(ref _renderingWaitingHandle, IntPtr.Zero, renderingWaitingHandle);
                     NativeMethods.DestroyWaitingHandle(renderingWaitingHandle);
                 }
             }
             finally
             {
-                InterlockedHelper.CompareExchange(ref _exitTriggerHandle, IntPtr.Zero, exitTriggerHandle);
+                Atomics.CompareExchange(ref _exitTriggerHandle, IntPtr.Zero, exitTriggerHandle);
                 NativeMethods.SetWaitingHandle(exitTriggerHandle);
                 NativeMethods.DestroyWaitingHandle(exitTriggerHandle);
             }
@@ -105,9 +105,9 @@ partial class RenderingController
 
         public bool WaitForExit(int millisecondsTimeout)
         {
-            if (NativeMethods.GetCurrentThreadId() == InterlockedHelper.Read(ref _renderingThreadId))
+            if (NativeMethods.GetCurrentThreadId() == Atomics.Read(ref _renderingThreadId))
                 return false;
-            IntPtr handle = InterlockedHelper.Read(ref _exitTriggerHandle);
+            IntPtr handle = Atomics.Read(ref _exitTriggerHandle);
             if (handle == IntPtr.Zero || millisecondsTimeout < Timeout.Infinite)
                 return true;
             return NativeMethods.WaitForWaitingHandle(handle, (uint)millisecondsTimeout);
@@ -117,7 +117,7 @@ partial class RenderingController
 
         private void DisposeCore()
         {
-            if (ReferenceHelper.Exchange(ref _disposed, true))
+            if (Cells.Exchange(ref _disposed, true))
                 return;
             _frameWaiter.Dispose();
             Resume();

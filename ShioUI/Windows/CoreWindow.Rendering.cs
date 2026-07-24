@@ -134,7 +134,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     public WindowMaterial ActualWindowMaterial => _actualWindowMaterial;
 
-    protected ulong RenderTimestamp => InterlockedHelper.Read(ref _renderTimestamp);
+    protected ulong RenderTimestamp => Atomics.Read(ref _renderTimestamp);
 
     public D2D1ColorF ClearDCColor => _clearDCColor;
 
@@ -402,8 +402,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         bool useFlipModel = ExtendedStyles.HasFlagFast(WindowExtendedStyles.NoRedirectionBitmap);
         bool useDComp = useFlipModel && provider.IsSupportDComp && provider.IsSupportSwapChain1;
         host = GraphicsHostHelper.CreateSwapChainGraphicsHost(handle, provider, useFlipModel, useDComp, IsBackgroundOpaque());
-        InterlockedHelper.Write(ref _host, host);
-        InterlockedHelper.Write(ref _collector, new DirtyAreaCollector(host));
+        Atomics.Write(ref _host, host);
+        Atomics.Write(ref _collector, new DirtyAreaCollector(host));
         if (parent is null)
             host.DeviceRemoved += GraphicsHost_DeviceRemoved;
         deviceContext = host.GetDeviceContext();
@@ -417,17 +417,17 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     private void GraphicsHost_DeviceRemoved(object? sender, EventArgs e)
     {
-        if (sender is not SimpleGraphicsHost host || !ReferenceEquals(host, InterlockedHelper.Read(ref _host)))
+        if (sender is not SimpleGraphicsHost host || !ReferenceEquals(host, Atomics.Read(ref _host)))
             return;
         WindowMessageLoop.InvokeAsync(static window => window.OnDeviveRemoved(), this);
     }
 
     private void OnDeviveRemoved()
     {
-        if (InterlockedHelper.Exchange(ref _recreateGraphicsDeviceProviderBarrier, UnsafeHelper.GetMaxValue<nuint>()) != 0)
+        if (Atomics.Exchange(ref _recreateGraphicsDeviceProviderBarrier, UnsafeHelper.GetMaxValue<nuint>()) != 0)
             return;
 
-        GraphicsDeviceProvider? collectionTarget = InterlockedHelper.Read(ref _graphicsDeviceProvider);
+        GraphicsDeviceProvider? collectionTarget = Atomics.Read(ref _graphicsDeviceProvider);
         if (collectionTarget is not null)
         {
             StopAllRenderingFromGDREvent();
@@ -441,7 +441,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             RecreateResourcesFromGDREvent(null, null);
         }
 
-        InterlockedHelper.Exchange(ref _recreateGraphicsDeviceProviderBarrier, 0);
+        Atomics.Exchange(ref _recreateGraphicsDeviceProviderBarrier, 0);
     }
 
     private unsafe void StopAllRenderingFromGDREvent()
@@ -460,8 +460,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             DisposeHelper.SwapDisposeInterlockedWeak(ref _resourceProvider, ThemeResourceProvider.Empty);
             ApplyThemeCore(ThemeResourceProvider.Empty);
             DisposeHelper.SwapDisposeInterlocked(ref _host);
-            InterlockedHelper.Exchange(ref _collector, null);
-            InterlockedHelper.Exchange(ref _deviceContext, null);
+            Atomics.Exchange(ref _collector, null);
+            Atomics.Exchange(ref _deviceContext, null);
             if (TryGetWindowListSnapshot(_childrenReferenceList, out NativeMemoryPool? pool,
                 out TypedNativeMemoryBlock<GCHandle> handles, out int count))
             {
@@ -497,12 +497,12 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             {
                 DebugHelper.WriteLine("Recreating GDP...");
                 deviceProvider = CreateGraphicsDeviceProvider();
-                InterlockedHelper.Write(ref _ownedGDP, UnsafeHelper.GetMaxValue<nuint>());
+                Atomics.Write(ref _ownedGDP, UnsafeHelper.GetMaxValue<nuint>());
                 DebugHelper.WriteLine("Recreated GDP...");
             }
             else
             {
-                InterlockedHelper.Write(ref _ownedGDP, 0);
+                Atomics.Write(ref _ownedGDP, 0);
             }
             DisposeHelper.SwapDisposeInterlocked(ref _graphicsDeviceProvider, deviceProvider);
 
@@ -582,16 +582,16 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public GraphicsDeviceProvider GetGraphicsDeviceProvider()
     {
-        if (InterlockedHelper.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
-            SpinWait.SpinUntil(() => InterlockedHelper.Read(ref _recreateGraphicsDeviceProviderBarrier) == 0);
-        GraphicsDeviceProvider? deviceProvider = InterlockedHelper.Read(ref _graphicsDeviceProvider);
+        if (Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
+            SpinWait.SpinUntil(() => Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) == 0);
+        GraphicsDeviceProvider? deviceProvider = Atomics.Read(ref _graphicsDeviceProvider);
         if (deviceProvider is not null)
             goto Return;
         deviceProvider = CreateGraphicsDeviceProvider();
-        GraphicsDeviceProvider? oldDeviceProvider = InterlockedHelper.CompareExchange(ref _graphicsDeviceProvider, deviceProvider, null);
+        GraphicsDeviceProvider? oldDeviceProvider = Atomics.CompareExchange(ref _graphicsDeviceProvider, deviceProvider, null);
         if (oldDeviceProvider is null)
         {
-            InterlockedHelper.Write(ref _ownedGDP, UnsafeHelper.GetMaxValue<nuint>());
+            Atomics.Write(ref _ownedGDP, UnsafeHelper.GetMaxValue<nuint>());
             goto Return;
         }
         deviceProvider.Dispose();
@@ -604,23 +604,23 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetGraphicsDeviceProvider([NotNullWhen(true)] out GraphicsDeviceProvider? deviceProvider)
     {
-        deviceProvider = InterlockedHelper.Read(ref _graphicsDeviceProvider);
+        deviceProvider = Atomics.Read(ref _graphicsDeviceProvider);
         if (deviceProvider is null)
             return false;
-        if (InterlockedHelper.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
-            SpinWait.SpinUntil(() => InterlockedHelper.Read(ref _recreateGraphicsDeviceProviderBarrier) == 0);
-        deviceProvider = InterlockedHelper.Read(ref _graphicsDeviceProvider);
+        if (Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
+            SpinWait.SpinUntil(() => Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) == 0);
+        deviceProvider = Atomics.Read(ref _graphicsDeviceProvider);
         return deviceProvider is not null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DXGISwapChain GetSwapChain() => InterlockedHelper.Read(ref _host)!.GetSwapChain();
+    public DXGISwapChain GetSwapChain() => Atomics.Read(ref _host)!.GetSwapChain();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1DeviceContext GetDeviceContext() => NullSafetyHelper.ThrowIfNull(_deviceContext);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RenderingController? GetRenderingController() => InterlockedHelper.Read(ref _controller);
+    public RenderingController? GetRenderingController() => Atomics.Read(ref _controller);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected ElementsCacheScope EnterActiveElementsCacheScope() => new ElementsCacheScope(_activeElementsCacheStore.GetLastSnapshot());
@@ -634,7 +634,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         lock (_activeElementsCacheViewLock)
         {
             LimitedImmutableArrayView<UIElement?>? result;
-            if (_activeElementsCacheTimestamp == InterlockedHelper.Read(ref _renderTimestamp))
+            if (_activeElementsCacheTimestamp == Atomics.Read(ref _renderTimestamp))
             {
                 result = _activeElementsCacheView;
                 if (result is not null)
@@ -656,7 +656,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         lock (_elementsCacheViewLock)
         {
             LimitedImmutableArrayView<UIElement?>? result;
-            if (_elementsCacheTimestamp == InterlockedHelper.Read(ref _renderTimestamp))
+            if (_elementsCacheTimestamp == Atomics.Read(ref _renderTimestamp))
             {
                 result = _elementsCacheView;
                 if (result is not null)
@@ -711,7 +711,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             controller.RequestUpdateUnsafe(flags);
     }
 
-    public IThemeResourceProvider? GetThemeResourceProvider() => InterlockedHelper.Read(ref _resourceProvider);
+    public IThemeResourceProvider? GetThemeResourceProvider() => Atomics.Read(ref _resourceProvider);
 
     public ContentPageScope EnterContentPageScope()
     {
@@ -1024,10 +1024,10 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     [Inline]
     private bool RenderCore(RenderingController controller, RenderingFlags flags)
     {
-        SimpleGraphicsHost? host = InterlockedHelper.Read(ref _host);
+        SimpleGraphicsHost? host = Atomics.Read(ref _host);
         if (host is null || host.IsDisposed)
             return false;
-        DirtyAreaCollector? collector = InterlockedHelper.Read(ref _collector);
+        DirtyAreaCollector? collector = Atomics.Read(ref _collector);
         if (collector is null)
             return false;
 
@@ -1048,7 +1048,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             LastRenderTimestamp = _renderTimestamp,
             CurrentRenderTimestamp = renderTimestamp
         };
-        InterlockedHelper.Write(ref _renderTimestamp, renderTimestamp);
+        Atomics.Write(ref _renderTimestamp, renderTimestamp);
         _activeElementsCacheStore.UpdateTimestamp(renderTimestamp);
         _elementsCacheStore.UpdateTimestamp(renderTimestamp);
 
@@ -1107,7 +1107,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 _resizeTimestamp = timestamp;
                 _drawingOffset = layoutData.DrawingOffset;
                 _activeBorderWidth = layoutData.ActiveBorderWidth;
-                InterlockedHelper.Increment(ref _recalculateLayoutVersion);
+                Atomics.Increment(ref _recalculateLayoutVersion);
 
                 Size pageSize = layoutData.PageBounds.Size;
                 if (pageSize.IsValid())
@@ -1438,7 +1438,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         RenderingController controller = new RenderingController(this, GetWindowFps(Handle));
         if (_isSystemPrepareBoosting)
             controller.SetSystemBoosting(true);
-        InterlockedHelper.Write(ref _controller, controller);
+        Atomics.Write(ref _controller, controller);
         UpdateCoreUnchecked(controller);
     }
 
@@ -1495,7 +1495,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ChangeDpi_RenderingPart(PointU dpi, Vector2 pointsPerPixel, Vector2 pixelsPerPoint)
     {
-        SimpleGraphicsHost? host = InterlockedHelper.Read(ref _host);
+        SimpleGraphicsHost? host = Atomics.Read(ref _host);
         if (host is null || host.IsDisposed)
             return;
         RenderingController? controller = GetRenderingController();
@@ -1790,7 +1790,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             {
                 lock (_this._syncLock)
                 {
-                    oldElement = ReferenceHelper.Exchange(ref _this._overlayElement, element);
+                    oldElement = Cells.Exchange(ref _this._overlayElement, element);
                     _this.OnOverlayLayerChanged(element, oldElement);
                 }
                 _this.UpdateAndResize();
@@ -1812,7 +1812,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             UIElement? oldElement;
             lock (_this._syncLock)
             {
-                oldElement = ReferenceHelper.Exchange(ref _this._overlayElement, element);
+                oldElement = Cells.Exchange(ref _this._overlayElement, element);
                 _this.OnOverlayLayerChanged(element, oldElement);
             }
             _this.UpdateAndResize();
@@ -1886,7 +1886,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         {
             lock (_syncLock)
             {
-                SimpleGraphicsHost? host = InterlockedHelper.Read(ref _host);
+                SimpleGraphicsHost? host = Atomics.Read(ref _host);
                 if (host is null || host.IsDisposed)
                     return;
                 DisposeHelper.SwapDisposeInterlockedWeak(ref _resourceProvider, provider);
@@ -2050,12 +2050,12 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             GetOverlayElement()?.Dispose();
             DisposeAllElements();
 
-            if (InterlockedHelper.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
-                SpinWait.SpinUntil(() => InterlockedHelper.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0);
-            if (InterlockedHelper.Read(ref _ownedGDP) != 0)
+            if (Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
+                SpinWait.SpinUntil(() => Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0);
+            if (Atomics.Read(ref _ownedGDP) != 0)
                 DisposeHelper.SwapDisposeInterlocked(ref _graphicsDeviceProvider);
             else
-                InterlockedHelper.Write(ref _graphicsDeviceProvider, null);
+                Atomics.Write(ref _graphicsDeviceProvider, null);
         }
         _overlayElement = null;
         _activeElementsCacheStore.Dispose();

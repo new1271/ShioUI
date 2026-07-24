@@ -30,7 +30,7 @@ public sealed class AppendOnlyListItemStore<TItem, TMeasuringContext> : ICheckab
     public event HeightChangedEventHandler<TItem, TMeasuringContext>? HeightChanged;
     public event ItemRemovedEventHandler<TItem, TMeasuringContext>? ItemRemoved;
 
-    public bool IsDisposed => InterlockedHelper.Read(ref _disposed) != 0UL;
+    public bool IsDisposed => Atomics.Read(ref _disposed) != 0UL;
 
     private AppendOnlyListItemStore(IAppendOnlyCollection<int> keys, IAppendOnlyCollection<TItem> values)
     {
@@ -687,7 +687,7 @@ public sealed class AppendOnlyListItemStore<TItem, TMeasuringContext> : ICheckab
 
     private void DisposeCore(bool disposing)
     {
-        if (InterlockedHelper.Exchange(ref _disposed, ulong.MaxValue) != 0UL)
+        if (Atomics.Exchange(ref _disposed, ulong.MaxValue) != 0UL)
             return;
         lock (_syncLock)
         {

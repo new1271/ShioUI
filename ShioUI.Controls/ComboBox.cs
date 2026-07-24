@@ -19,6 +19,7 @@ using RiceTea.Core.Collections;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -71,7 +72,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
     [Inline(InlineBehavior.Remove)]
     private void Update(RenderObjectUpdateFlags flags)
     {
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)flags);
+        Atomics.Or(ref _rawUpdateFlags, (long)flags);
         Update();
     }
 

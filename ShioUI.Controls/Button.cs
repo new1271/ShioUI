@@ -6,6 +6,7 @@ using System.Threading;
 
 using InlineMethod;
 
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
 using ShioUI.Controls.Internals;
@@ -53,11 +54,11 @@ public sealed partial class Button : ButtonBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private WeakReference<Button> GetWeakReference()
     {
-        WeakReference<Button>? reference = InterlockedHelper.Read(ref _reference);
+        WeakReference<Button>? reference = Atomics.Read(ref _reference);
         if (reference is null)
         {
             reference = new WeakReference<Button>(this);
-            WeakReference<Button>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
+            WeakReference<Button>? oldReference = Atomics.CompareExchange(ref _reference, reference, null);
             if (oldReference is not null)
                 reference = oldReference;
         }
@@ -75,7 +76,7 @@ public sealed partial class Button : ButtonBase
     [Inline(InlineBehavior.Remove)]
     private void Update(RenderObjectUpdateFlags flags)
     {
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)flags);
+        Atomics.Or(ref _rawUpdateFlags, (long)flags);
         Update();
     }
 

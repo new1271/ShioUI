@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
+using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 
@@ -35,9 +36,9 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
     {
         lock (_syncLock)
         {
-            if (ReferenceHelper.Exchange(ref _lastTimestamp, timestamp) == timestamp)
+            if (Cells.Exchange(ref _lastTimestamp, timestamp) == timestamp)
                 return;
-            CacheNode? lastSnapshot = ReferenceHelper.Exchange(ref _lastSnapshot, null);
+            CacheNode? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
             if (lastSnapshot is not null)
                 Dereference(lastSnapshot);
         }
@@ -46,7 +47,7 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CacheNode GetLastSnapshot()
     {
-        CacheNode? snapshot = InterlockedHelper.Read(ref _lastSnapshot);
+        CacheNode? snapshot = Atomics.Read(ref _lastSnapshot);
         if (snapshot is not null)
         {
             snapshot.EnterBarrier();
@@ -100,7 +101,7 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
         Create:
             snapshot = _snapshotPool.Rent();
 
-            ulong timestamp = InterlockedHelper.Read(ref _lastTimestamp);
+            ulong timestamp = Atomics.Read(ref _lastTimestamp);
             _createSnapshotFunc(_owner, snapshot);
 
             snapshot.AddRef();
@@ -121,7 +122,7 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
                 return;
             lock (_syncLock)
             {
-                DebugHelper.ThrowIf(ReferenceEquals(InterlockedHelper.Read(ref _lastSnapshot), snapshot));
+                DebugHelper.ThrowIf(ReferenceEquals(Atomics.Read(ref _lastSnapshot), snapshot));
                 ((ICollection<KeyValuePair<ulong, CacheNode>>)_snapshotDict).Remove(KeyValuePair.Create(snapshot.Timestamp, snapshot));
             }
             _removeSnapshotFunc(_owner, snapshot);
@@ -138,7 +139,7 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
     {
         lock (_syncLock)
         {
-            CacheNode? lastSnapshot = ReferenceHelper.Exchange(ref _lastSnapshot, null);
+            CacheNode? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
             if (lastSnapshot is not null)
                 Dereference(lastSnapshot);
         }

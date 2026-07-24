@@ -279,7 +279,7 @@ public unsafe partial class CoreWindow
                 {
                     Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
                     MouseButtons buttons = ((MouseButtons)wParam) & MouseButtons._Mask;
-                    MouseButtons oldButtons = ReferenceHelper.Exchange(ref _lastMouseDownButtons, buttons);
+                    MouseButtons oldButtons = Cells.Exchange(ref _lastMouseDownButtons, buttons);
                     buttons &= ~oldButtons;
                     if (buttons == MouseButtons.None)
                         goto default;
@@ -310,7 +310,7 @@ public unsafe partial class CoreWindow
                 {
                     Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
                     MouseButtons buttons = ((MouseButtons)wParam) & MouseButtons._Mask;
-                    MouseButtons oldButtons = ReferenceHelper.Exchange(ref _lastMouseDownButtons, buttons);
+                    MouseButtons oldButtons = Cells.Exchange(ref _lastMouseDownButtons, buttons);
                     (buttons, oldButtons) = (oldButtons & ~buttons, buttons);
                     if (_hasMouseCapture)
                     {
@@ -408,7 +408,7 @@ public unsafe partial class CoreWindow
                 goto default;
             case WindowMessage.WindowPositionChanged:
                 IntPtr monitor = User32.MonitorFromWindow(hwnd, MonitorFromWindowFlags.DefaultToNearest);
-                if (ReferenceHelper.Exchange(ref _associatedMonitor, monitor) != monitor)
+                if (Cells.Exchange(ref _associatedMonitor, monitor) != monitor)
                     UpdateWindowFps(hwnd);
                 goto default;
             #endregion
@@ -468,7 +468,7 @@ public unsafe partial class CoreWindow
                 break;
             case WindowMessage.SetText:
                 {
-                    InterlockedHelper.Or(ref _updateFlags, (long)UpdateFlags.ChangeTitle);
+                    Atomics.Or(ref _updateFlags, (long)UpdateFlags.ChangeTitle);
                     Update();
                 }
                 goto Transfer;

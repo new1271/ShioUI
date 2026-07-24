@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
+using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
@@ -151,7 +152,7 @@ public sealed class UIElementCollection : ICollection, ICollection<UIElement>, I
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void DisposeCore(bool disposing)
     {
-        if (ReferenceHelper.Exchange(ref _disposed, true))
+        if (Cells.Exchange(ref _disposed, true))
             return;
         if (disposing)
         {

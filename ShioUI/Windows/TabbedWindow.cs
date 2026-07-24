@@ -14,6 +14,7 @@ using ShioUI.Theme;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Windows;
 
@@ -58,7 +59,7 @@ public abstract class TabbedWindow : MultiPageWindow
     #region Properties
     public override uint PageCount => _pageCount;
 
-    public Rectangle[] MenuBarButtonBounds => NullSafetyHelper.ThrowIfNull(InterlockedHelper.Read(ref _menuBarButtonRects));
+    public Rectangle[] MenuBarButtonBounds => NullSafetyHelper.ThrowIfNull(Atomics.Read(ref _menuBarButtonRects));
     #endregion
 
     #region Constructor
@@ -105,7 +106,7 @@ public abstract class TabbedWindow : MultiPageWindow
             ulong val = MenuBarButtonStatus.Exchange(0UL);
             if (val > 0UL)
             {
-                InterlockedHelper.Or(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), val);
+                Atomics.Or(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), val);
                 Refresh();
             }
             return result;
@@ -119,7 +120,7 @@ public abstract class TabbedWindow : MultiPageWindow
         uint pageCount = PageCount;
         if (pageCount <= 0)
             return;
-        Rectangle[]? menuBarButtonRects = InterlockedHelper.Read(ref _menuBarButtonRects);
+        Rectangle[]? menuBarButtonRects = Atomics.Read(ref _menuBarButtonRects);
         if (menuBarButtonRects is null || menuBarButtonRects.Length != pageCount)
             return;
         ref Rectangle menuBarButtonRectRef = ref UnsafeHelper.GetArrayDataReference(menuBarButtonRects);
@@ -151,14 +152,14 @@ public abstract class TabbedWindow : MultiPageWindow
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, (nuint)Brush._Last);
         GenerateMenu(_menuTitles, provider.FontName, baseX: 0, baseY: 27, menuExtraWidth: UIConstants.ElementMarginDouble,
             out Rectangle[] menuBarButtonRects, out DWriteTextLayout[] menuBarButtonLayouts);
-        InterlockedHelper.Write(ref _menuBarButtonRects, menuBarButtonRects);
+        Atomics.Write(ref _menuBarButtonRects, menuBarButtonRects);
         DisposeHelper.SwapDispose(ref _menuBarButtonLayouts, menuBarButtonLayouts);
     }
 
     protected override void RenderTitle(D2D1DeviceContext deviceContext, DirtyAreaCollector collector, bool force, in WindowRenderingData data)
     {
-        BitVector64 buttonStatus = InterlockedHelper.Read(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonStatus));
-        BitVector64 changedStatus = InterlockedHelper.Exchange(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), default);
+        BitVector64 buttonStatus = Atomics.Read(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonStatus));
+        BitVector64 changedStatus = Atomics.Exchange(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), default);
         base.RenderTitle(deviceContext, collector, force, in data);
         RenderTitle(deviceContext, collector, force, in data, buttonStatus, changedStatus);
     }
@@ -169,7 +170,7 @@ public abstract class TabbedWindow : MultiPageWindow
         uint pageCount = PageCount;
         if (pageCount <= 0)
             return;
-        Rectangle[]? menuBarButtonRects = InterlockedHelper.Read(ref _menuBarButtonRects);
+        Rectangle[]? menuBarButtonRects = Atomics.Read(ref _menuBarButtonRects);
         if (menuBarButtonRects is null || menuBarButtonRects.Length != pageCount)
             return;
         DWriteTextLayout[]? menuBarButtonLayouts = Interlocked.Exchange(ref _menuBarButtonLayouts, null);
@@ -258,7 +259,7 @@ public abstract class TabbedWindow : MultiPageWindow
             uint pageCount = PageCount;
             if (pageCount > 0)
             {
-                Rectangle[]? menuBarButtonRects = InterlockedHelper.Read(ref _menuBarButtonRects);
+                Rectangle[]? menuBarButtonRects = Atomics.Read(ref _menuBarButtonRects);
                 if (menuBarButtonRects is not null && menuBarButtonRects.Length == pageCount)
                 {
                     PointF location = args.Location;
@@ -318,12 +319,12 @@ public abstract class TabbedWindow : MultiPageWindow
         uint pageCount = PageCount;
         if (pageCount == 0)
             return HitTestValue.NoWhere;
-        Rectangle[]? buttonRects = InterlockedHelper.Read(ref _menuBarButtonRects);
+        Rectangle[]? buttonRects = Atomics.Read(ref _menuBarButtonRects);
         if (buttonRects is null || buttonRects.Length != pageCount)
             return HitTestValue.NoWhere;
         HitTestValue result = HitTestValue.NoWhere;
         ref Rectangle buttonRectRef = ref UnsafeHelper.GetArrayDataReference(buttonRects);
-        BitVector64 templateVector = InterlockedHelper.Read(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonStatus)),
+        BitVector64 templateVector = Atomics.Read(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonStatus)),
             operateVector = templateVector & ~((1UL << (int)pageCount) - 1);
         if (point.Y >= buttonRectRef.Y && point.Y < PageLocation.Y)
         {
@@ -340,12 +341,12 @@ public abstract class TabbedWindow : MultiPageWindow
         templateVector ^= operateVector;
         if (templateVector > 0UL)
         {
-            InterlockedHelper.Write(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonStatus), operateVector);
-            InterlockedHelper.Or(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), templateVector);
+            Atomics.Write(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonStatus), operateVector);
+            Atomics.Or(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), templateVector);
             goto RequireUpdate;
         }
 
-        if (requireUpdate || InterlockedHelper.Read(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus)) > 0)
+        if (requireUpdate || Atomics.Read(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus)) > 0)
             goto RequireUpdate;
 
         goto Tail;
@@ -413,7 +414,7 @@ public abstract class TabbedWindow : MultiPageWindow
                 ulong val = MenuBarButtonStatus.Exchange(0UL);
                 if (val > 0UL)
                 {
-                    InterlockedHelper.Or(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), val);
+                    Atomics.Or(ref UnsafeHelper.As<BitVector64, ulong>(ref MenuBarButtonChangedStatus), val);
                     Update();
                 }
                 goto default;

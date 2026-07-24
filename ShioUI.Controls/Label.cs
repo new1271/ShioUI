@@ -16,6 +16,7 @@ using ShioUI.Theme;
 
 using RiceTea.Core.Helpers;
 using System;
+using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -62,7 +63,7 @@ public sealed partial class Label : UIElement
     [Inline(InlineBehavior.Remove)]
     private void Update(RenderObjectUpdateFlags flags)
     {
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)flags);
+        Atomics.Or(ref _rawUpdateFlags, (long)flags);
         Update();
     }
 

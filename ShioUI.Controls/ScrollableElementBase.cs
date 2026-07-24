@@ -6,6 +6,7 @@ using System.Threading;
 
 using InlineMethod;
 
+using RiceTea.Core;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
@@ -81,7 +82,7 @@ public abstract partial class ScrollableElementBase : UIElement,
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void Update(ScrollableElementUpdateFlags flags)
     {
-        InterlockedHelper.Or(ref _updateFlagsRaw, (ulong)flags);
+        Atomics.Or(ref _updateFlagsRaw, (ulong)flags);
         UpdateCore();
     }
 
@@ -89,12 +90,12 @@ public abstract partial class ScrollableElementBase : UIElement,
     {
         if (_updateFlagsRaw != (long)ScrollableElementUpdateFlags.None)
             return true;
-        return InterlockedHelper.Read(ref _updateFlagsRaw) != (ulong)ScrollableElementUpdateFlags.None;
+        return Atomics.Read(ref _updateFlagsRaw) != (ulong)ScrollableElementUpdateFlags.None;
     }
 
     [Inline(InlineBehavior.Remove)]
     private ScrollableElementUpdateFlags GetUpdateFlagsAndReset()
-        => (ScrollableElementUpdateFlags)InterlockedHelper.Exchange(ref _updateFlagsRaw, (ulong)ScrollableElementUpdateFlags.None);
+        => (ScrollableElementUpdateFlags)Atomics.Exchange(ref _updateFlagsRaw, (ulong)ScrollableElementUpdateFlags.None);
 
     protected abstract bool RenderContent(in RegionalRenderingContext context, D2D1Brush backBrush);
 
@@ -245,7 +246,7 @@ public abstract partial class ScrollableElementBase : UIElement,
         }
         if (redrawContentResult)
         {
-            InterlockedHelper.Or(ref _updateFlagsRaw, (long)ScrollableElementUpdateFlags.Content);
+            Atomics.Or(ref _updateFlagsRaw, (long)ScrollableElementUpdateFlags.Content);
             return false;
         }
         return true;
@@ -282,7 +283,7 @@ public abstract partial class ScrollableElementBase : UIElement,
         if (originalViewportPoint != viewportPoint)
         {
             ulong originalViewportPointAsUInt64 = BoundsHelper.ConvertPointToUInt64(originalViewportPoint);
-            if (InterlockedHelper.CompareExchange(ref _viewportPointRaw,
+            if (Atomics.CompareExchange(ref _viewportPointRaw,
                 BoundsHelper.ConvertPointToUInt64(viewportPoint), originalViewportPointAsUInt64) == originalViewportPointAsUInt64)
                 OptimisticLock.Increase(ref _viewportPointVersion);
         }
@@ -328,8 +329,8 @@ public abstract partial class ScrollableElementBase : UIElement,
         OnContentBoundsChanging(ref contentBounds);
         if (oldContentBounds != contentBounds)
         {
-            InterlockedHelper.Write(ref _contentLocationRaw, BoundsHelper.ConvertPointToUInt64(contentBounds.Location));
-            InterlockedHelper.Write(ref _contentSizeRaw, BoundsHelper.ConvertSizeToUInt64(contentBounds.Size));
+            Atomics.Write(ref _contentLocationRaw, BoundsHelper.ConvertPointToUInt64(contentBounds.Location));
+            Atomics.Write(ref _contentSizeRaw, BoundsHelper.ConvertSizeToUInt64(contentBounds.Size));
             OptimisticLock.Increase(ref _contentBoundsVersion);
             OnContentBoundsChanged();
         }
@@ -342,7 +343,7 @@ public abstract partial class ScrollableElementBase : UIElement,
 
         ScrollableElementUpdateFlags result = hasScrollBar ? (ScrollableElementUpdateFlags.RecalcScrollBar | ScrollableElementUpdateFlags.All) : ScrollableElementUpdateFlags.Content;
         ulong viewportPointAsUInt64 = BoundsHelper.ConvertPointToUInt64(viewportPoint);
-        if (InterlockedHelper.Exchange(ref _viewportPointRaw, viewportPointAsUInt64) == viewportPointAsUInt64)
+        if (Atomics.Exchange(ref _viewportPointRaw, viewportPointAsUInt64) == viewportPointAsUInt64)
             OptimisticLock.Increase(ref _viewportPointVersion);
         if (_oldViewportPoint != viewportPoint)
         {
@@ -576,7 +577,7 @@ public abstract partial class ScrollableElementBase : UIElement,
         if (!_enabled || !_hasScrollBar || _scrollButtonState != ButtonTriState.Pressed)
             return;
         float currentY = args.Y;
-        float oldY = ReferenceHelper.Exchange(ref _pinY, currentY);
+        float oldY = Cells.Exchange(ref _pinY, currentY);
         MoveScrollBarButtonY(MathI.Ceiling(currentY - oldY));
     }
 

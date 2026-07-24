@@ -18,7 +18,7 @@ partial class WindowMessageLoop
 {
     public static object? Invoke(Delegate @delegate)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
@@ -32,7 +32,7 @@ partial class WindowMessageLoop
 
     public static object? Invoke(Delegate @delegate, params object?[]? args)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
@@ -46,7 +46,7 @@ partial class WindowMessageLoop
 
     public static void InvokeAsync(Delegate @delegate)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
@@ -60,7 +60,7 @@ partial class WindowMessageLoop
 
     public static void InvokeAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
@@ -69,7 +69,7 @@ partial class WindowMessageLoop
 
     public static Task<object?> InvokeTaskAsync(Delegate @delegate)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
@@ -83,7 +83,7 @@ partial class WindowMessageLoop
 
     public static Task<object?> InvokeTaskAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw();
 
@@ -110,10 +110,10 @@ partial class WindowMessageLoop
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PostInvokeMessage(uint threadId)
     {
-        if (MathHelper.ToBooleanUnsafe(InterlockedHelper.CompareExchange(ref _invokeBarrier, Booleans.TrueInt, Booleans.FalseInt)))
+        if (MathHelper.ToBooleanUnsafe(Atomics.CompareExchange(ref _invokeBarrier, Booleans.TrueInt, Booleans.FalseInt)))
             return;
         User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioUI_WindowInvoke, 0, 0);
-        InterlockedHelper.Write(ref _invokeBarrier, Booleans.FalseInt);
+        Atomics.Write(ref _invokeBarrier, Booleans.FalseInt);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
 using ShioUI.Internals.Native;
@@ -97,16 +98,16 @@ internal sealed unsafe class WindowClassImpl
     private void EnterBarrier()
     {
         ref nuint barrier = ref _barrier;
-        while (InterlockedHelper.Exchange(ref barrier, 1) != 0)
+        while (Atomics.Exchange(ref barrier, 1) != 0)
         {
             SpinWait wait = new SpinWait();
-            while (InterlockedHelper.Read(ref barrier) != 0)
+            while (Atomics.Read(ref barrier) != 0)
                 wait.SpinOnce();
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ExitBarrier() => InterlockedHelper.Exchange(ref _barrier, 0);
+    private void ExitBarrier() => Atomics.Exchange(ref _barrier, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRegisterWindow<T>(T owner) where T : IHwndOwner

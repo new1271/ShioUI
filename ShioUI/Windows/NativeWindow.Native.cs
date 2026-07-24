@@ -8,6 +8,7 @@ using ShioUI.Internals;
 using ShioUI.Internals.Native;
 
 using RiceTea.Core.Helpers;
+using RiceTea.Core;
 
 namespace ShioUI.Windows;
 
@@ -58,16 +59,16 @@ partial class NativeWindow
 
     protected virtual void OnHandleCreated(IntPtr handle)
     {
-        string text = InterlockedHelper.CompareExchange(ref _cachedText, nameof(NativeWindow), null) ?? nameof(NativeWindow);
+        string text = Atomics.CompareExchange(ref _cachedText, nameof(NativeWindow), null) ?? nameof(NativeWindow);
         User32.SetWindowText(handle, text);
-        Icon? icon = InterlockedHelper.Read(ref _cachedIcon);
+        Icon? icon = Atomics.Read(ref _cachedIcon);
         IntPtr iconHandle = icon is null ? IntPtr.Zero : User32.CopyIcon(icon.Handle);
         SetIconCore(handle, iconHandle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected bool IsWindowDestroyed()
-        => InterlockedHelper.Read(ref _windowFlags) == UnsafeHelper.GetMaxValue<nuint>();
+        => Atomics.Read(ref _windowFlags) == UnsafeHelper.GetMaxValue<nuint>();
 
     protected virtual void DisposeCore(bool disposing)
     {
@@ -87,7 +88,7 @@ partial class NativeWindow
 
     private void Dispose(bool disposing)
     {
-        if (ReferenceHelper.Exchange(ref _disposed, true))
+        if (Cells.Exchange(ref _disposed, true))
             return;
         if (disposing)
             Thread.MemoryBarrier();

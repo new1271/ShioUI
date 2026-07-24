@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 
+using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
@@ -253,7 +254,7 @@ public sealed class LayoutEngine : ILayoutEngine
                 childrenArrayPool.Return(segment.Array!);
             childrenDict.Clear();
 
-            LayoutNode?[]? buffer = ReferenceHelper.Exchange(ref _currentNodeBuffer, null);
+            LayoutNode?[]? buffer = Cells.Exchange(ref _currentNodeBuffer, null);
             if (buffer is not null && _currentAvailableIndex < Capacity - SegmentLength)
                 _nodeArrayPool.Return(buffer);
             GC.Collect(0, GCCollectionMode.Optimized);

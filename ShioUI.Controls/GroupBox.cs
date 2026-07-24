@@ -7,6 +7,7 @@ using System.Threading;
 
 using InlineMethod;
 
+using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
@@ -79,11 +80,11 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private WeakReference<GroupBox> GetWeakReference()
     {
-        WeakReference<GroupBox>? reference = InterlockedHelper.Read(ref _reference);
+        WeakReference<GroupBox>? reference = Atomics.Read(ref _reference);
         if (reference is null)
         {
             reference = new WeakReference<GroupBox>(this);
-            WeakReference<GroupBox>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
+            WeakReference<GroupBox>? oldReference = Atomics.CompareExchange(ref _reference, reference, null);
             if (oldReference is not null)
                 reference = oldReference;
         }
@@ -128,14 +129,14 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     {
         if (type == RedrawType.NoRedraw)
             return;
-        InterlockedHelper.Or(ref _redrawTypeRaw, (long)type);
+        Atomics.Or(ref _redrawTypeRaw, (long)type);
         UpdateCore();
     }
 
     [Inline(InlineBehavior.Remove)]
     private void Update(RenderObjectUpdateFlags flags, RedrawType redrawType)
     {
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)flags);
+        Atomics.Or(ref _rawUpdateFlags, (long)flags);
         Update(redrawType);
     }
 
@@ -168,7 +169,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
             titleLayout = factory.CreateTextLayout(_title ?? string.Empty, format);
             format.Dispose();
             titleLayout.MaxWidth = titleLayout.GetMetrics().Width + UIConstants.ElementMarginDouble;
-            titleLayout.MaxHeight = InterlockedHelper.Read(ref _titleHeight);
+            titleLayout.MaxHeight = Atomics.Read(ref _titleHeight);
         }
     }
 
@@ -241,7 +242,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     private static int GetContentPageLeftCore() => ContentPageLeftPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private int GetContentPageTopCore() => InterlockedHelper.Read(ref _titleHeight);
+    private int GetContentPageTopCore() => Atomics.Read(ref _titleHeight);
 
     [Inline(InlineBehavior.Remove)]
     private static int GetContentPageRightCore(int width) => width - ContentPageRightPadding;

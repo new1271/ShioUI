@@ -8,6 +8,7 @@ using ShioUI.Graphics.Native.DXGI;
 using RiceTea.Core.Helpers;
 
 using static ShioUI.Graphics.Constants;
+using RiceTea.Core;
 
 namespace ShioUI.Graphics.Hosts;
 
@@ -103,7 +104,7 @@ public sealed class CompositionGraphicsHost : OptimizedGraphicsHost
             goto Fallback;
 
         //swapChain.SourceSize = new SizeU(width, height);
-        return ReferenceHelper.Exchange(ref _temporarySize, size) != size;
+        return Cells.Exchange(ref _temporarySize, size) != size;
 
     Fallback:
         base.ResizeTemporarily(size);

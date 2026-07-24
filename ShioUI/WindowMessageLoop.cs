@@ -5,6 +5,7 @@ using System.Threading;
 
 using InlineMethod;
 
+using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -35,7 +36,7 @@ public static partial class WindowMessageLoop
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+            uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
             return messageLoopThreadId != 0;
         }
     }
@@ -45,14 +46,14 @@ public static partial class WindowMessageLoop
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+            uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
             return messageLoopThreadId != 0 && NativeMethods.GetCurrentThreadId() == messageLoopThreadId;
         }
     }
 
     public static void ChangeMainWindow(NativeWindow? mainWindow)
     {
-        uint messageLoopThreadId = InterlockedHelper.Read(ref _threadIdForMessageLoop);
+        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw("The message loop is not exists!");
         ChangeMainWindowCore(mainWindow, IsMessageLoopThread);
@@ -68,7 +69,7 @@ public static partial class WindowMessageLoop
             else
                 InvokeAsync(_windowShowAction, mainWindow);
         }
-        NativeWindow? oldWindow = InterlockedHelper.Exchange(ref _mainWindow, mainWindow);
+        NativeWindow? oldWindow = Atomics.Exchange(ref _mainWindow, mainWindow);
         if (oldWindow is not null && !ReferenceEquals(oldWindow, mainWindow))
             oldWindow.Destroyed -= OnWindowDestroyed;
 
@@ -82,7 +83,7 @@ public static partial class WindowMessageLoop
     public static int Start(NativeWindow? mainWindow)
     {
         uint currentThreadId = NativeMethods.GetCurrentThreadId();
-        if (InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
+        if (Atomics.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
             InvalidOperationException.Throw("Message loop is already exists!");
         if (_isFirstTimeStart)
         {
@@ -96,7 +97,7 @@ public static partial class WindowMessageLoop
 
         ChangeMainWindowCore(mainWindow, isMessageLoopThread: true);
         int result = DoMessageLoop();
-        InterlockedHelper.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
+        Atomics.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
 
         ChangeMainWindowCore(null, isMessageLoopThread: false);
         return result;
@@ -155,7 +156,7 @@ public static partial class WindowMessageLoop
         {
             if (state is not StrongBox<IntPtr> timerHandleBox)
                 return;
-            IntPtr timerHandle = InterlockedHelper.Read(ref timerHandleBox.Value);
+            IntPtr timerHandle = Atomics.Read(ref timerHandleBox.Value);
             if (timerHandle == IntPtr.Zero)
                 return;
 
@@ -204,7 +205,7 @@ public static partial class WindowMessageLoop
         }
         finally
         {
-            InterlockedHelper.Exchange(ref timerHandleBox.Value, IntPtr.Zero);
+            Atomics.Exchange(ref timerHandleBox.Value, IntPtr.Zero);
             Kernel32.CloseHandle(timerHandle);
         }
     }

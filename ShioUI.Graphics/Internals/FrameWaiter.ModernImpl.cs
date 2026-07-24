@@ -5,8 +5,8 @@ using System.Threading;
 
 using ShioUI.Graphics.Internals.Native;
 
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Windows.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Graphics.Internals;
 
@@ -29,11 +29,11 @@ partial class FrameWaiter
             _handle = handle;
         }
 
-        public bool TryEnterFrame() => InterlockedHelper.Read(ref _disposed) == 0UL;
+        public bool TryEnterFrame() => Atomics.Read(ref _disposed) == 0UL;
 
         public void LeaveFrameAndWait()
         {
-            if (InterlockedHelper.Read(ref _disposed) != 0UL)
+            if (Atomics.Read(ref _disposed) != 0UL)
                 return;
             uint hr = Kernel32.WaitForSingleObject(_handle, dwMilliseconds: unchecked((uint)Timeout.Infinite));
             if (hr == 0xFFFFFFFFu)
@@ -44,7 +44,7 @@ partial class FrameWaiter
 
         private void DisposeCore()
         {
-            if (InterlockedHelper.Exchange(ref _disposed, ulong.MaxValue) != 0UL)
+            if (Atomics.Exchange(ref _disposed, ulong.MaxValue) != 0UL)
                 return;
             Kernel32.CloseHandle(_handle);
         }

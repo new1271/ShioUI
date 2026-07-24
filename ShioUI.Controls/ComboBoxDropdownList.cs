@@ -17,6 +17,7 @@ using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using ShioUI.Extensions;
+using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -105,7 +106,7 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
         SurfaceSize = new Size(0, MathI.Ceiling(itemHeight * count));
 
         float maxViewHeight = maxViewCount * itemHeight;
-        InterlockedHelper.Write(ref _maxViewHeight, MathI.Ceiling(maxViewHeight));
+        Atomics.Write(ref _maxViewHeight, MathI.Ceiling(maxViewHeight));
         if (lastIndex > maxViewCount / 2)
             ScrollingTo(MathI.Ceiling(lastIndex * itemHeight + itemHeight / 2 - maxViewHeight / 2));
     }

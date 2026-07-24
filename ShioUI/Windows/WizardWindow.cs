@@ -18,6 +18,7 @@ using ShioUI.Theme;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Windows;
 
@@ -76,7 +77,7 @@ public abstract class WizardWindow : MultiPageWindow
         set
         {
             _title = value ?? string.Empty;
-            InterlockedHelper.Or(ref _updateFlags, (long)UpdateFlags.UpdateTitle);
+            Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateTitle);
             UpdateAndResize();
         }
     }
@@ -89,7 +90,7 @@ public abstract class WizardWindow : MultiPageWindow
         protected set
         {
             _titleDescription = value ?? string.Empty;
-            InterlockedHelper.Or(ref _updateFlags, (long)UpdateFlags.UpdateTitleDescription);
+            Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateTitleDescription);
             UpdateAndResize();
         }
     }

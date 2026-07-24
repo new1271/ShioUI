@@ -8,6 +8,7 @@ using ShioUI.Graphics.Native.Direct2D.Brushes;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -82,7 +83,7 @@ public abstract partial class AppendOnlyListBase<TItem, TMeasuringContext> : Scr
 
     protected override bool RenderContent(in RegionalRenderingContext context, D2D1Brush backBrush)
     {
-        bool ignoreNeedRefresh = ReferenceHelper.Exchange(ref _ignoreNeedRefresh, false);
+        bool ignoreNeedRefresh = Cells.Exchange(ref _ignoreNeedRefresh, false);
         bool needRenderBackgroundPerItem;
         if (context.HasDirtyCollector)
         {

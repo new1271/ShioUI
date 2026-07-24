@@ -8,6 +8,7 @@ using ShioUI.Graphics.Native.DXGI;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.Structures;
+using RiceTea.Core;
 
 namespace ShioUI.Graphics;
 
@@ -59,18 +60,18 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
 
     public void RequestUpdate(bool force)
     {
-        InterlockedHelper.Or(ref _state, (ulong)RenderingFlags.BaseFlag | 
+        Atomics.Or(ref _state, (ulong)RenderingFlags.BaseFlag | 
             ((ulong)RenderingFlags.RedrawAllFlag & UnsafeHelper.Negate(MathHelper.BooleanToUInt64(force))));
-        if (InterlockedHelper.Read(ref _lockedCount) != 0UL)
+        if (Atomics.Read(ref _lockedCount) != 0UL)
             return;
         _thread.DoRender();
     }
 
     public void RequestUpdateUnsafe(RenderingFlags flags)
     {
-        InterlockedHelper.Or(ref _state, (ulong)flags); 
+        Atomics.Or(ref _state, (ulong)flags); 
 
-        if (InterlockedHelper.Read(ref _lockedCount) != 0UL)
+        if (Atomics.Read(ref _lockedCount) != 0UL)
             return;
         _thread.DoRender();
     }
@@ -78,8 +79,8 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RequestUpdateAndResize()
     {
-        InterlockedHelper.Or(ref _state, (ulong)RenderingFlags.ResizeAndRedrawAll);
-        if (InterlockedHelper.Read(ref _lockedCount) != 0UL)
+        Atomics.Or(ref _state, (ulong)RenderingFlags.ResizeAndRedrawAll);
+        if (Atomics.Read(ref _lockedCount) != 0UL)
             return;
         _thread.DoRender();
     }
@@ -89,8 +90,8 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     {
         ulong state = (ulong)RenderingFlags.ResizeAndRedrawAll | 
             ((ulong)RenderingFlags._ResizeTemporarilyFlag_Standalone & UnsafeHelper.Negate(MathHelper.BooleanToUInt64(temporarily)));
-        InterlockedHelper.Or(ref _state, state);
-        if (InterlockedHelper.Read(ref _lockedCount) != 0UL)
+        Atomics.Or(ref _state, state);
+        if (Atomics.Read(ref _lockedCount) != 0UL)
             return;
         _thread.DoRender();
     }
@@ -101,8 +102,8 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
         ulong state = (ulong)RenderingFlags.Resize |
             ((ulong)RenderingFlags._ResizeTemporarilyFlag_Standalone & UnsafeHelper.Negate(MathHelper.BooleanToUInt64(temporarily))) |
             ((ulong)RenderingFlags.RedrawAll & UnsafeHelper.Negate(MathHelper.BooleanToUInt64(redrawAll)));
-        InterlockedHelper.Or(ref _state, state);
-        if (InterlockedHelper.Read(ref _lockedCount) != 0UL)
+        Atomics.Or(ref _state, state);
+        if (Atomics.Read(ref _lockedCount) != 0UL)
             return;
         _thread.DoRender();
     }
@@ -110,7 +111,7 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RenderCore()
     {
-        if (InterlockedHelper.Read(ref _lockedCount) != 0UL)
+        if (Atomics.Read(ref _lockedCount) != 0UL)
             return;
         IntPtr trigger = _waitForRenderingTrigger;
         NativeMethods.ResetWaitingHandle(trigger);
@@ -127,8 +128,8 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Lock()
     {
-        if (InterlockedHelper.Read(ref _disposed) != default ||
-            InterlockedHelper.LimitedIncrement(ref _lockedCount, UnsafeHelper.GetMaxValue<nuint>()) > 1)
+        if (Atomics.Read(ref _disposed) != default ||
+            Atomics.LimitedIncrement(ref _lockedCount, UnsafeHelper.GetMaxValue<nuint>()) > 1)
             return;
         _thread.StartNextWaiting();
     }
@@ -136,9 +137,9 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Unlock()
     {
-        if (InterlockedHelper.Read(ref _disposed) != default || 
-            InterlockedHelper.LimitedDecrement(ref _lockedCount, default) > 0 ||
-            InterlockedHelper.Read(ref _state) == default)
+        if (Atomics.Read(ref _disposed) != default || 
+            Atomics.LimitedDecrement(ref _lockedCount, default) > 0 ||
+            Atomics.Read(ref _state) == default)
             return;
         _thread.DoRender();
     }
@@ -147,7 +148,7 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     public RenderingFlags GetAndResetRenderingFlags()
     {
         _thread.StartNextWaiting();
-        return (RenderingFlags)InterlockedHelper.Exchange(ref _state, default);
+        return (RenderingFlags)Atomics.Exchange(ref _state, default);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -165,7 +166,7 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
     public void SetSystemBoosting(bool boost)
     {
         nuint value = UnsafeHelper.Negate(MathHelper.BooleanToNativeUnsigned(boost));
-        if (InterlockedHelper.Exchange(ref _isSystemBoosting, value) == value)
+        if (Atomics.Exchange(ref _isSystemBoosting, value) == value)
             return;
         DelayedSystemBooster booster = DelayedSystemBooster.Instance;
         if (boost)
@@ -180,16 +181,16 @@ public sealed partial class RenderingController : CriticalFinalizerObject, IDisp
 
     private void DisposeCore(bool disposing)
     {
-        if (InterlockedHelper.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0)
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0)
             return;
-        InterlockedHelper.Write(ref _lockedCount, UnsafeHelper.GetMaxValue<nuint>());
+        Atomics.Write(ref _lockedCount, UnsafeHelper.GetMaxValue<nuint>());
         NativeMethods.DestroyWaitingHandle(_waitForRenderingTrigger);
         if (disposing)
         {
             _frameWaiter.Dispose();
             _thread.Dispose();
         }
-        if (InterlockedHelper.Exchange(ref _isSystemBoosting, default) != default)
+        if (Atomics.Exchange(ref _isSystemBoosting, default) != default)
             DelayedSystemBooster.Instance.RemoveRef();
     }
 

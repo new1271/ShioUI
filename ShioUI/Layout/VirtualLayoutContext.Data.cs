@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -34,34 +35,34 @@ partial struct VirtualLayoutContext
         {
             ref SharedData data = ref SharedData;
 
-            ArrayPool<LayoutNode>? nodePool = ReferenceHelper.Exchange(ref NodePool, null);
+            ArrayPool<LayoutNode>? nodePool = Cells.Exchange(ref NodePool, null);
             if (nodePool is not null)
             {
-                LayoutNode[]? keys = ReferenceHelper.Exchange(ref data.FakeLayoutNodeKeys, null);
+                LayoutNode[]? keys = Cells.Exchange(ref data.FakeLayoutNodeKeys, null);
                 DebugHelper.ThrowIf(keys is null);
                 nodePool.Return(keys);
             }
 
-            ArrayPool<FractionalLayoutNode>? fractionalNodePool = ReferenceHelper.Exchange(ref FractionalNodePool, null);
+            ArrayPool<FractionalLayoutNode>? fractionalNodePool = Cells.Exchange(ref FractionalNodePool, null);
             if (fractionalNodePool is not null)
             {
-                FractionalLayoutNode[]? keys = ReferenceHelper.Exchange(ref data.FakeFractionalLayoutNodeKeys, null);
+                FractionalLayoutNode[]? keys = Cells.Exchange(ref data.FakeFractionalLayoutNodeKeys, null);
                 DebugHelper.ThrowIf(keys is null);
                 fractionalNodePool.Return(keys);
             }
 
-            NativeMemoryPool? memoryPool = ReferenceHelper.Exchange(ref MemoryPool, null);
+            NativeMemoryPool? memoryPool = Cells.Exchange(ref MemoryPool, null);
             if (memoryPool is not null)
             {
                 {
-                    int* values = ReferenceHelper.Exchange(ref data.FakeLayoutNodeValues, null);
+                    int* values = Cells.Exchange(ref data.FakeLayoutNodeValues, null);
                     if (values is not null)
-                        memoryPool.Return(new NativeMemoryBlock(values, ReferenceHelper.Exchange(ref FakeLayoutNodeValuesLength, default) * sizeof(int)));
+                        memoryPool.Return(new NativeMemoryBlock(values, Cells.Exchange(ref FakeLayoutNodeValuesLength, default) * sizeof(int)));
                 }
                 {
-                    float* values = ReferenceHelper.Exchange(ref data.FakeFractionalLayoutNodeValues, null);
+                    float* values = Cells.Exchange(ref data.FakeFractionalLayoutNodeValues, null);
                     if (values is not null)
-                        memoryPool.Return(new NativeMemoryBlock(values, ReferenceHelper.Exchange(ref FakeLayoutNodeValuesLength, default) * sizeof(float)));
+                        memoryPool.Return(new NativeMemoryBlock(values, Cells.Exchange(ref FakeLayoutNodeValuesLength, default) * sizeof(float)));
                 }
             }
         }

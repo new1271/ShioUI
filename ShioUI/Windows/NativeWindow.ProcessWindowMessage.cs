@@ -8,10 +8,11 @@ using InlineIL;
 
 using LocalsInit;
 
+using RiceTea.Core;
+using RiceTea.Core.Helpers;
+
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
-
-using RiceTea.Core.Helpers;
 
 using GdiColor = System.Drawing.Color;
 using GdiGraphics = System.Drawing.Graphics;
@@ -123,12 +124,12 @@ unsafe partial class NativeWindow
         switch (wParam)
         {
             case 0: // WA_INACTIVE
-                if ((InterlockedHelper.And(ref _windowFlags, ~(nuint)0b100) & 0b100) == 0b100)
+                if ((Atomics.And(ref _windowFlags, ~(nuint)0b100) & 0b100) == 0b100)
                     OnFocusedChanged(EventArgs.Empty);
                 break;
             case 1: // WA_ACTIVE
             case 2: // WA_CLICKACTIVE
-                if ((InterlockedHelper.Or(ref _windowFlags, 0b100) & 0b100) != 0b100)
+                if ((Atomics.Or(ref _windowFlags, 0b100) & 0b100) != 0b100)
                     OnFocusedChanged(EventArgs.Empty);
                 break;
         }
@@ -138,12 +139,12 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleClose()
     {
-        ClosingEventArgs args = new ClosingEventArgs((CloseReason)InterlockedHelper.Exchange(ref _closeReason, (uint)CloseReason.Unknown), cancelled: false);
+        ClosingEventArgs args = new ClosingEventArgs((CloseReason)Atomics.Exchange(ref _closeReason, (uint)CloseReason.Unknown), cancelled: false);
         OnClosing(ref args);
         if (args.Cancelled)
             return true;
         OnClosed(EventArgs.Empty);
-        IntPtr dialogParent = InterlockedHelper.Exchange(ref _dialogParent, IntPtr.Zero);
+        IntPtr dialogParent = Atomics.Exchange(ref _dialogParent, IntPtr.Zero);
         if (dialogParent != IntPtr.Zero)
         {
             User32.EnableWindow(dialogParent, true);
@@ -157,14 +158,14 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleDestroyed()
     {
-        if (InterlockedHelper.Exchange(ref _windowFlags, UnsafeHelper.GetMaxValue<nuint>()) != UnsafeHelper.GetMaxValue<nuint>())
+        if (Atomics.Exchange(ref _windowFlags, UnsafeHelper.GetMaxValue<nuint>()) != UnsafeHelper.GetMaxValue<nuint>())
         {
             IntPtr handle = _handleLazy.Value;
             if (handle == IntPtr.Zero)
                 return true;
             if (!WindowClassImpl.Instance.TryUnregisterWindowUnsafe(handle, this))
                 DebugHelper.Throw();
-            CancellationTokenSource? dialogTokenSource = InterlockedHelper.Exchange(ref _dialogTokenSource, null);
+            CancellationTokenSource? dialogTokenSource = Atomics.Exchange(ref _dialogTokenSource, null);
             if (dialogTokenSource is not null)
             {
                 try
@@ -223,14 +224,14 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleSetText()
     {
-        InterlockedHelper.Exchange(ref _cachedText, null);
+        Atomics.Exchange(ref _cachedText, null);
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleSetIcon()
     {
-        InterlockedHelper.Exchange(ref _cachedIcon, null);
+        Atomics.Exchange(ref _cachedIcon, null);
         return false;
     }
 
@@ -268,21 +269,21 @@ unsafe partial class NativeWindow
         {
             case 2: // SIZE_MAXIMIZED
                 {
-                    WindowState oldState = (WindowState)InterlockedHelper.Exchange(ref _windowState, (uint)WindowState.Maximized);
+                    WindowState oldState = (WindowState)Atomics.Exchange(ref _windowState, (uint)WindowState.Maximized);
                     if (oldState != WindowState.Maximized)
                         OnWindowStateChanged(new WindowStateChangedEventArgs(oldState, WindowState.Maximized));
                 }
                 break;
             case 1: // SIZE_MINIMIZED
                 {
-                    WindowState oldState = (WindowState)InterlockedHelper.Exchange(ref _windowState, (uint)WindowState.Minimized);
+                    WindowState oldState = (WindowState)Atomics.Exchange(ref _windowState, (uint)WindowState.Minimized);
                     if (oldState != WindowState.Minimized)
                         OnWindowStateChanged(new WindowStateChangedEventArgs(oldState, WindowState.Minimized));
                 }
                 break;
             case 0: // SIZE_RESTORED
                 {
-                    WindowState oldState = (WindowState)InterlockedHelper.Exchange(ref _windowState, (uint)WindowState.Normal);
+                    WindowState oldState = (WindowState)Atomics.Exchange(ref _windowState, (uint)WindowState.Normal);
                     if (oldState != WindowState.Normal)
                         OnWindowStateChanged(new WindowStateChangedEventArgs(oldState, WindowState.Normal));
                 }
@@ -311,7 +312,7 @@ unsafe partial class NativeWindow
 
     private bool HandleShowWindow(nint wParam, nint lParam)
     {
-        if (wParam != 0 && lParam == 0 && (InterlockedHelper.Or(ref _windowFlags, 0b10) & 0b10) != 0b10)
+        if (wParam != 0 && lParam == 0 && (Atomics.Or(ref _windowFlags, 0b10) & 0b10) != 0b10)
             WindowMessageLoop.InvokeAsync(() => OnShown(EventArgs.Empty));
         return false;
     }

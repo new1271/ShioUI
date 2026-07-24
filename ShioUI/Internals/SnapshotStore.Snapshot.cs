@@ -1,5 +1,6 @@
 using System.Threading;
 
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
 namespace ShioUI.Internals;
@@ -28,17 +29,17 @@ partial class CacheStore<T>
         public void EnterBarrier()
         {
             ref nuint barrier = ref _barrier;
-            while (InterlockedHelper.Exchange(ref barrier, 1) != 0)
+            while (Atomics.Exchange(ref barrier, 1) != 0)
             {
                 SpinWait waiter = new SpinWait();
                 do
                 {
                     waiter.SpinOnce();
-                } while (InterlockedHelper.Read(ref barrier) != 0);
+                } while (Atomics.Read(ref barrier) != 0);
             }
         }
 
-        public void ExitBarrier() => InterlockedHelper.Exchange(ref _barrier, 0);
+        public void ExitBarrier() => Atomics.Exchange(ref _barrier, 0);
 
         public void CleanUp()
         {

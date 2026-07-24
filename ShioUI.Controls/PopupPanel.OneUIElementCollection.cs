@@ -30,12 +30,12 @@ public sealed partial class PopupPanel
 
         public Lock.Scope EnterLockScope() => _lock.EnterScope();
 
-        public int Count => MathHelper.BooleanToInt32(InterlockedHelper.Read(ref _element) is null);
+        public int Count => MathHelper.BooleanToInt32(Atomics.Read(ref _element) is null);
 
         public UIElement? Value
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => InterlockedHelper.Read(ref _element);
+            get => Atomics.Read(ref _element);
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
@@ -66,7 +66,7 @@ public sealed partial class PopupPanel
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void DisposeCore()
         {
-            if (ReferenceHelper.Exchange(ref _disposed, true))
+            if (Cells.Exchange(ref _disposed, true))
                 return;
             using var scope = EnterLockScope();
             DisposeHelper.SwapDisposeWeak(ref _element);

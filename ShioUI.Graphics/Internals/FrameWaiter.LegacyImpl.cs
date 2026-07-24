@@ -1,6 +1,6 @@
 using System.Threading;
 
-using RiceTea.Core.Helpers;
+using RiceTea.Core;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.Structures;
 
@@ -30,13 +30,13 @@ partial class FrameWaiter
                 if (_framesPerSecond == value)
                     return;
                 _framesPerSecond = value;
-                InterlockedHelper.Exchange(ref _nativeTicksPerFrameCycle, NativeTicksPerSecond / value);
+                Atomics.Exchange(ref _nativeTicksPerFrameCycle, NativeTicksPerSecond / value);
             }
         }
 
         public bool TryEnterFrame()
         {
-            ulong frameCycle = InterlockedHelper.Read(ref _nativeTicksPerFrameCycle);
+            ulong frameCycle = Atomics.Read(ref _nativeTicksPerFrameCycle);
             if (frameCycle <= 0L)
             {
                 _nextTime = 0;
@@ -55,8 +55,8 @@ partial class FrameWaiter
 
         public void Dispose()
         {
-            InterlockedHelper.Exchange(ref _nativeTicksPerFrameCycle, 0);
-            InterlockedHelper.Exchange(ref _nextTime, 0);
+            Atomics.Exchange(ref _nativeTicksPerFrameCycle, 0);
+            Atomics.Exchange(ref _nextTime, 0);
         }
     }
 }

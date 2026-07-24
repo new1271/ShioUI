@@ -5,8 +5,8 @@ using System.Threading;
 using ShioUI.Layout;
 using ShioUI.Utils;
 
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
+using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -80,7 +80,7 @@ partial class ScrollableElementBase : IAutoHeightElement
         set
         {
             ulong castedValue = BoundsHelper.ConvertSizeToUInt64(value);
-            if (InterlockedHelper.Exchange(ref _surfaceSizeRaw, castedValue) == castedValue)
+            if (Atomics.Exchange(ref _surfaceSizeRaw, castedValue) == castedValue)
                 return;
             OptimisticLock.Increase(ref _surfaceSizeVersion);
             Update(ScrollableElementUpdateFlags.RecalcLayout);
@@ -102,7 +102,7 @@ partial class ScrollableElementBase : IAutoHeightElement
         protected set
         {
             ulong castedValue = BoundsHelper.ConvertPointToUInt64(value);
-            if (InterlockedHelper.Exchange(ref _viewportPointRaw, castedValue) == castedValue)
+            if (Atomics.Exchange(ref _viewportPointRaw, castedValue) == castedValue)
                 return;
             OptimisticLock.Increase(ref _viewportPointVersion);
             Update(ScrollableElementUpdateFlags.RecalcScrollBar | ScrollableElementUpdateFlags.TriggerViewportPointChanged | ScrollableElementUpdateFlags.All);

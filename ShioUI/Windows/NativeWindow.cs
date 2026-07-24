@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 using InlineMethod;
 
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
 using ShioUI.Internals;
@@ -61,7 +62,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 
     public void Show()
     {
-        if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
+        if ((Atomics.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return;
         if (WindowMessageLoop.HasMessageLoop)
         {
@@ -76,7 +77,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 
     public Task ShowAsync()
     {
-        if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
+        if ((Atomics.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             goto Completed;
         if (WindowMessageLoop.HasMessageLoop)
         {
@@ -101,7 +102,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 
     public DialogResult ShowDialog()
     {
-        if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
+        if ((Atomics.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return DialogResult.Invalid;
         if (WindowMessageLoop.HasMessageLoop)
         {
@@ -117,12 +118,12 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         {
             WindowMessageLoop.Start(this);
         }
-        return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
+        return (DialogResult)Atomics.Read(ref _dialogResult);
     }
 
     public Task<DialogResult> ShowDialogAsync()
     {
-        if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
+        if ((Atomics.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             return Task.FromResult(DialogResult.Invalid);
         if (WindowMessageLoop.HasMessageLoop)
         {
@@ -138,19 +139,19 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         {
             WindowMessageLoop.Start(this);
         }
-        return Task.FromResult((DialogResult)InterlockedHelper.Read(ref _dialogResult));
+        return Task.FromResult((DialogResult)Atomics.Read(ref _dialogResult));
 
         async Task<DialogResult> AsyncCore()
         {
             await WindowMessageLoop.InvokeTaskAsync(ShowDialogCoreAction, this).ConfigureAwait(continueOnCapturedContext: false);
-            return (DialogResult)InterlockedHelper.Read(ref _dialogResult);
+            return (DialogResult)Atomics.Read(ref _dialogResult);
         }
     }
 
     private void WakeUpCore()
     {
         IntPtr handle;
-        if ((InterlockedHelper.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
+        if ((Atomics.Or(ref _windowFlags, 0b01) & 0b01) == 0b01)
             handle = Handle;
         else
             handle = ShowCore();
@@ -188,9 +189,9 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     {
         IntPtr parent = FindParentHandleForDialog(handle: ShowCore());
         User32.EnableWindow(parent, false);
-        InterlockedHelper.Write(ref _dialogParent, parent);
+        Atomics.Write(ref _dialogParent, parent);
         CancellationTokenSource tokenSource = new CancellationTokenSource();
-        InterlockedHelper.Write(ref _dialogTokenSource, tokenSource);
+        Atomics.Write(ref _dialogTokenSource, tokenSource);
         WindowMessageLoop.StartMiniLoop(tokenSource.Token);
     }
 
@@ -203,7 +204,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return;
-        InterlockedHelper.Write(ref _closeReason, (uint)reason);
+        Atomics.Write(ref _closeReason, (uint)reason);
         User32.PostMessageW(handle, WindowMessage.Close, 0, 0);
     }
 

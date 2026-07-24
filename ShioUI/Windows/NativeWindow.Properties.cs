@@ -21,8 +21,8 @@ partial class NativeWindow
 {
     public DialogResult DialogResult
     {
-        get => (DialogResult)InterlockedHelper.Read(ref _dialogResult);
-        set => InterlockedHelper.Exchange(ref _dialogResult, (uint)value);
+        get => (DialogResult)Atomics.Read(ref _dialogResult);
+        set => Atomics.Exchange(ref _dialogResult, (uint)value);
     }
 
     public unsafe Rectangle Bounds
@@ -125,7 +125,7 @@ partial class NativeWindow
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            Icon? cachedIcon = InterlockedHelper.Read(ref _cachedIcon);
+            Icon? cachedIcon = Atomics.Read(ref _cachedIcon);
             if (cachedIcon is null)
             {
                 IntPtr handle = Handle;
@@ -170,14 +170,14 @@ partial class NativeWindow
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            string? text = InterlockedHelper.Read(ref _cachedText);
+            string? text = Atomics.Read(ref _cachedText);
             if (text is not null)
                 return text;
             IntPtr handle = Handle;
             if (handle == IntPtr.Zero)
                 return string.Empty;
             text = GetTextCore(handle);
-            string? newCachedText = InterlockedHelper.CompareExchange(ref _cachedText, text, null);
+            string? newCachedText = Atomics.CompareExchange(ref _cachedText, text, null);
             return newCachedText ?? text;
         }
 
@@ -187,7 +187,7 @@ partial class NativeWindow
             IntPtr handle = Handle;
             if (handle == IntPtr.Zero)
             {
-                InterlockedHelper.Exchange(ref _cachedText, value);
+                Atomics.Exchange(ref _cachedText, value);
                 return;
             }
             User32.SetWindowText(handle, value);
@@ -225,7 +225,7 @@ partial class NativeWindow
 
     public bool Focused
     {
-        get => (InterlockedHelper.Read(ref _windowFlags) & 0b100) == 0b100;
+        get => (Atomics.Read(ref _windowFlags) & 0b100) == 0b100;
     }
 
     public WindowStyles Styles

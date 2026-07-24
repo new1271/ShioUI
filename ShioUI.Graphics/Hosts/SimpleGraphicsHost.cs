@@ -356,7 +356,7 @@ public class SimpleGraphicsHost : ICheckableDisposable
 
     private void Dispose(bool disposing)
     {
-        if (ReferenceHelper.Exchange(ref _disposed, true))
+        if (Cells.Exchange(ref _disposed, true))
             return;
         DisposeCore(disposing);
     }

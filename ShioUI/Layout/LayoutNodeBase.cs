@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-using RiceTea.Core.Helpers;
+using RiceTea.Core;
 
 namespace ShioUI.Layout;
 
@@ -17,7 +17,7 @@ public abstract class LayoutNodeBase
         get => _identifier;
     }
 
-    protected LayoutNodeBase() => _identifier = InterlockedHelper.Increment(ref _identifierCounter);
+    protected LayoutNodeBase() => _identifier = Atomics.Increment(ref _identifierCounter);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected bool CheckCacheTimestamp(ulong timestamp) => timestamp != 0 && timestamp == _timestamp;

@@ -1,6 +1,6 @@
 using ShioUI.Layout;
 
-using RiceTea.Core.Helpers;
+using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -11,6 +11,6 @@ partial class ComboBoxDropdownList
         public DefaultHeightNode(ComboBoxDropdownList element) : base(element) { }
 
         protected override int ComputeCore(ComboBoxDropdownList element, in LayoutContext context)
-            => InterlockedHelper.Read(ref element._maxViewHeight);
+            => Atomics.Read(ref element._maxViewHeight);
     }
 }

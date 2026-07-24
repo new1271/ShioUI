@@ -7,6 +7,7 @@ using System.Threading;
 
 using InlineMethod;
 
+using RiceTea.Core;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
@@ -64,11 +65,11 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private WeakReference<CheckBox> GetWeakReference()
     {
-        WeakReference<CheckBox>? reference = InterlockedHelper.Read(ref _reference);
+        WeakReference<CheckBox>? reference = Atomics.Read(ref _reference);
         if (reference is null)
         {
             reference = new WeakReference<CheckBox>(this);
-            WeakReference<CheckBox>? oldReference = InterlockedHelper.CompareExchange(ref _reference, reference, null);
+            WeakReference<CheckBox>? oldReference = Atomics.CompareExchange(ref _reference, reference, null);
             if (oldReference is not null)
                 reference = oldReference;
         }
@@ -95,14 +96,14 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     {
         if (type == RedrawType.NoRedraw)
             return;
-        InterlockedHelper.Or(ref _redrawTypeRaw, (long)type);
+        Atomics.Or(ref _redrawTypeRaw, (long)type);
         UpdateCore();
     }
 
     [Inline(InlineBehavior.Remove)]
     private void Update(RenderObjectUpdateFlags flags)
     {
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)flags);
+        Atomics.Or(ref _rawUpdateFlags, (long)flags);
         Update();
     }
 

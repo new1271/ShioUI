@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-using RiceTea.Core.Helpers;
+using RiceTea.Core;
 using RiceTea.Core.Threading;
 
 namespace ShioUI.Controls;
@@ -37,7 +37,7 @@ partial class ButtonBase
         }
         set
         {
-            if (ReferenceHelper.Exchange(ref _enabled, value) == value)
+            if (Cells.Exchange(ref _enabled, value) == value)
                 return;
             OptimisticLock.Increase(ref _version);
             Update();

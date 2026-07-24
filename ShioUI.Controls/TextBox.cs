@@ -185,14 +185,14 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected override void Update()
     {
-        InterlockedHelper.Exchange(ref _rawUpdateFlags, (long)RenderObjectUpdateFlags.FlagsAllTrue);
+        Atomics.Exchange(ref _rawUpdateFlags, (long)RenderObjectUpdateFlags.FlagsAllTrue);
         Update(ScrollableElementUpdateFlags.All);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Update(RenderObjectUpdateFlags flags)
     {
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)flags);
+        Atomics.Or(ref _rawUpdateFlags, (long)flags);
         Update(ScrollableElementUpdateFlags.All);
     }
 
@@ -480,7 +480,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (!IsRenderedOnce)
         {
             _text = text;
-            InterlockedHelper.Exchange(ref _textGraphemeInfoLazy, new LazyTiny<GraphemeInfo>(
+            Atomics.Exchange(ref _textGraphemeInfoLazy, new LazyTiny<GraphemeInfo>(
                 () => CreateGraphemeInfoForString(text)));
             return;
         }
@@ -499,7 +499,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         int length = text.Length;
         GraphemeInfo graphemeInfo = CreateGraphemeInfoForString(text);
         _text = text;
-        InterlockedHelper.Exchange(ref _textGraphemeInfoLazy, new LazyTiny<GraphemeInfo>(graphemeInfo));
+        Atomics.Exchange(ref _textGraphemeInfoLazy, new LazyTiny<GraphemeInfo>(graphemeInfo));
         if (checkCaretIndex)
         {
             if (caretIndex <= 0)
@@ -637,7 +637,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     {
         string text = _text;
         int caretIndex = _caretIndex;
-        RemoveSelectionCore(ref text, ref caretIndex, ReferenceHelper.Exchange(ref _selectionRange, default));
+        RemoveSelectionCore(ref text, ref caretIndex, Cells.Exchange(ref _selectionRange, default));
 
         if (cursorPosition < 0)
             cursorPosition = str.Length;
@@ -688,7 +688,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (compositionRange.Length == 0)
         {
             int length = str.Length;
-            RemoveSelectionCore(ref text, ref caretIndex, ReferenceHelper.Exchange(ref _selectionRange, default));
+            RemoveSelectionCore(ref text, ref caretIndex, Cells.Exchange(ref _selectionRange, default));
             text = text.Insert(caretIndex, str);
             caretIndex += length;
         }
@@ -720,7 +720,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
 
     void IInputMethodHandler.EndIMEComposition(InputMethod ime, InputMethodContext context)
     {
-        uint length = ReferenceHelper.Exchange(ref _compositionRange, default).Length;
+        uint length = Cells.Exchange(ref _compositionRange, default).Length;
         if (length <= 0)
             return;
         UpdateCaretIndex(_caretIndex + MathHelper.MakeSigned(length));
@@ -766,7 +766,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             case '\b': // Backspace
                 {
-                    SelectionRange selectionRange = ReferenceHelper.Exchange(ref _selectionRange, default);
+                    SelectionRange selectionRange = Cells.Exchange(ref _selectionRange, default);
                     if (selectionRange.Length > 0)
                         RemoveSelectionCore(ref text, ref caretIndex, selectionRange);
                     else
@@ -781,7 +781,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 break;
             case '\u007f': //DEL (Ctrl + Backspace)
                 {
-                    SelectionRange selectionRange = ReferenceHelper.Exchange(ref _selectionRange, default);
+                    SelectionRange selectionRange = Cells.Exchange(ref _selectionRange, default);
                     if (selectionRange.Length > 0)
                         RemoveSelectionCore(ref text, ref caretIndex, selectionRange);
                     else
@@ -810,7 +810,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 break;
             default:
                 {
-                    SelectionRange selectionRange = ReferenceHelper.Exchange(ref _selectionRange, default);
+                    SelectionRange selectionRange = Cells.Exchange(ref _selectionRange, default);
                     if (selectionRange.Length > 0)
                         RemoveSelectionCore(ref text, ref caretIndex, selectionRange);
 
@@ -863,7 +863,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     {
         string text = _text;
         int caretIndex = _caretIndex;
-        RemoveSelectionCore(ref text, ref caretIndex, ReferenceHelper.Exchange(ref _selectionRange, default));
+        RemoveSelectionCore(ref text, ref caretIndex, Cells.Exchange(ref _selectionRange, default));
         try
         {
             string? str = Clipboard.GetText();
@@ -890,7 +890,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     {
         string text = _text;
         int caretIndex = _caretIndex;
-        RemoveSelectionCore(ref text, ref caretIndex, ReferenceHelper.Exchange(ref _selectionRange, default));
+        RemoveSelectionCore(ref text, ref caretIndex, Cells.Exchange(ref _selectionRange, default));
         UpdateTextAndCaretIndex(text, caretIndex);
     }
 
@@ -911,7 +911,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (StringHelper.IsNullOrEmpty(text))
             return;
         int caretIndex = _caretIndex;
-        SelectionRange selectionRange = ReferenceHelper.Exchange(ref _selectionRange, default);
+        SelectionRange selectionRange = Cells.Exchange(ref _selectionRange, default);
         if (selectionRange.Length > 0)
             RemoveSelectionCore(ref text, ref caretIndex, in selectionRange);
         else
@@ -938,7 +938,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (caretIndex <= 0)
             return 0;
 
-        GraphemeInfo graphemeInfo = InterlockedHelper.Read(ref _textGraphemeInfoLazy).Value;
+        GraphemeInfo graphemeInfo = Atomics.Read(ref _textGraphemeInfoLazy).Value;
         int length = graphemeInfo.Original.Length;
         if (caretIndex >= length)
             return length;
@@ -961,7 +961,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 return caretIndex - MathHelper.BooleanToInt32(stringRef[caretIndex - 1] == '\r');
         }
 
-        GraphemeInfo graphemeInfo = InterlockedHelper.Read(ref _textGraphemeInfoLazy).Value;
+        GraphemeInfo graphemeInfo = Atomics.Read(ref _textGraphemeInfoLazy).Value;
         int[] indices = ReferenceEquals(str, graphemeInfo.Original) ? graphemeInfo.GraphemeIndices : GraphemeHelper.GetGraphemeIndices(str);
         return AdjustCaretIndexCore(caretIndex, length, indices, takeGreaterIfNotExists);
     }
@@ -996,7 +996,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             if (context is not null)
                 UpdateIMECaret(context, caretIndex + _compositionCaretIndex);
         }
-        InterlockedHelper.Or(ref _rawUpdateFlags, (long)updateFlags);
+        Atomics.Or(ref _rawUpdateFlags, (long)updateFlags);
         UnfreezeUpdate(forceUpdate: true);
     }
 
@@ -1253,7 +1253,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         else
         {
             ulong currentClickedTime = NativeMethods.GetTicksForSystem();
-            ulong lastClickedTime = ReferenceHelper.Exchange(ref _lastClickedTime, currentClickedTime);
+            ulong lastClickedTime = Cells.Exchange(ref _lastClickedTime, currentClickedTime);
             if (lastClickedTime > ulong.MinValue && (currentClickedTime - lastClickedTime) / TimeSpan.TicksPerMillisecond <= SystemParameters.DoubleClickTime)
                 clicks = MathHelper.Max(_clicks + 1, 2);
             else

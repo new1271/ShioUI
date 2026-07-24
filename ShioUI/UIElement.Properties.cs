@@ -7,8 +7,8 @@ using ShioUI.Layout;
 using ShioUI.Windows;
 using ShioUI.Theme;
 
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
+using RiceTea.Core;
 
 namespace ShioUI;
 
@@ -17,7 +17,7 @@ partial class UIElement
     public bool IsDisposed
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => InterlockedHelper.Read(ref _disposed) != 0;
+        get => Atomics.Read(ref _disposed) != 0;
     }
 
     public int ElementId
@@ -53,7 +53,7 @@ partial class UIElement
     public bool IsRenderedOnce
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => CheckIsRenderedOnce(InterlockedHelper.Read(ref _requestRedraw));
+        get => CheckIsRenderedOnce(Atomics.Read(ref _requestRedraw));
     }
 
     public IElementContainer Parent
@@ -72,7 +72,7 @@ partial class UIElement
         {
             ref IElementContainer parentRef = ref _parent;
             ref nuint versionRef = ref _parentVersion;
-            if (ReferenceEquals(InterlockedHelper.Exchange(ref _parent, value), value))
+            if (ReferenceEquals(Atomics.Exchange(ref _parent, value), value))
                 return;
             OptimisticLock.Increase(ref versionRef);
             ResetLayoutTimestamp();
@@ -256,15 +256,15 @@ partial class UIElement
     public IThemeContext? CurrentTheme
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => InterlockedHelper.Read(ref _themeContext);
+        get => Atomics.Read(ref _themeContext);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (ReferenceEquals(InterlockedHelper.Exchange(ref _themeContext, value), value))
+            if (ReferenceEquals(Atomics.Exchange(ref _themeContext, value), value))
                 return;
             lock (_themeAccessLock)
             {
-                if (!ReferenceEquals(InterlockedHelper.Read(ref _themeContext), value))
+                if (!ReferenceEquals(Atomics.Read(ref _themeContext), value))
                     return;
                 ApplyThemeContext(value);
             }
@@ -295,7 +295,7 @@ partial class UIElement
         {
             ref object? tagRef = ref _tag;
             ref nuint versionRef = ref _tagVersion;
-            if (ReferenceEquals(InterlockedHelper.Exchange(ref _tag, value), value))
+            if (ReferenceEquals(Atomics.Exchange(ref _tag, value), value))
                 return;
             OptimisticLock.Increase(ref versionRef);
         }

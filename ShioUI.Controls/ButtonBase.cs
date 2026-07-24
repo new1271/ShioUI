@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 
+using RiceTea.Core;
 using RiceTea.Core.Extensions;
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
 
 namespace ShioUI.Controls;
@@ -27,7 +27,7 @@ public abstract partial class ButtonBase : UIElement, IMouseInteractHandler, IMo
             pressState = _isPressed ? (uint)ButtonTriState.Pressed : (uint)ButtonTriState.Hovered;
         else
             pressState = (uint)ButtonTriState.None;
-        if (ReferenceHelper.Exchange(ref _pressState, pressState) != pressState)
+        if (Cells.Exchange(ref _pressState, pressState) != pressState)
         {
             OptimisticLock.Increase(ref _version);
             Update();
@@ -40,7 +40,7 @@ public abstract partial class ButtonBase : UIElement, IMouseInteractHandler, IMo
             return;
         args.Handle();
         _isPressed = true;
-        if (ReferenceHelper.Exchange(ref _pressState, (uint)ButtonTriState.Pressed) != (uint)ButtonTriState.Pressed)
+        if (Cells.Exchange(ref _pressState, (uint)ButtonTriState.Pressed) != (uint)ButtonTriState.Pressed)
         {
             OptimisticLock.Increase(ref _version);
             Update();
@@ -56,7 +56,7 @@ public abstract partial class ButtonBase : UIElement, IMouseInteractHandler, IMo
         if (PressState != ButtonTriState.Pressed)
             return;
 
-        if (ReferenceHelper.Exchange(ref _pressState, (uint)ButtonTriState.Hovered) != (uint)ButtonTriState.Hovered)
+        if (Cells.Exchange(ref _pressState, (uint)ButtonTriState.Hovered) != (uint)ButtonTriState.Hovered)
         {
             OptimisticLock.Increase(ref _version);
             Update();

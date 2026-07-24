@@ -7,7 +7,6 @@ using ShioUI.Internals;
 using ShioUI.Windows;
 
 using RiceTea.Core;
-using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
 
 #if NET472_OR_GREATER
@@ -51,7 +50,7 @@ partial class WindowMessageLoop
 
         public void ProcessAllInvoke()
         {
-            if (InterlockedHelper.CompareExchange(ref _readBarrier, Booleans.TrueInt, Booleans.FalseInt) != Booleans.FalseInt)
+            if (Atomics.CompareExchange(ref _readBarrier, Booleans.TrueInt, Booleans.FalseInt) != Booleans.FalseInt)
             {
                 ProcessAllInvoke_InInvokeCall();
                 return;

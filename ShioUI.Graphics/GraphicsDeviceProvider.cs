@@ -11,6 +11,7 @@ using ShioUI.Graphics.Native.DXGI;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core;
 
 namespace ShioUI.Graphics;
 
@@ -306,7 +307,7 @@ public unsafe sealed class GraphicsDeviceProvider : ICloneable, IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (ReferenceHelper.Exchange(ref _disposed, true) || !disposing)
+        if (Cells.Exchange(ref _disposed, true) || !disposing)
             return;
         _adapter.Dispose();
         _factory.Dispose();

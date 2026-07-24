@@ -114,7 +114,7 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
             do
             {
                 ref DWriteTextLayout? layoutRef = ref UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);
-                DWriteTextLayout? layout = InterlockedHelper.Exchange(ref layoutRef, null);
+                DWriteTextLayout? layout = Atomics.Exchange(ref layoutRef, null);
                 if (layout is null)
                     continue;
                 try
