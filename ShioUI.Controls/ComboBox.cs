@@ -146,7 +146,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (layout is not null)
         {
             float xOffset = borderWidth + 2;
-            RectF layoutRect = new RectF(xOffset, 0, renderSize.Width - xOffset, renderSize.Height);
+            RectF layoutRect = new RectF(xOffset, borderWidth, renderSize.Width - xOffset, renderSize.Height - borderWidth);
             if (layoutRect.IsValid)
             {
                 layout.MaxHeight = layoutRect.Height;
