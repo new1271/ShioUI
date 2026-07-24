@@ -33,39 +33,13 @@ internal sealed unsafe class WindowClassImpl
         void* wndProcFunc;
 
 #if NET8_0_OR_GREATER
-        goto Direct;
-#else
-#if B64_ARCH
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Type.GetType("Mono.Runtime") is null)
-            goto Direct;
-        else
-            goto Indirect;
-#elif B32_ARCH
-        goto Indirect;
-#elif ANYCPU
-        if (PlatformHelper.IsX64 && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            goto Direct;
-        goto Indirect;
-#endif
-#endif
-
-    Direct:
-#if NET8_0_OR_GREATER
         wndProcFunc = (delegate* unmanaged[Stdcall]<IntPtr, uint, nint, nint, nint>)&ProcessWindowMessage;
 #else
-        wndProcFunc = (delegate* managed<IntPtr, uint, nint, nint, nint>)&ProcessWindowMessage;
-#endif
-        goto Tail;
-
-#if !NET8_0_OR_GREATER
-    Indirect:
         WndProcDelegate wndProcDelegate = ProcessWindowMessage;
         _wndProcDelegate = wndProcDelegate;
         wndProcFunc = (delegate* unmanaged[Stdcall]<IntPtr, uint, nint, nint, nint>)Marshal.GetFunctionPointerForDelegate(wndProcDelegate);
-        goto Tail;
 #endif
 
-    Tail:
         Instance = new WindowClassImpl(wndProcFunc);
     }
 

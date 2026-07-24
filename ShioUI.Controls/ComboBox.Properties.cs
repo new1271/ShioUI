@@ -38,17 +38,24 @@ partial class ComboBox : IAutoHeightElement
             if (oldSelectedIndex == value)
                 return;
             if (value < 0)
-            {
-                _selectedIndex = -1;
-                Text = string.Empty;
-                return;
-            }
+                goto Empty;
+
             IList<string> items = _items.GetUnderlyingList();
-            value = MathHelper.Min(value, items.Count);
+            int itemsCount = items.Count;
+            if (itemsCount <= 0)
+                goto Empty;
+
+            value = MathHelper.Min(value, itemsCount - 1);
             if (oldSelectedIndex == value)
                 return;
             _selectedIndex = value;
             Text = items[value];
+            return;
+
+        Empty:
+            if (oldSelectedIndex != -1)
+                _selectedIndex = -1;
+            Text = string.Empty;
         }
     }
 
