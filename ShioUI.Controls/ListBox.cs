@@ -135,11 +135,19 @@ public sealed partial class ListBox : ScrollableElementBase
 
     protected override D2D1Brush GetBorderBrush() => UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.BorderBrush);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private DWriteTextFormat BuildTextFormat()
     {
-        DWriteTextFormat textFormat = SharedResources.DWriteFactory.CreateTextFormat(NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
-        textFormat.ParagraphAlignment = DWriteParagraphAlignment.Center;
-        return textFormat;
+        DWriteFactory factory = SharedResources.DWriteFactory;
+        DWriteTextFormat format = factory.CreateTextFormat(NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+        format.ParagraphAlignment = DWriteParagraphAlignment.Center;
+        format.WordWrapping = DWriteWordWrapping.NoWrap;
+
+        DWriteInlineObject trimmingSign = factory.CreateEllipsisTrimmingSign(format);
+        format.SetTrimming(new DWriteTrimming() { Granularity = DWriteTrimmingGranularity.Character }, trimmingSign);
+        trimmingSign.Dispose();
+
+        return format;
     }
 
     private void Items_Updated(object? sender, EventArgs e) => RecalculateHeight();
@@ -148,10 +156,10 @@ public sealed partial class ListBox : ScrollableElementBase
 
     public override void Scrolling(int rollStep) => base.Scrolling(rollStep / 4);
 
-    [Inline(InlineBehavior.Remove)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool CheckFormatIsNotAvailable([NotNullWhen(false)] DWriteTextFormat? format)
     {
-        if (Interlocked.Exchange(ref _recalcFormat, Booleans.FalseLong) != Booleans.FalseLong)
+        if (Atomics.Exchange(ref _recalcFormat, Booleans.FalseLong) != Booleans.FalseLong)
         {
             format?.Dispose();
             return true;
