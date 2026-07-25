@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security;
 
@@ -183,5 +184,22 @@ public unsafe sealed class DWriteFactory : ComObject
             textFormat.NativePointer, maxWidth, maxHeight, &nativePointer);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteTextLayout(nativePointer, ReferenceType.Owned);
+    }
+
+    /// <summary>
+    /// The application may call this function to create an inline object for trimming, using an ellipsis as the omission sign. <br/>
+    /// The ellipsis will be created using the current settings of the format, including base font, style, and any effects.
+    /// </summary>
+    /// <param name="textFormat">Text format used as a template for the omission sign.</param>
+    /// <returns>
+    /// Created omission sign.
+    /// </returns>
+    public DWriteInlineObject CreateEllipsisTrimmingSign(DWriteTextFormat textFormat)
+    {
+        void* nativePointer = NativePointer;
+        void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateEllipsisTrimmingSign);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, void*, void**, int>)functionPointer)(nativePointer, textFormat.NativePointer, &nativePointer);
+        ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        return new DWriteInlineObject(nativePointer, ReferenceType.Owned);
     }
 }

@@ -1,5 +1,6 @@
 using System;
 
+using ShioUI.Extensions;
 using ShioUI.Graphics.Helpers;
 using ShioUI.Layout;
 
@@ -9,11 +10,13 @@ partial class ComboBoxDropdownList
 {
     private sealed class DefaultTopNode : UIElementDependedNode<ComboBoxDropdownList>
     {
-        private readonly int _baseY;
+        public DefaultTopNode(ComboBoxDropdownList element) : base(element) { }
 
-        public DefaultTopNode(ComboBoxDropdownList element, int baseY) : base(element) => _baseY = baseY;
-
-        protected override int ComputeCore(ComboBoxDropdownList element, in LayoutContext context) 
-            => _baseY - MathI.Ceiling(RenderingHelper.GetDefaultBorderWidth(element.Window.GetPixelsPerPoint().Y));
+        protected override int ComputeCore(ComboBoxDropdownList element, in LayoutContext context)
+        {
+            ComboBox owner = element._owner;
+            return owner.LocalPageToGlobalPage(owner.Location).Y + owner.Height - 
+                MathI.Ceiling(RenderingHelper.GetDefaultBorderWidth(element.Window.GetPixelsPerPoint().Y));
+        }
     }
 }

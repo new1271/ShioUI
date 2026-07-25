@@ -611,6 +611,29 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         return nativePointer == null ? null : new ComObject(nativePointer, ReferenceType.Owned);
     }
 
+    /// <inheritdoc cref="GetInlineObject(uint, DWriteTextRange*)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public DWriteInlineObject? GetInlineObject(uint currentPosition, out DWriteTextRange textRange)
+        => GetInlineObject(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+
+    /// <summary>
+    /// Get the inline object at the given position.
+    /// </summary>
+    /// <param name="currentPosition">The current text position.</param>
+    /// <param name="textRange">The position range of the current format.</param>
+    /// <returns>
+    /// The inline object.
+    /// </returns>
+    public DWriteInlineObject? GetInlineObject(uint currentPosition, DWriteTextRange* textRange)
+    {
+        void* nativePointer = NativePointer;
+        void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetInlineObject);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void*, DWriteTextRange*, int>)functionPointer)(nativePointer,
+            currentPosition, &nativePointer, textRange);
+        ThrowHelper.ThrowExceptionForHR(hr);
+        return nativePointer == null ? null : new DWriteInlineObject(nativePointer, ReferenceType.Owned);
+    }
+
     /// <inheritdoc cref="GetLocaleNameLength(uint, DWriteTextRange*)"/>
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -783,26 +806,23 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     }
 
     /// <summary>
-    /// TextLayout calls this callback function to get the visible extents (in DIPs) of the inline object.<br/>
-    /// In the case of a simple bitmap, with no padding and no overhang, all the overhangs will
-    /// simply be zeroes.
+    /// Returns the overhangs (in DIPs) of the layout and all
+    /// objects contained in it, including text glyphs and inline objects.
     /// </summary>
     /// <returns>
-    /// Overshoot of visible extents (in DIPs) outside the object.
+    /// Overshoots of visible extents (in DIPs) outside the layout.
     /// </returns>
     /// <remarks>
-    /// The overhangs should be returned relative to the reported size of the object
-    /// (DWRITE_INLINE_OBJECT_METRICS::width/height), and should not be baseline adjusted. <br/>
-    /// If you have an image that is actually 100x100 DIPs, but you want it slightly inset (perhaps it has a glow) by 20 DIPs on each side, <br/>
-    /// you would return a width/height of 60x60 and four overhangs of 20 DIPs.
+    /// Any underline and strikethrough do not contribute to the black box determination, <br/>
+    /// since these are actually drawn by the renderer, which is allowed to draw them in any variety of styles.
     /// </remarks>
     [LocalsInit(false)]
-    public RectF GetOverhangMetrics()
+    public DWriteOverhangMetrics GetOverhangMetrics()
     {
-        RectF result;
+        DWriteOverhangMetrics result;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetOverhangMetrics);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, RectF*, int>)functionPointer)(nativePointer, &result);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteOverhangMetrics*, int>)functionPointer)(nativePointer, &result);
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }

@@ -225,3 +225,94 @@ public struct DWriteHitTestMetrics
         $"Top: {Top}, Width: {Width}, Height: {Height}, BidiLevel: {BidiLevel}, " +
         $"IsText: {IsText}, IsTrimmed: {IsTrimmed} }}";
 }
+
+
+/// <summary>
+/// Properties describing the geometric measurement of an
+/// application-defined inline object.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+public struct DWriteInlineObjectMetrics
+{
+    /// <summary>
+    /// Width of the inline object.
+    /// </summary>
+    public float Width;
+
+    /// <summary>
+    /// Height of the inline object as measured from top to bottom.
+    /// </summary>
+    public float Height;
+
+    /// <summary>
+    /// Distance from the top of the object to the baseline where it is lined up with the adjacent text.
+    /// If the baseline is at the bottom, baseline simply equals height.
+    /// </summary>
+    public float Baseline;
+
+    /// <summary>
+    /// Flag indicating whether the object is to be placed upright or alongside the text baseline
+    /// for vertical text.
+    /// </summary>
+    public SysBool32 SupportsSideways;
+};
+
+/// <summary>
+/// The <see cref="DWriteOverhangMetrics"/> structure holds how much any visible pixels
+/// (in DIPs) overshoot each side of the layout or inline objects.
+/// </summary>
+/// <remarks>
+/// Positive overhangs indicate that the visible area extends outside the layout
+/// box or inline object, while negative values mean there is whitespace inside. <br/>
+/// The returned values are unaffected by rendering transforms or pixel snapping.<br/>
+/// Additionally, they may not exactly match final target's pixel bounds after
+/// applying grid fitting and hinting.
+/// </remarks>
+[StructLayout(LayoutKind.Sequential)]
+public struct DWriteOverhangMetrics
+{
+    /// <summary>
+    /// The distance from the left-most visible DIP to its left alignment edge.
+    /// </summary>
+    public float Left;
+
+    /// <summary>
+    /// The distance from the top-most visible DIP to its top alignment edge.
+    /// </summary>
+    public float Top;
+
+    /// <summary>
+    /// The distance from the right-most visible DIP to its right alignment edge.
+    /// </summary>
+    public float Right;
+
+    /// <summary>
+    /// The distance from the bottom-most visible DIP to its bottom alignment edge.
+    /// </summary>
+    public float Bottom;
+};
+
+
+/// <summary>
+/// The <see cref="DWriteTrimming"/> structure specifies the trimming option for text overflowing the layout box.
+/// </summary>
+[StructLayout(LayoutKind.Sequential)]
+public struct DWriteTrimming
+{
+    /// <summary>
+    /// Text granularity of which trimming applies.
+    /// </summary>
+    public DWriteTrimmingGranularity Granularity;
+
+    /// <summary>
+    /// Character code used as the delimiter signaling the beginning of the portion of text to be preserved,
+    /// most useful for path ellipsis, where the delimiter would be a slash. Leave this zero if there is no
+    /// delimiter.
+    /// </summary>
+    public uint Delimiter;
+
+    /// <summary>
+    /// How many occurrences of the delimiter to step back. Leave this zero if there is no delimiter.
+    /// </summary>
+    public uint DelimiterCount;
+};

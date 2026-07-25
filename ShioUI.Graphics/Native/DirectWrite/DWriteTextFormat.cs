@@ -196,6 +196,29 @@ public unsafe class DWriteTextFormat : ComObject
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
+    /// <inheritdoc cref="SetTrimming(DWriteTrimming*, DWriteInlineObject?)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetTrimming(in DWriteTrimming trimmingOptions, DWriteInlineObject? trimmingSign)
+        => SetTrimming(UnsafeHelper.AsPointerIn(in trimmingOptions), trimmingSign);
+
+    /// <summary>
+    /// Set trimming options for any trailing text exceeding the layout width or for any far text exceeding the layout height.
+    /// </summary>
+    /// <param name="trimmingOptions">Text trimming options.</param>
+    /// <param name="trimmingSign">Application-defined omission sign. This parameter may be NULL if no trimming sign is desired.</param>
+    /// <remarks>
+    /// Any inline object can be used for the trimming sign, but <see cref="DWriteFactory.CreateEllipsisTrimmingSign(DWriteTextFormat)"/> provides a typical ellipsis symbol. <br/>
+    /// Trimming is also useful vertically for hiding partial lines.
+    /// </remarks>
+    public void SetTrimming(DWriteTrimming* trimmingOptions, DWriteInlineObject? trimmingSign)
+    {
+        void* nativePointer = NativePointer;
+        void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetTrimming);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteTrimming*, void*, int>)functionPointer)(nativePointer,
+            trimmingOptions, trimmingSign is null ? null : trimmingSign.NativePointer);
+        ThrowHelper.ThrowExceptionForHR(hr);
+    }
+
     /// <summary>
     /// Set line spacing.
     /// </summary>
@@ -260,6 +283,28 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetIncrementalTabStop);
         return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+    }
+
+    /// <inheritdoc cref="GetTrimming(DWriteTrimming*)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public DWriteInlineObject? GetTrimming(out DWriteTrimming trimmingOptions)
+        => GetTrimming(UnsafeHelper.AsPointerOut(out trimmingOptions));
+
+    /// <summary>
+    /// Get trimming options for text overflowing the layout width.
+    /// </summary>
+    /// <param name="trimmingOptions">Text trimming options.</param>
+    /// <returns>
+    /// The trimming omission sign or <see langword="null"/>.
+    /// </returns>
+    public DWriteInlineObject? GetTrimming(DWriteTrimming* trimmingOptions)
+    {
+        void* nativePointer = NativePointer;
+        void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetTrimming);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteTrimming*, void*, int>)functionPointer)(nativePointer,
+            trimmingOptions, &nativePointer);
+        ThrowHelper.ThrowExceptionForHR(hr);
+        return nativePointer is null ? null : new DWriteInlineObject(nativePointer, ReferenceType.Owned);
     }
 
     /// <summary>

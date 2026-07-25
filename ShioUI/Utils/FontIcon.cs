@@ -55,7 +55,7 @@ public sealed class FontIcon : IDisposable
             float width = metrics.Left + metrics.Width;
             layout.MaxHeight = height;
             layout.MaxWidth = width;
-            RectF predictedBounds = layout.GetOverhangMetrics();
+            DWriteOverhangMetrics predictedBounds = layout.GetOverhangMetrics();
             height += predictedBounds.Top + predictedBounds.Bottom;
             if (height > targetHeight)
             {
@@ -74,7 +74,7 @@ public sealed class FontIcon : IDisposable
             layout.TextAlignment = DWriteTextAlignment.Center;
             layout.MaxWidth = size.Width;
             layout.MaxHeight = size.Height;
-            offset = new SizeF(predictedBounds.Width * 0.5f, predictedBounds.Height * 0.5f);
+            offset = new SizeF((predictedBounds.Right - predictedBounds.Left) * 0.5f, (predictedBounds.Bottom - predictedBounds.Top) * 0.5f);
             return layout;
         }
         while (fontSize > 0f);

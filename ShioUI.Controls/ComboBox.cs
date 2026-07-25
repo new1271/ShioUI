@@ -89,7 +89,13 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         {
             DWriteTextFormat? format = layout;
             if (CheckFormatIsNotAvailable(format, flags))
+            {
                 format = TextFormatHelper.CreateTextFormat(TextAlignment.MiddleLeft, NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+                format.WordWrapping = DWriteWordWrapping.NoWrap;
+                DWriteInlineObject trimmingSign = SharedResources.DWriteFactory.CreateEllipsisTrimmingSign(format);
+                format.SetTrimming(new DWriteTrimming() { Granularity = DWriteTrimmingGranularity.Character }, trimmingSign);
+                trimmingSign.Dispose();
+            }
             string text = _text;
             if (StringHelper.IsNullOrEmpty(text))
                 layout = null;
@@ -147,7 +153,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (layout is not null)
         {
             float xOffset = borderWidth + 2;
-            RectF layoutRect = new RectF(xOffset, borderWidth, renderSize.Width - xOffset, renderSize.Height - borderWidth);
+            RectF layoutRect = RectF.FromXYWH(xOffset, borderWidth, renderSize.Width - renderSize.Height, renderSize.Height - borderWidth);
             if (layoutRect.IsValid)
             {
                 layout.MaxHeight = layoutRect.Height;

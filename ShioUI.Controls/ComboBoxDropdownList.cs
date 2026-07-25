@@ -4,20 +4,19 @@ using System.Drawing;
 using System.Numerics;
 using System.Threading;
 
-using ShioUI.Graphics.Helpers;
-using ShioUI.Utils;
+using RiceTea.Core;
+using RiceTea.Core.Extensions;
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Structures;
+
 using ShioUI.Controls.Internals;
 using ShioUI.Graphics;
+using ShioUI.Graphics.Helpers;
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Theme;
-
-using RiceTea.Core.Extensions;
-using RiceTea.Core.Helpers;
-using RiceTea.Core.Structures;
-using ShioUI.Extensions;
-using RiceTea.Core;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -49,13 +48,9 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
         _isFirstTimeClick = true;
         _selectedIndex = -1;
 
-        Rectangle ownerBounds = owner.Bounds;
-        Point ownerLocation = owner.LocalPageToGlobalPage(ownerBounds.Location);
-        Size ownerSize = ownerBounds.Size;
-
-        LeftExpression = ownerLocation.X;
-        RightExpression = ownerLocation.X + ownerSize.Width;
-        TopExpression = new DefaultTopNode(this, ownerLocation.Y + ownerSize.Height);
+        LeftExpression = new DefaultLeftNode(this);
+        TopExpression = new DefaultTopNode(this);
+        WidthExpression = new DefaultWidthNode(this);
         HeightExpression = new DefaultHeightNode(this);
     }
 
@@ -65,6 +60,9 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         ComboBox parent = _owner;
         using DWriteTextFormat format = TextFormatHelper.CreateTextFormat(TextAlignment.MiddleLeft, provider.FontName, parent.FontSize);
+        using DWriteInlineObject sign = SharedResources.DWriteFactory.CreateEllipsisTrimmingSign(format);
+        format.WordWrapping = DWriteWordWrapping.NoWrap;
+        format.SetTrimming(new DWriteTrimming() { Granularity = DWriteTrimmingGranularity.Character }, sign);
         Prepare(parent, format);
     }
 
@@ -139,10 +137,12 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
         Vector2 pointsPerPixel = context.PixelsPerPoint;
         float borderWidth = context.DefaultBorderWidth;
         float itemLeft = borderWidth,
-            textLeft = RenderingHelper.RoundInPixel(borderWidth + 5, pointsPerPixel.X),
             itemTop = RenderingHelper.RoundInPixel(-offsetY, pointsPerPixel.Y),
             itemRight = RenderingHelper.RoundInPixel(renderSize.Width - borderWidth, pointsPerPixel.X),
-            itemWIdth = itemRight - itemLeft;
+            textLeft = RenderingHelper.RoundInPixel(itemLeft + (UIConstants.ElementMargin - 1), pointsPerPixel.X),
+            textRight = RenderingHelper.RoundInPixel(itemRight - (UIConstants.ElementMargin - 1), pointsPerPixel.X),
+            itemWIdth = itemRight - itemLeft,
+            textWidth = textRight - textLeft;
         textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush);
         ref DWriteTextLayout layoutArrayRef = ref UnsafeHelper.GetArrayDataReference(layouts);
         for (int i = startIndex; i <= endIndex; i++)
@@ -162,9 +162,9 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
             else
                 activeTextBrush = textBrush;
             DWriteTextLayout layout = UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);
-            layout.MaxWidth = itemWIdth;
+            layout.MaxWidth = textWidth;
             layout.MaxHeight = itemHeight;
-            clipContext.DrawTextLayout(new PointF(textLeft, 0), layout, activeTextBrush, D2D1DrawTextOptions.None);
+            clipContext.DrawTextLayout(new PointF(textLeft, 0), layout, activeTextBrush, D2D1DrawTextOptions.Clip);
             itemTop = itemBounds.Bottom;
         }
         DisposeHelper.NullSwapOrDispose(ref _layouts, layouts);
