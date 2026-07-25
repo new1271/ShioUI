@@ -80,7 +80,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
     private RenderObjectUpdateFlags GetAndCleanRenderObjectUpdateFlags()
         => (RenderObjectUpdateFlags)Interlocked.Exchange(ref _rawUpdateFlags, default);
 
-    [Inline(InlineBehavior.Remove)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private DWriteTextLayout? GetTextLayout(RenderObjectUpdateFlags flags)
     {
         DWriteTextLayout? layout = Interlocked.Exchange(ref _layout, null);
@@ -106,7 +106,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         return layout;
     }
 
-    [Inline(InlineBehavior.Remove)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CheckFormatIsNotAvailable([NotNullWhen(false)] DWriteTextFormat? format, RenderObjectUpdateFlags flags)
     {
         if (format is null || format.IsDisposed)

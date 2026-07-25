@@ -248,7 +248,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         }
     }
 
-    [Inline(InlineBehavior.Remove)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CheckFormatIsNotAvailable([NotNullWhen(false)] DWriteTextFormat? format, RenderObjectUpdateFlags flags)
     {
         if (format is null || format.IsDisposed)
