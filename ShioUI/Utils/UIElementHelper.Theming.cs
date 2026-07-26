@@ -88,6 +88,10 @@ partial class UIElementHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ApplyThemeBrush(IThemeResourceProvider provider, ref D2D1Brush? brushRef, string node, string nodePrefix)
+        => ApplyThemeBrush(provider, ref brushRef, nodePrefix + "." + node);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ApplyThemeBrush(IThemeResourceProvider provider, ref D2D1Brush? brushRef, string node)
         => DisposeHelper.SwapDispose(ref brushRef, provider.TryGetBrush(node, out D2D1Brush? result) ? result.Clone() : null);
 
@@ -104,7 +108,7 @@ partial class UIElementHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ApplyThemeToElementsUnsafe(IThemeResourceProvider provider, ref readonly UIElement? elementsRef,int count)
+    public static void ApplyThemeToElementsUnsafe(IThemeResourceProvider provider, ref readonly UIElement? elementsRef, int count)
         => ApplyThemeToElementsCore(provider, in elementsRef, MathHelper.MakeUnsigned(count));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
