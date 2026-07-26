@@ -10,6 +10,18 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="RiceTea.Core/RiceTea.Core.Windows/RiceTea.Core.Windows.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
+  <Project Path="RiceTea.Core/RiceTea.Core/RiceTea.Core.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
+  <Project Path="ShioUI.Controls.Specialized/ShioUI.Controls.Specialized.csproj" Id="ac0480aa-f45f-40e3-b07a-50d59d373bb8">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
   <Project Path="ShioUI.Controls/ShioUI.Controls.csproj">
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
@@ -23,14 +35,6 @@
     <Platform Solution="*|x86" Project="x86" />
   </Project>
   <Project Path="ShioUI/ShioUI.csproj">
-    <Platform Solution="*|x64" Project="x64" />
-    <Platform Solution="*|x86" Project="x86" />
-  </Project>
-  <Project Path="RiceTea.Core/RiceTea.Core.Windows/RiceTea.Core.Windows.csproj">
-    <Platform Solution="*|x64" Project="x64" />
-    <Platform Solution="*|x86" Project="x86" />
-  </Project>
-  <Project Path="RiceTea.Core/RiceTea.Core/RiceTea.Core.csproj">
     <Platform Solution="*|x64" Project="x64" />
     <Platform Solution="*|x86" Project="x86" />
   </Project>

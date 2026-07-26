@@ -9,7 +9,7 @@ using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 
-namespace ShioUI.Controls;
+namespace ShioUI.Controls.Specialized;
 
 public delegate void HeightChangedEventHandler<TItem, TMeasuringContext>(object? sender, int height)
     where TItem : IMeasurableListItem<TMeasuringContext> where TMeasuringContext : IMeasuringContext;

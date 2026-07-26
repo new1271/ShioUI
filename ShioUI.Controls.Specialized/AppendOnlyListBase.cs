@@ -10,7 +10,7 @@ using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using RiceTea.Core;
 
-namespace ShioUI.Controls;
+namespace ShioUI.Controls.Specialized;
 
 public abstract partial class AppendOnlyListBase<TItem, TMeasuringContext> : ScrollableElementBase
     where TItem : IMeasurableListItem<TMeasuringContext> where TMeasuringContext : IMeasuringContext

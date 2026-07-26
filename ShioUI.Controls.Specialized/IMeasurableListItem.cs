@@ -1,4 +1,4 @@
-namespace ShioUI.Controls;
+namespace ShioUI.Controls.Specialized;
 
 public interface IMeasurableListItem<T> : IListItem where T : IMeasuringContext
 {
