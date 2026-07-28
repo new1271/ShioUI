@@ -3,18 +3,19 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 
+using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 
 namespace ShioUI.Theme;
 
 partial class DefaultThemeProvider
 {
-    private abstract class ThemeContextBase : IExtendableThemeContext
+    private abstract class ThemeContextBase : IThemeContext
     {
         private readonly Dictionary<string, IThemedColorFactory> _colorDict;
         private readonly Dictionary<string, IThemedBrushFactory> _brushDict;
-        private readonly HashSet<Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedColorFactory>>>> _colorFactoryGenerators;
-        private readonly HashSet<Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedBrushFactory>>>> _brushFactoryGenerators;
+        private readonly DefaultThemeColorsBuildingFunction[] _colorsBuildingFunctions;
+        private readonly DefaultThemeBrushesBuildingFunction[] _brushesBuildingFunctions;
 
         private string _fontName;
 
@@ -29,31 +30,77 @@ partial class DefaultThemeProvider
         protected ThemeContextBase()
         {
             _fontName = NullSafetyHelper.ThrowIfNull(SystemFonts.CaptionFont).Name;
-            _colorFactoryGenerators = new HashSet<Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedColorFactory>>>>();
-            _brushFactoryGenerators = new HashSet<Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedBrushFactory>>>>();
 
             Dictionary<string, IThemedColorFactory> colorDict = new Dictionary<string, IThemedColorFactory>(StringHelper.OrdinalIgnoreCaseEqualityComparer);
             Dictionary<string, IThemedBrushFactory> brushDict = new Dictionary<string, IThemedBrushFactory>(StringHelper.OrdinalIgnoreCaseEqualityComparer);
 
-            foreach (KeyValuePair<string, IThemedColorFactory> item in CreateColorFactories(key => colorDict[key]))
+            DefaultThemeColorsBuildingFunction[] colorsBuildingFunctions;
+            DefaultThemeBrushesBuildingFunction[] brushesBuildingFunctions;
+            DefaultThemeBuildingEventHandler? externalBuildingHandler = GetExternalThemeBuildingHandler();
+            if (externalBuildingHandler is null)
+            {
+                colorsBuildingFunctions = Array.Empty<DefaultThemeColorsBuildingFunction>();
+                brushesBuildingFunctions = Array.Empty<DefaultThemeBrushesBuildingFunction>();
+            }
+            else
+            {
+                using PooledList<DefaultThemeColorsBuildingFunction> colorsBuildingFunctionList = new();
+                using PooledList<DefaultThemeBrushesBuildingFunction> brushesBuildingFunctionList = new();
+                externalBuildingHandler.Invoke(colorsBuildingFunctionList, brushesBuildingFunctionList);
+                colorsBuildingFunctions = colorsBuildingFunctionList.ToArray();
+                brushesBuildingFunctions = brushesBuildingFunctionList.ToArray();
+            }
+
+            foreach (KeyValuePair<string, IThemedColorFactory> item in CreateColorFactories(QueryColorFunc))
                 colorDict[item.Key] = item.Value;
-            foreach (KeyValuePair<string, IThemedBrushFactory> item in CreateBrushFactories(key => colorDict[key], key => brushDict[key]))
+            int length;
+            if ((length = colorsBuildingFunctions.Length) > 0)
+            {
+                ref readonly DefaultThemeColorsBuildingFunction colorsBuildingFunctionsRef = ref UnsafeHelper.GetArrayDataReference(colorsBuildingFunctions);
+                int i = 0;
+                do
+                {
+                    foreach (KeyValuePair<string, IThemedColorFactory> item in UnsafeHelper.AddTypedOffsetAsReadOnly(in colorsBuildingFunctionsRef, i).Invoke(QueryColorFunc))
+                        colorDict[item.Key] = item.Value;
+                } while (++i < length);
+            }
+            foreach (KeyValuePair<string, IThemedBrushFactory> item in CreateBrushFactories(QueryColorFunc, QueryBrushFunc))
                 brushDict[item.Key] = item.Value;
+            if ((length = brushesBuildingFunctions.Length) > 0)
+            {
+                ref readonly DefaultThemeBrushesBuildingFunction brushesBuildingFunctionsRef = ref UnsafeHelper.GetArrayDataReference(brushesBuildingFunctions);
+                int i = 0;
+                do
+                {
+                    foreach (KeyValuePair<string, IThemedBrushFactory> item in
+                            UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesBuildingFunctionsRef, i).Invoke(QueryColorFunc, QueryBrushFunc))
+                        brushDict[item.Key] = item.Value;
+                } while (++i < length);
+            }
 
             _colorDict = colorDict;
-            _brushDict = brushDict;
+            _brushDict = brushDict; 
+            _colorsBuildingFunctions = colorsBuildingFunctions;
+            _brushesBuildingFunctions = brushesBuildingFunctions;
+
+
+            IThemedColorFactory QueryColorFunc(string key) => colorDict[key];
+
+            IThemedBrushFactory QueryBrushFunc(string key) => brushDict[key];
         }
 
         protected ThemeContextBase(ThemeContextBase original)
         {
             _fontName = original._fontName;
-            _colorDict = new Dictionary<string, IThemedColorFactory>(original._colorDict);
-            _brushDict = new Dictionary<string, IThemedBrushFactory>(original._brushDict);
-            _colorFactoryGenerators = new HashSet<Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedColorFactory>>>>(original._colorFactoryGenerators);
-            _brushFactoryGenerators = new HashSet<Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedBrushFactory>>>>(original._brushFactoryGenerators);
+            _colorDict = new(original._colorDict);
+            _brushDict = new(original._brushDict); 
+            _colorsBuildingFunctions = original._colorsBuildingFunctions;
+            _brushesBuildingFunctions = original._brushesBuildingFunctions;
         }
 
         public abstract IThemeContext Clone();
+
+        protected abstract DefaultThemeBuildingEventHandler? GetExternalThemeBuildingHandler();
 
         public bool TryGetBrushFactory(string node, [NotNullWhen(true)] out IThemedBrushFactory? brushFactory)
             => _brushDict.TryGetValue(node, out brushFactory);
@@ -81,66 +128,58 @@ partial class DefaultThemeProvider
 
         public void BuildContextForAnother(IThemeContext other, bool overrides)
         {
+            Func<string, IThemedColorFactory> queryColorFunc;
+            Func<string, IThemedBrushFactory> queryBrushFunc;
+
             if (other is ThemeContextBase otherContextBase)
             {
                 ApplyToOtherContextMethodClosureFast closure = new ApplyToOtherContextMethodClosureFast(this, otherContextBase);
-                foreach (KeyValuePair<string, IThemedColorFactory> item in CreateColorFactories(closure.GetColorFactory))
-                    other.TrySetColorFactory(item.Key, item.Value, overrides);
-                foreach (KeyValuePair<string, IThemedBrushFactory> item in CreateBrushFactories(closure.GetColorFactory, closure.GetBrushFactory))
-                    other.TrySetBrushFactory(item.Key, item.Value, overrides);
+                queryColorFunc = closure.GetColorFactory;
+                queryBrushFunc = closure.GetBrushFactory;
             }
             else
             {
                 ApplyToOtherContextMethodClosureSlow closure = new ApplyToOtherContextMethodClosureSlow(this, other);
-                foreach (KeyValuePair<string, IThemedColorFactory> item in CreateColorFactories(closure.GetColorFactory))
-                    other.TrySetColorFactory(item.Key, item.Value, overrides);
-                foreach (KeyValuePair<string, IThemedBrushFactory> item in CreateBrushFactories(closure.GetColorFactory, closure.GetBrushFactory))
-                    other.TrySetBrushFactory(item.Key, item.Value, overrides);
+                queryColorFunc = closure.GetColorFactory;
+                queryBrushFunc = closure.GetBrushFactory;
             }
-            if (other is IExtendableThemeContext extendableOther)
+
+            DefaultThemeColorsBuildingFunction[] colorsBuildingFunctions = _colorsBuildingFunctions;
+            DefaultThemeBrushesBuildingFunction[] brushesBuildingFunctions = _brushesBuildingFunctions;
+            foreach (KeyValuePair<string, IThemedColorFactory> item in CreateColorFactories(queryColorFunc))
+                other.TrySetColorFactory(item.Key, item.Value, overrides);
+            int length;
+            if ((length = colorsBuildingFunctions.Length) > 0)
             {
-                foreach (var generator in _colorFactoryGenerators)
-                    extendableOther.RegisterColorFactoryGenerator(generator);
-                foreach (var generator in _brushFactoryGenerators)
-                    extendableOther.RegisterBrushFactoryGenerator(generator);
-            }
-            else
-            {
-                foreach (var generator in _colorFactoryGenerators)
+                ref readonly DefaultThemeColorsBuildingFunction colorsBuildingFunctionsRef = ref UnsafeHelper.GetArrayDataReference(colorsBuildingFunctions);
+                int i = 0;
+                do
                 {
-                    foreach (KeyValuePair<string, IThemedColorFactory> item in generator.Invoke(other))
+                    foreach (KeyValuePair<string, IThemedColorFactory> item in UnsafeHelper.AddTypedOffsetAsReadOnly(in colorsBuildingFunctionsRef, i).Invoke(queryColorFunc))
                         other.TrySetColorFactory(item.Key, item.Value, overrides);
-                }
-                foreach (var generator in _brushFactoryGenerators)
+                } while (++i < length);
+            }
+            foreach (KeyValuePair<string, IThemedBrushFactory> item in CreateBrushFactories(queryColorFunc, queryBrushFunc))
+                other.TrySetBrushFactory(item.Key, item.Value, overrides);
+            if ((length = brushesBuildingFunctions.Length) > 0)
+            {
+                ref readonly DefaultThemeBrushesBuildingFunction brushesBuildingFunctionsRef = ref UnsafeHelper.GetArrayDataReference(brushesBuildingFunctions);
+                int i = 0;
+                do
                 {
-                    foreach (KeyValuePair<string, IThemedBrushFactory> item in generator.Invoke(other))
+                    foreach (KeyValuePair<string, IThemedBrushFactory> item in
+                            UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesBuildingFunctionsRef, i).Invoke(queryColorFunc, queryBrushFunc))
                         other.TrySetBrushFactory(item.Key, item.Value, overrides);
-                }
+                } while (++i < length);
             }
         }
 
-        protected abstract IEnumerable<KeyValuePair<string, IThemedColorFactory>> CreateColorFactories(Func<string, IThemedColorFactory> queryFunction);
+        protected abstract IEnumerable<KeyValuePair<string, IThemedColorFactory>> CreateColorFactories(Func<string, IThemedColorFactory> queryFunc);
 
         protected abstract IEnumerable<KeyValuePair<string, IThemedBrushFactory>> CreateBrushFactories(
-            Func<string, IThemedColorFactory> queryColorFunction, Func<string, IThemedBrushFactory> queryBrushFunction);
+            Func<string, IThemedColorFactory> queryColorFunc, Func<string, IThemedBrushFactory> queryBrushFunc);
 
-        public void RegisterColorFactoryGenerator(Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedColorFactory>>> generator)
-        {
-            if (!_colorFactoryGenerators.Add(generator))
-                return;
-            foreach (KeyValuePair<string, IThemedColorFactory> item in generator.Invoke(this))
-                _colorDict[item.Key] = item.Value;
-        }
-
-        public void RegisterBrushFactoryGenerator(Func<IThemeContext, IEnumerable<KeyValuePair<string, IThemedBrushFactory>>> generator)
-        {
-            if (!_brushFactoryGenerators.Add(generator))
-                return;
-            foreach (KeyValuePair<string, IThemedBrushFactory> item in generator.Invoke(this))
-                _brushDict[item.Key] = item.Value;
-        }
-
-        private readonly struct ApplyToOtherContextMethodClosureFast
+        private sealed class ApplyToOtherContextMethodClosureFast
         {
             private readonly ThemeContextBase _this;
             private readonly ThemeContextBase _otherContext;
@@ -166,7 +205,7 @@ partial class DefaultThemeProvider
             }
         }
 
-        private readonly struct ApplyToOtherContextMethodClosureSlow
+        private sealed class ApplyToOtherContextMethodClosureSlow
         {
             private readonly ThemeContextBase _this;
             private readonly IThemeContext _otherContext;

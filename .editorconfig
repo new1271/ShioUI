@@ -1,4 +1,4 @@
-﻿[*.cs]
+[*.cs]
 
 # IDE0090: 使用 'new(...)'
 csharp_style_implicit_object_creation_when_type_is_apparent = false
@@ -23,6 +23,9 @@ dotnet_diagnostic.IDE0028.severity = none
 
 # IDE0300: 簡化集合初始化
 dotnet_diagnostic.IDE0300.severity = none
+
+# IDE0300: 簡化集合初始化
+dotnet_diagnostic.IDE0306.severity = none
 
 # SYSLIB1054: 使用 'LibraryImportAttribute' 而非 'DllImportAttribute' 在編譯時間產生 P/Invoke 封送處理程式碼
 dotnet_diagnostic.SYSLIB1054.severity = none

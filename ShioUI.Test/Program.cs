@@ -1,5 +1,7 @@
 using System;
 
+using ShioUI.Controls;
+
 namespace ShioUI.Test;
 
 internal static class Program
@@ -12,6 +14,8 @@ internal static class Program
     {
         ShioSettings.WindowMaterial = WindowMaterial.Default;
         ShioSettings.UseDebugMode = false;
+        ShioControls.Initialize();
+
         return WindowMessageLoop.Start(new MainWindow(null));
     }
 
