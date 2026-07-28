@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 
+using RiceTea.Core.Buffers;
+
 using ShioUI.Graphics.Native.Direct2D;
 
 namespace ShioUI.Theme;
@@ -18,9 +20,12 @@ partial class DefaultThemeProvider
 
         public override IThemeContext Clone() => new DarkThemeContext(this);
 
-        protected override DefaultThemeBuildingEventHandler? GetExternalThemeBuildingHandler() => ShioSettings._darkThemeBuildingHandler;
+        protected override void OnThemeBuilding(
+            PooledList<ThemedColorsBuildingHandler> colorsBuildingHandlerList,
+            PooledList<ThemedBrushesBuildingHandler> brushesBuildingHandlerList)
+            => ShioSettings.OnDarkThemeBuilding(colorsBuildingHandlerList, brushesBuildingHandlerList);
 
-        protected override IEnumerable<KeyValuePair<string, IThemedColorFactory>> CreateColorFactories(Func<string, IThemedColorFactory> queryFunc)
+        public override IEnumerable<KeyValuePair<string, IThemedColorFactory>> BuildColorFactories(Func<string, IThemedColorFactory> queryFunc)
         {
             yield return new KeyValuePair<string, IThemedColorFactory>(
                 key: ThemeConstants.WindowBaseColorNode,
@@ -45,7 +50,7 @@ partial class DefaultThemeProvider
                     .Build());
         }
 
-        protected override IEnumerable<KeyValuePair<string, IThemedBrushFactory>> CreateBrushFactories(
+        public override IEnumerable<KeyValuePair<string, IThemedBrushFactory>> BuildBrushFactories(
             Func<string, IThemedColorFactory> queryColorFunc, Func<string, IThemedBrushFactory> queryBrushFunc)
         {
             // 視窗基礎筆刷

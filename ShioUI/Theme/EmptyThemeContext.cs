@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ShioUI.Theme;
@@ -16,9 +18,18 @@ public sealed class EmptyThemeContext : IThemeContext
 
     public bool IsDarkTheme => false;
 
-    public void BuildContextForAnother(IThemeContext other, bool overrides) { }
-
     public IThemeContext Clone() => this;
+
+    public IEnumerable<KeyValuePair<string, IThemedBrushFactory>> EnumerateBrushFactories() => Array.Empty<KeyValuePair<string, IThemedBrushFactory>>();
+
+    public IEnumerable<KeyValuePair<string, IThemedColorFactory>> EnumerateColorFactories() => Array.Empty<KeyValuePair<string, IThemedColorFactory>>();
+
+    public IEnumerable<KeyValuePair<string, IThemedBrushFactory>> BuildBrushFactories(
+        Func<string, IThemedColorFactory> queryColorFunc, Func<string, IThemedBrushFactory> queryBrushFunc)
+        => Array.Empty<KeyValuePair<string, IThemedBrushFactory>>();
+
+    public IEnumerable<KeyValuePair<string, IThemedColorFactory>> BuildColorFactories(Func<string, IThemedColorFactory> queryFunc) 
+        => Array.Empty<KeyValuePair<string, IThemedColorFactory>>();
 
     public bool TryGetBrushFactory(string node, [NotNullWhen(true)] out IThemedBrushFactory? brushFactory)
     {

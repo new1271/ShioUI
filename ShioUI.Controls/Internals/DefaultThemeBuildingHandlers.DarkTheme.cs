@@ -7,7 +7,7 @@ using ShioUI.Theme;
 
 namespace ShioUI.Controls.Internals;
 
-partial class DefaultThemeBuildingHandlers
+partial class ThemeBuildingHandlers
 {
     partial class DarkTheme
     {

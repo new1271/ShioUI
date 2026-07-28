@@ -7,13 +7,19 @@ using ShioUI.Theme;
 
 namespace ShioUI.Controls.Internals;
 
-internal static partial class DefaultThemeBuildingHandlers
+internal static partial class ThemeBuildingHandlers
 {
+    public static void HookEvents()
+    {
+        ShioSettings.LightThemeBuilding += LightTheme.HookEvent;
+        ShioSettings.DarkThemeBuilding += DarkTheme.HookEvent;
+    }
+
     public static partial class LightTheme
     {
         public static void HookEvent(
-            PooledList<DefaultThemeColorsBuildingFunction> colorsBuildingFuncList,
-            PooledList<DefaultThemeBrushesBuildingFunction> brushesBuildingFuncList)
+            IList<ThemedColorsBuildingHandler> colorsBuildingFuncList,
+            IList<ThemedBrushesBuildingHandler> brushesBuildingFuncList)
             => brushesBuildingFuncList.Add(InitializeBrushFactories);
 
         private static partial IEnumerable<KeyValuePair<string, IThemedBrushFactory>> InitializeBrushFactories(
@@ -23,8 +29,8 @@ internal static partial class DefaultThemeBuildingHandlers
     public static partial class DarkTheme
     {
         public static void HookEvent(
-            PooledList<DefaultThemeColorsBuildingFunction> colorsBuildingFuncList,
-            PooledList<DefaultThemeBrushesBuildingFunction> brushesBuildingFuncList)
+            IList<ThemedColorsBuildingHandler> colorsBuildingFuncList,
+            IList<ThemedBrushesBuildingHandler> brushesBuildingFuncList)
             => brushesBuildingFuncList.Add(InitializeBrushFactories);
 
         private static partial IEnumerable<KeyValuePair<string, IThemedBrushFactory>> InitializeBrushFactories(

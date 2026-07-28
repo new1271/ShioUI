@@ -4,9 +4,5 @@ namespace ShioUI.Controls;
 
 public static class ShioControls
 {
-    public static void Initialize()
-    {
-        ShioSettings.DefaultLightThemeBuilding += DefaultThemeBuildingHandlers.LightTheme.HookEvent;
-        ShioSettings.DefaultDarkThemeBuilding += DefaultThemeBuildingHandlers.DarkTheme.HookEvent;
-    }
+    public static void Initialize() => ThemeBuildingHandlers.HookEvents();
 }

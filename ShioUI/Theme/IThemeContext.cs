@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ShioUI.Theme;
@@ -14,9 +16,12 @@ public interface IThemeContext
 
     bool TryGetBrushFactory(string node, [NotNullWhen(true)] out IThemedBrushFactory? brushFactory);
 
-    bool TrySetColorFactory(string node, IThemedColorFactory colorFactory, bool overrides);
+    IEnumerable<KeyValuePair<string, IThemedColorFactory>> EnumerateColorFactories();
 
-    bool TrySetBrushFactory(string node, IThemedBrushFactory brushFactory, bool overrides);
+    IEnumerable<KeyValuePair<string, IThemedBrushFactory>> EnumerateBrushFactories();
 
-    void BuildContextForAnother(IThemeContext other, bool overrides);
+    IEnumerable<KeyValuePair<string, IThemedColorFactory>> BuildColorFactories(Func<string, IThemedColorFactory> queryFunc);
+
+    IEnumerable<KeyValuePair<string, IThemedBrushFactory>> BuildBrushFactories(
+        Func<string, IThemedColorFactory> queryColorFunc, Func<string, IThemedBrushFactory> queryBrushFunc);
 }

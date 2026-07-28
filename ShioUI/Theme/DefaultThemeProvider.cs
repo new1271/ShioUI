@@ -1,12 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 
 using RiceTea.Core.Extensions;
+using RiceTea.Core.Threading;
 
 namespace ShioUI.Theme;
 
 public sealed partial class DefaultThemeProvider : IThemeProvider
 {
-    public static readonly DefaultThemeProvider Instance = new DefaultThemeProvider();
+    public const string LightThemeId = "#light";
+    public const string DarkThemeId = "#dark";
+    
+    private static readonly LazyTiny<DefaultThemeProvider> _instanceLazy = new(() => new DefaultThemeProvider(), isThreadSafe: true);
+
+    public static DefaultThemeProvider Instance => _instanceLazy.Value;
 
     private readonly LightThemeContext _lightTheme = new LightThemeContext();
     private readonly DarkThemeContext _darkTheme = new DarkThemeContext();
@@ -20,8 +26,8 @@ public sealed partial class DefaultThemeProvider : IThemeProvider
     {
         theme = themeId.ToLowerAscii() switch
         {
-            "#light" => _lightTheme,
-            "#dark" => _darkTheme,
+            LightThemeId => _lightTheme,
+            DarkThemeId => _darkTheme,
             _ => null
         };
         return theme is not null;
