@@ -329,9 +329,6 @@ public sealed partial class ListBox : ScrollableElementBase
             return;
         int selectedIndex = (int)((args.Y + ViewportPoint.Y) / _itemHeight);
         if (selectedIndex >= Items.Count) selectedIndex = -1;
-        if (_selectedIndex == selectedIndex)
-            return;
-        _selectedIndex = selectedIndex;
         ButtonTriState state = ButtonTriState.None;
         if (selectedIndex > -1)
         {
@@ -342,9 +339,19 @@ public sealed partial class ListBox : ScrollableElementBase
         {
             state = ButtonTriState.None;
         }
+        bool changed = false;
+        if (_selectedIndex != selectedIndex)
+        {
+            _selectedIndex = selectedIndex;
+            changed = true;
+        }
         if (_buttonState != state)
+        {
             _buttonState = state;
-        Update();
+            changed = true;
+        }
+        if (changed)
+            Update();
     }
 
     protected override void OnMouseDown(ref HandleableMouseEventArgs args)
