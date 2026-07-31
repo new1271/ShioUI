@@ -141,7 +141,15 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
         {
             CacheNode? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
             if (lastSnapshot is not null)
-                Dereference(lastSnapshot);
+            {
+                try
+                {
+                    Dereference(lastSnapshot);
+                }
+                catch (Exception)
+                {
+                }
+            }
         }
     }
 }

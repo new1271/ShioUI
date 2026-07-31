@@ -2056,10 +2056,11 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 DisposeHelper.SwapDisposeInterlocked(ref _graphicsDeviceProvider);
             else
                 Atomics.Write(ref _graphicsDeviceProvider, null);
+
+            _activeElementsCacheStore.Dispose();
+            _elementsCacheStore.Dispose();
         }
         _overlayElement = null;
-        _activeElementsCacheStore.Dispose();
-        _elementsCacheStore.Dispose();
 
         SafeDispose(_recordedMouseDownHitElementRefs);
         SafeDispose(ref _recordedLastMouseMoveHitElementRef);
