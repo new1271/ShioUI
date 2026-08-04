@@ -103,7 +103,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     private DWriteTextLayout? _titleLayout;
     private D2D1ColorF _clearDCColor, _windowBaseColor;
     private Point _drawingOffset;
-    private ulong _resizeTimestamp, _renderTimestamp,
+    private ulong _resizeTimestamp, _renderFramestamp,
         _minimizeButtonLocation, _minimizeButtonSize,
         _maximizeButtonLocation, _maximizeButtonSize,
         _closeButtonLocation, _closeButtonSize,
@@ -134,7 +134,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     public WindowMaterial ActualWindowMaterial => _actualWindowMaterial;
 
-    protected ulong RenderTimestamp => Atomics.Read(ref _renderTimestamp);
+    protected ulong RenderTimestamp => Atomics.Read(ref _renderFramestamp);
 
     public D2D1ColorF ClearDCColor => _clearDCColor;
 
@@ -634,7 +634,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         lock (_activeElementsCacheViewLock)
         {
             LimitedImmutableArrayView<UIElement?>? result;
-            if (_activeElementsCacheTimestamp == Atomics.Read(ref _renderTimestamp))
+            if (_activeElementsCacheTimestamp == Atomics.Read(ref _renderFramestamp))
             {
                 result = _activeElementsCacheView;
                 if (result is not null)
@@ -656,7 +656,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         lock (_elementsCacheViewLock)
         {
             LimitedImmutableArrayView<UIElement?>? result;
-            if (_elementsCacheTimestamp == Atomics.Read(ref _renderTimestamp))
+            if (_elementsCacheTimestamp == Atomics.Read(ref _renderFramestamp))
             {
                 result = _elementsCacheView;
                 if (result is not null)
@@ -1031,7 +1031,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         if (collector is null)
             return false;
 
-        ulong renderTimestamp = NativeMethods.GetTicksForSystem();
+        ulong renderFramestamp = GlobalFramestamp.Generate();
         WindowRenderingData data = new()
         {
             Layout = new()
@@ -1044,13 +1044,13 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 DrawingOffset = _drawingOffset,
                 ActiveBorderWidth = _activeBorderWidth
             },
-            ResizeTimestamp = _resizeTimestamp,
-            LastRenderTimestamp = _renderTimestamp,
-            CurrentRenderTimestamp = renderTimestamp
+            ResizeFramestamp = _resizeTimestamp,
+            LastRenderTimestamp = _renderFramestamp,
+            CurrentRenderTimestamp = renderFramestamp
         };
-        Atomics.Write(ref _renderTimestamp, renderTimestamp);
-        _activeElementsCacheStore.UpdateTimestamp(renderTimestamp);
-        _elementsCacheStore.UpdateTimestamp(renderTimestamp);
+        Atomics.Write(ref _renderFramestamp, renderFramestamp);
+        _activeElementsCacheStore.UpdateTimestamp(renderFramestamp);
+        _elementsCacheStore.UpdateTimestamp(renderFramestamp);
 
         bool renderAll = flags.HasRedrawAll();
         if (flags.HasResize())
@@ -1091,7 +1091,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             Thread.MemoryBarrier();
             if (renderAll)
             {
-                data.ResizeTimestamp = NativeMethods.GetTicksForSystem();
+                data.ResizeFramestamp = GlobalFramestamp.Generate();
 
                 ref WindowLayoutData layoutData = ref data.Layout;
                 RecalculateLayout(
@@ -1103,7 +1103,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 BoundsHelper.SaveBoundsToUInt64Fields(layoutData.PageBounds, ref _pageLocation, ref _pageSize);
                 BoundsHelper.SaveBoundsToUInt64Fields(layoutData.TitleBarBounds, ref _titleBarLocation, ref _titleBarSize);
 
-                ulong timestamp = data.ResizeTimestamp;
+                ulong timestamp = data.ResizeFramestamp;
                 _resizeTimestamp = timestamp;
                 _drawingOffset = layoutData.DrawingOffset;
                 _activeBorderWidth = layoutData.ActiveBorderWidth;
@@ -1111,7 +1111,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
                 Size pageSize = layoutData.PageBounds.Size;
                 if (pageSize.IsValid())
-                    RecalculatePageLayout(pageSize, new(data.ResizeTimestamp));
+                    RecalculatePageLayout(pageSize, new(data.ResizeFramestamp));
             }
             flags = controller.GetAndResetRenderingFlags();
             renderAll |= flags.HasRedrawAll();
@@ -1206,8 +1206,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                     }
                     else
                     {
-                        ulong timestamp = NativeMethods.GetTicksForSystem();
-                        data.ResizeTimestamp = timestamp;
+                        ulong timestamp = GlobalFramestamp.Generate();
+                        data.ResizeFramestamp = timestamp;
                         RecalculatePageLayout(pageSize, new(timestamp));
                     }
                 }

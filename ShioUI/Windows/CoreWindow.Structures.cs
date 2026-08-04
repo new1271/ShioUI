@@ -22,11 +22,11 @@ partial class CoreWindow
     protected ref struct WindowRenderingData
     {
         public WindowLayoutData Layout;
-        public ulong ResizeTimestamp, LastRenderTimestamp, CurrentRenderTimestamp;
+        public ulong ResizeFramestamp, LastRenderTimestamp, CurrentRenderTimestamp;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly RenderInformation CreateRenderInformation(bool ignoreNeedRefresh)
-            => new RenderInformation(ignoreNeedRefresh, ResizeTimestamp, LastRenderTimestamp, CurrentRenderTimestamp);
+            => new RenderInformation(ignoreNeedRefresh, ResizeFramestamp, LastRenderTimestamp, CurrentRenderTimestamp);
     }
 
     [StructLayout(LayoutKind.Auto)]
