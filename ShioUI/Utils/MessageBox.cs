@@ -11,39 +11,47 @@ namespace ShioUI.Utils;
 
 public static class MessageBox
 {
-    [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DialogResult Show(string text, string caption)
-        => Show(IntPtr.Zero, text, caption, MessageBoxFlags.Ok);
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DialogResult Show(string text, string caption, MessageBoxFlags flags)
-        => Show(IntPtr.Zero, text, caption, flags);
+    public static DialogResult Show(string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok)
+        => WindowMessageLoop.Invoke(ShowInternal, text, caption, flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DialogResult Show(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
-        => WindowMessageLoop.Invoke(static (hWnd, tuple, flags) => ShowDirectly(hWnd, tuple.text, tuple.caption, flags), hWnd, (text, caption), flags);
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<DialogResult> ShowAsync(string text, string caption)
-        => ShowAsync(IntPtr.Zero, text, caption, MessageBoxFlags.Ok);
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<DialogResult> ShowAsync(string text, string caption, MessageBoxFlags flags)
-        => ShowAsync(IntPtr.Zero, text, caption, flags);
+    public static DialogResult Show<T>(T owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok) where T : IHwndOwner
+        => WindowMessageLoop.Invoke(ShowInternal, owner, (text, caption), flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<DialogResult> ShowAsync(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
-        => WindowMessageLoop.InvokeTaskAsync(static (hWnd, tuple, flags) => ShowDirectly(hWnd, tuple.text, tuple.caption, flags), hWnd, (text, caption), flags);
+    public static DialogResult Show(IntPtr owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok)
+        => WindowMessageLoop.Invoke(ShowInternal, owner, (text, caption), flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe DialogResult ShowDirectly(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
+    public static Task<DialogResult> ShowAsync(string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok)
+        => WindowMessageLoop.InvokeTaskAsync(ShowInternal, text, caption, flags);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Task<DialogResult> ShowAsync<T>(T owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok) where T : IHwndOwner
+        => WindowMessageLoop.InvokeTaskAsync(ShowInternal, owner, (text, caption), flags);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Task<DialogResult> ShowAsync(IntPtr owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok)
+        => WindowMessageLoop.InvokeTaskAsync(ShowInternal, owner, (text, caption), flags);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe DialogResult ShowInternal(string text, string caption, MessageBoxFlags flags)
+        => ShowCore(IntPtr.Zero, text, caption, flags);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe DialogResult ShowInternal<T>(T owner, (string text, string caption) tuple, MessageBoxFlags flags) where T : IHwndOwner
+        => ShowCore(owner.Handle, tuple.text, tuple.caption, flags);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe DialogResult ShowInternal(IntPtr owner, (string text, string caption) tuple, MessageBoxFlags flags)
+        => ShowCore(owner, tuple.text, tuple.caption, flags);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe DialogResult ShowCore(IntPtr owner, string text, string caption, MessageBoxFlags flags)
     {
         fixed (char* ptr = text, ptr2 = caption)
-            return User32.MessageBoxW(hWnd, ptr, ptr2, flags);
+            return User32.MessageBoxW(owner, ptr, ptr2, flags);
     }
 }
 
