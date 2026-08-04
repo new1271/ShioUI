@@ -23,7 +23,7 @@ public static class MessageBox
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DialogResult Show(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
-        => WindowMessageLoop.Invoke(() => ShowDirectly(hWnd, text, caption, flags));
+        => WindowMessageLoop.Invoke(static (hWnd, tuple, flags) => ShowDirectly(hWnd, tuple.text, tuple.caption, flags), hWnd, (text, caption), flags);
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,20 +37,10 @@ public static class MessageBox
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<DialogResult> ShowAsync(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
-        => WindowMessageLoop.InvokeTaskAsync(() => ShowDirectly(hWnd, text, caption, flags));
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DialogResult ShowDirectly(string text, string caption)
-        => ShowDirectly(IntPtr.Zero, text, caption, MessageBoxFlags.Ok);
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DialogResult ShowDirectly(string text, string caption, MessageBoxFlags flags)
-        => ShowDirectly(IntPtr.Zero, text, caption, flags);
+        => WindowMessageLoop.InvokeTaskAsync(static (hWnd, tuple, flags) => ShowDirectly(hWnd, tuple.text, tuple.caption, flags), hWnd, (text, caption), flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe DialogResult ShowDirectly(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
+    private static unsafe DialogResult ShowDirectly(IntPtr hWnd, string text, string caption, MessageBoxFlags flags)
     {
         fixed (char* ptr = text, ptr2 = caption)
             return User32.MessageBoxW(hWnd, ptr, ptr2, flags);
