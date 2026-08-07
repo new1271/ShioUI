@@ -31,7 +31,7 @@ public abstract partial class MultiPageWindow : CoreWindow
         set
         {
             uint oldIndex = Atomics.Exchange(ref _pageIndex, value);
-            if (oldIndex == value || Atomics.Read(ref _alreadyShown) == default)
+            if (oldIndex == value)
                 return;
             lock (_pageLock)
             {
@@ -82,8 +82,8 @@ public abstract partial class MultiPageWindow : CoreWindow
 
         lock (_pageLock)
         {
-            _alreadyShown = Booleans.TrueNativeUnsigned;
-            uint pageIndex = _pageIndex;
+            Volatile.Write(ref _alreadyShown, Booleans.TrueNativeUnsigned);
+            uint pageIndex = Volatile.Read(ref _pageIndex);
 
             using BatchUpdateScope scope = EnterBatchUpdateScope();
 
@@ -100,12 +100,5 @@ public abstract partial class MultiPageWindow : CoreWindow
 
     #region Abstract Methods
     protected abstract IEnumerable<UIElement?> EnumerateActiveElements(uint pageIndex);
-    #endregion
-
-    #region Normal Methods
-    private void ChangePage(uint oldPageIndex, uint newPageIndex)
-    {
-
-    }
     #endregion
 }
