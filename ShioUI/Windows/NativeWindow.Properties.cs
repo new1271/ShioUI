@@ -165,20 +165,20 @@ partial class NativeWindow
         }
     }
 
-    public string Text
+    public string Title
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            string? text = Atomics.Read(ref _cachedText);
-            if (text is not null)
-                return text;
+            string? title = Atomics.Read(ref _cachedTitle);
+            if (title is not null)
+                return title;
             IntPtr handle = Handle;
             if (handle == IntPtr.Zero)
                 return string.Empty;
-            text = GetTextCore(handle);
-            string? newCachedText = Atomics.CompareExchange(ref _cachedText, text, null);
-            return newCachedText ?? text;
+            title = GetTitleCore(handle);
+            string? newCachedTitle = Atomics.CompareExchange(ref _cachedTitle, title, null);
+            return newCachedTitle ?? title;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -187,7 +187,7 @@ partial class NativeWindow
             IntPtr handle = Handle;
             if (handle == IntPtr.Zero)
             {
-                Atomics.Exchange(ref _cachedText, value);
+                Atomics.Exchange(ref _cachedTitle, value);
                 return;
             }
             User32.SetWindowText(handle, value);
@@ -303,7 +303,7 @@ partial class NativeWindow
         User32.DestroyIcon(iconHandle);
     }
 
-    private static unsafe string GetTextCore(IntPtr handle)
+    private static unsafe string GetTitleCore(IntPtr handle)
     {
         int stringLength = User32.GetWindowTextLengthW(handle);
         if (stringLength <= 0)
@@ -318,41 +318,42 @@ partial class NativeWindow
                 return result;
             if (charsWritten < stringLength)
                 return new string(ptr, 0, charsWritten);
-            return GetTextCoreSlow(handle, (nuint)charsWritten);
+            return SlowRoute(handle, (nuint)charsWritten);
         }
-    }
 
-    private static unsafe string GetTextCoreSlow(IntPtr handle, nuint predictedLength)
-    {
-        NativeMemoryPool pool = NativeMemoryPool.Shared;
-        TypedNativeMemoryBlock<char> buffer;
-        do
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static unsafe string SlowRoute(IntPtr handle, nuint predictedLength)
         {
-            buffer = pool.Rent<char>(predictedLength);
-            char* ptr = buffer.NativePointer;
-            int charsWritten = User32.GetWindowTextW(handle, ptr, (int)buffer.Length);
-            if (charsWritten <= 0)
-                throw new Win32Exception(Kernel32.GetLastError());
-            if ((nuint)charsWritten < buffer.Length)
+            NativeMemoryPool pool = NativeMemoryPool.Shared;
+            TypedNativeMemoryBlock<char> buffer;
+            do
             {
-                try
+                buffer = pool.Rent<char>(predictedLength);
+                char* ptr = buffer.NativePointer;
+                int charsWritten = User32.GetWindowTextW(handle, ptr, (int)buffer.Length);
+                if (charsWritten <= 0)
+                    throw new Win32Exception(Kernel32.GetLastError());
+                if ((nuint)charsWritten < buffer.Length)
                 {
-                    return new string(ptr, 0, charsWritten);
+                    try
+                    {
+                        return new string(ptr, 0, charsWritten);
+                    }
+                    finally
+                    {
+                        pool.Return(buffer);
+                    }
                 }
-                finally
-                {
-                    pool.Return(buffer);
-                }
+                predictedLength = buffer.Length + 1;
+            } while (predictedLength <= (nuint)Limits.MaxStringLength);
+            try
+            {
+                return new string(buffer.NativePointer, 0, (int)buffer.Length);
             }
-            predictedLength = buffer.Length + 1;
-        } while (predictedLength <= (nuint)Limits.MaxStringLength);
-        try
-        {
-            return new string(buffer.NativePointer, 0, (int)buffer.Length);
-        }
-        finally
-        {
-            pool.Return(buffer);
+            finally
+            {
+                pool.Return(buffer);
+            }
         }
     }
 }

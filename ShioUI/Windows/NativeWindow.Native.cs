@@ -59,7 +59,7 @@ partial class NativeWindow
 
     protected virtual void OnHandleCreated(IntPtr handle)
     {
-        string text = Atomics.CompareExchange(ref _cachedText, nameof(NativeWindow), null) ?? nameof(NativeWindow);
+        string text = Atomics.CompareExchange(ref _cachedTitle, nameof(NativeWindow), null) ?? nameof(NativeWindow);
         User32.SetWindowText(handle, text);
         Icon? icon = Atomics.Read(ref _cachedIcon);
         IntPtr iconHandle = icon is null ? IntPtr.Zero : User32.CopyIcon(icon.Handle);

@@ -4,21 +4,22 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Helpers;
-using ShioUI.Utils;
 
 using InlineMethod;
+
+using RiceTea.Core;
+using RiceTea.Core.Extensions;
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Structures;
+
+using ShioUI.Graphics;
+using ShioUI.Graphics.Helpers;
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Internals;
 using ShioUI.Theme;
-
-using RiceTea.Core.Extensions;
-using RiceTea.Core.Helpers;
-using RiceTea.Core.Structures;
-using RiceTea.Core;
+using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
@@ -29,9 +30,9 @@ public abstract class WizardWindow : MultiPageWindow
     private enum UpdateFlags : long
     {
         None = 0,
-        UpdateTitle = 0b01,
-        UpdateTitleDescription = 0b10,
-        All = UpdateTitle | UpdateTitleDescription,
+        UpdateCaption = 0b01,
+        UpdateCaptionDescription = 0b10,
+        All = UpdateCaption | UpdateCaptionDescription,
     }
 
     protected new enum Brush
@@ -53,7 +54,7 @@ public abstract class WizardWindow : MultiPageWindow
     #region Fields
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private DWriteTextLayout? _titleLayout, _titleDescriptionLayout;
-    private string _title = string.Empty, _titleDescription = string.Empty;
+    private string _caption = string.Empty, _captionDescription = string.Empty;
     private long _updateFlags = -1L;
     private D2D1ColorF _wizardBaseColor;
     private Point _titleLocation, _titleDescriptionLocation;
@@ -69,28 +70,28 @@ public abstract class WizardWindow : MultiPageWindow
     #endregion
 
     #region Properties
-    public string? Title
+    public string? Heading
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
-        get => _title;
+        get => Atomics.Read(ref _caption);
         set
         {
-            _title = value ?? string.Empty;
-            Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateTitle);
+            Atomics.Write(ref _caption, value ?? string.Empty);
+            Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateCaption);
             UpdateAndResize();
         }
     }
 
-    public string? TitleDescription
+    public string? HeadingDescription
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
-        get => _titleDescription;
+        get => Atomics.Read(ref _captionDescription);
         protected set
         {
-            _titleDescription = value ?? string.Empty;
-            Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateTitleDescription);
+            Atomics.Write(ref _captionDescription, value ?? string.Empty);
+            Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateCaptionDescription);
             UpdateAndResize();
         }
     }
@@ -123,7 +124,7 @@ public abstract class WizardWindow : MultiPageWindow
     {
         titleLayout = Interlocked.Exchange(ref _titleLayout, null);
         titleDescriptionLayout = Interlocked.Exchange(ref _titleDescriptionLayout, null);
-        if ((flags & UpdateFlags.UpdateTitle) == UpdateFlags.UpdateTitle)
+        if ((flags & UpdateFlags.UpdateCaption) == UpdateFlags.UpdateCaption)
         {
             DWriteFactory factory = SharedResources.DWriteFactory;
             DWriteTextFormat? format = titleLayout;
@@ -133,10 +134,10 @@ public abstract class WizardWindow : MultiPageWindow
                 format = factory.CreateTextFormat(fontName, UIConstants.WizardWindowTitleFontSize);
                 format.WordWrapping = DWriteWordWrapping.Wrap;
             }
-            titleLayout = factory.CreateTextLayout(_title, format);
+            titleLayout = factory.CreateTextLayout(_caption, format);
             format.Dispose();
         }
-        if ((flags & UpdateFlags.UpdateTitleDescription) == UpdateFlags.UpdateTitleDescription)
+        if ((flags & UpdateFlags.UpdateCaptionDescription) == UpdateFlags.UpdateCaptionDescription)
         {
             DWriteFactory factory = SharedResources.DWriteFactory;
             DWriteTextFormat? format = titleDescriptionLayout;
@@ -146,7 +147,7 @@ public abstract class WizardWindow : MultiPageWindow
                 format = factory.CreateTextFormat(fontName, UIConstants.WizardWindowTitleDescriptionFontSize);
                 format.WordWrapping = DWriteWordWrapping.Wrap;
             }
-            titleDescriptionLayout = factory.CreateTextLayout(_titleDescription, format);
+            titleDescriptionLayout = factory.CreateTextLayout(_captionDescription, format);
             format.Dispose();
         }
     }

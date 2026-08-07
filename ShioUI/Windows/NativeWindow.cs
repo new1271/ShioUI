@@ -28,7 +28,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     private CancellationTokenSource? _dialogTokenSource;
     private Win32ImageHandle _cursor;
     private Icon? _cachedIcon;
-    private string? _cachedText;
+    private string? _cachedTitle;
     private Rectangle _cachedBounds;
     private IntPtr _dialogParent;
     /* Window flags

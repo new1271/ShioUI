@@ -1299,7 +1299,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                     titleFormat = factory.CreateTextFormat(_resourceProvider!.FontName, UIConstants.TitleFontSize);
                     titleFormat.ParagraphAlignment = DWriteParagraphAlignment.Center;
                 }
-                titleLayout = GraphicsUtils.CreateCustomTextLayout(Text, titleFormat, 26);
+                titleLayout = GraphicsUtils.CreateCustomTextLayout(Title, titleFormat, 26);
                 titleFormat.Dispose();
             }
             ClearDCForTitle(deviceContext);

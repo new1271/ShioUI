@@ -224,7 +224,7 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleSetText()
     {
-        Atomics.Exchange(ref _cachedText, null);
+        Atomics.Exchange(ref _cachedTitle, null);
         return false;
     }
 
