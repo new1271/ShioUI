@@ -54,7 +54,7 @@ public abstract class WizardWindow : MultiPageWindow
     #region Fields
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private DWriteTextLayout? _titleLayout, _titleDescriptionLayout;
-    private string _caption = string.Empty, _captionDescription = string.Empty;
+    private string _heading = string.Empty, _headingDescription = string.Empty;
     private long _updateFlags = -1L;
     private D2D1ColorF _wizardBaseColor;
     private Point _titleLocation, _titleDescriptionLocation;
@@ -74,10 +74,10 @@ public abstract class WizardWindow : MultiPageWindow
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
-        get => Atomics.Read(ref _caption);
+        get => Atomics.Read(ref _heading);
         set
         {
-            Atomics.Write(ref _caption, value ?? string.Empty);
+            Atomics.Write(ref _heading, value ?? string.Empty);
             Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateCaption);
             UpdateAndResize();
         }
@@ -87,10 +87,10 @@ public abstract class WizardWindow : MultiPageWindow
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
-        get => Atomics.Read(ref _captionDescription);
+        get => Atomics.Read(ref _headingDescription);
         protected set
         {
-            Atomics.Write(ref _captionDescription, value ?? string.Empty);
+            Atomics.Write(ref _headingDescription, value ?? string.Empty);
             Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateCaptionDescription);
             UpdateAndResize();
         }
@@ -134,7 +134,7 @@ public abstract class WizardWindow : MultiPageWindow
                 format = factory.CreateTextFormat(fontName, UIConstants.WizardWindowTitleFontSize);
                 format.WordWrapping = DWriteWordWrapping.Wrap;
             }
-            titleLayout = factory.CreateTextLayout(_caption, format);
+            titleLayout = factory.CreateTextLayout(_heading, format);
             format.Dispose();
         }
         if ((flags & UpdateFlags.UpdateCaptionDescription) == UpdateFlags.UpdateCaptionDescription)
@@ -147,7 +147,7 @@ public abstract class WizardWindow : MultiPageWindow
                 format = factory.CreateTextFormat(fontName, UIConstants.WizardWindowTitleDescriptionFontSize);
                 format.WordWrapping = DWriteWordWrapping.Wrap;
             }
-            titleDescriptionLayout = factory.CreateTextLayout(_captionDescription, format);
+            titleDescriptionLayout = factory.CreateTextLayout(_headingDescription, format);
             format.Dispose();
         }
     }
