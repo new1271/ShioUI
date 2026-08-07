@@ -76,9 +76,9 @@ public abstract partial class MultiPageWindow : CoreWindow
     protected override void RecalculatePageLayout(Size pageSize, in RecalculateLayoutInformation information)
         => RecalculatePageLayout(pageSize, _pageIndex, information);
 
-    protected override void OnShown(EventArgs args)
+    protected override void OnShown()
     {
-        base.OnShown(args);
+        base.OnShown();
 
         if (WindowMessageLoop.IsMessageLoopThread) // ShioUI 觸發的 OnShown 必定在視窗訊息執行緒
             WindowMessageLoop.InvokeAsync(static _this => _this.OnShown_RunLater(), this); // 脫離目前上下文後再執行，避免被使用者程式碼影響

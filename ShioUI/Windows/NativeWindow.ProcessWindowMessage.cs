@@ -125,12 +125,12 @@ unsafe partial class NativeWindow
         {
             case 0: // WA_INACTIVE
                 if ((Atomics.And(ref _windowFlags, ~(nuint)0b100) & 0b100) == 0b100)
-                    OnFocusedChanged(EventArgs.Empty);
+                    OnFocusedChanged();
                 break;
             case 1: // WA_ACTIVE
             case 2: // WA_CLICKACTIVE
                 if ((Atomics.Or(ref _windowFlags, 0b100) & 0b100) != 0b100)
-                    OnFocusedChanged(EventArgs.Empty);
+                    OnFocusedChanged();
                 break;
         }
         return false;
@@ -143,7 +143,7 @@ unsafe partial class NativeWindow
         OnClosing(ref args);
         if (args.Cancelled)
             return true;
-        OnClosed(EventArgs.Empty);
+        OnClosed();
         IntPtr dialogParent = Atomics.Exchange(ref _dialogParent, IntPtr.Zero);
         if (dialogParent != IntPtr.Zero)
         {
@@ -182,7 +182,7 @@ unsafe partial class NativeWindow
             }
             try
             {
-                OnDestroyed(EventArgs.Empty);
+                OnDestroyed();
             }
             finally
             {
@@ -259,7 +259,7 @@ unsafe partial class NativeWindow
 
     private bool HandleSizing()
     {
-        OnResizing(EventArgs.Empty);
+        OnResizing();
         return false;
     }
 
@@ -291,7 +291,7 @@ unsafe partial class NativeWindow
             default:
                 break;
         }
-        OnResized(EventArgs.Empty);
+        OnResized();
         return false;
     }
 
@@ -313,7 +313,7 @@ unsafe partial class NativeWindow
     private bool HandleShowWindow(nint wParam, nint lParam)
     {
         if (wParam != 0 && lParam == 0 && (Atomics.Or(ref _windowFlags, 0b10) & 0b10) != 0b10)
-            WindowMessageLoop.InvokeAsync(() => OnShown(EventArgs.Empty));
+            WindowMessageLoop.InvokeAsync(OnShown);
         return false;
     }
 

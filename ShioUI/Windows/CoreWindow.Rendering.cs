@@ -551,9 +551,9 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     #endregion
 
     #region Override Methods
-    protected override void OnShown(EventArgs args)
+    protected override void OnShown()
     {
-        base.OnShown(args);
+        base.OnShown();
         UpdateFirstTime();
         WindowMessageLoop.InvokeAsync(OnShown2);
     }
@@ -1427,9 +1427,9 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         MaterialHelper.ResetBlur(this);
     }
 
-    protected override void OnResized(EventArgs args)
+    protected override void OnResized()
     {
-        base.OnResized(args);
+        base.OnResized();
         UpdateAndResize();
     }
 
