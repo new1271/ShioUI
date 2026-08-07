@@ -80,6 +80,23 @@ public abstract partial class MultiPageWindow : CoreWindow
     {
         base.OnShown(args);
 
+        if (WindowMessageLoop.IsMessageLoopThread) // ShioUI 觸發的 OnShown 必定在視窗訊息執行緒
+            WindowMessageLoop.InvokeAsync(static _this => _this.OnShown_RunLater(), this); // 脫離目前上下文後再執行，避免被使用者程式碼影響
+    }
+    #endregion
+
+    #region Virtual Methods
+    protected virtual void RecalculatePageLayout(Size pageSize, uint pageIndex, in RecalculateLayoutInformation information)
+        => base.RecalculatePageLayout(pageSize, information);
+    #endregion
+
+    #region Abstract Methods
+    protected abstract IEnumerable<UIElement?> EnumerateActiveElements(uint pageIndex);
+    #endregion
+
+    #region Normal Methods
+    private void OnShown_RunLater()
+    {
         lock (_pageLock)
         {
             Volatile.Write(ref _alreadyShown, Booleans.TrueNativeUnsigned);
@@ -91,14 +108,5 @@ public abstract partial class MultiPageWindow : CoreWindow
             OnCurrentPageChanged(new CurrentPageChangedEventArgs(pageIndex, pageIndex));
         }
     }
-    #endregion
-
-    #region Virtual Methods
-    protected virtual void RecalculatePageLayout(Size pageSize, uint pageIndex, in RecalculateLayoutInformation information)
-        => base.RecalculatePageLayout(pageSize, information);
-    #endregion
-
-    #region Abstract Methods
-    protected abstract IEnumerable<UIElement?> EnumerateActiveElements(uint pageIndex);
     #endregion
 }

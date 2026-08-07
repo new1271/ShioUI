@@ -102,7 +102,7 @@ partial class UIElementHelper
         else
         {
             RenderResult result = RenderResult.RenderDesync &
-                (RenderResult)(MathHelper.BooleanToUInt32(element.TrySyncRenderCheckTimestamp(information.LastRenderTimestamp, information.CurrentRenderTimestamp)) - 1U);
+                (RenderResult)(MathHelper.BooleanToUInt32(element.TrySyncRenderCheckFramestamp(information.LastRenderTimestamp, information.CurrentRenderTimestamp)) - 1U);
 
             if (element is IElementContainer container)
             {

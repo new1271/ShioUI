@@ -222,7 +222,7 @@ public sealed class LayoutEngine : ILayoutEngine
             array!.AsUnsafeRef()[segment.Offset + (int)prop] = expression;
         }
         if (segment.Array is null)
-            element.UpdateLayoutTimestamp(information.LayoutTimestamp);
+            element.RefreshLayout(information.LayoutTimestamp);
         else
             elementDict[element] = segment;
         if (element is IElementContainer container)
@@ -346,7 +346,7 @@ public sealed class LayoutEngine : ILayoutEngine
                     values[i - 2] = context.GetComputedValue(leftExpression) - context.GetComputedValue(rightExpression);
                 }
             }
-            element.UpdateLayoutTimestamp(bounds, timestamp);
+            element.RefreshLayout(bounds, timestamp);
             continue;
 
         Failed:

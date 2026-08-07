@@ -75,8 +75,8 @@ partial class UIElement
             if (ReferenceEquals(Atomics.Exchange(ref _parent, value), value))
                 return;
             OptimisticLock.Increase(ref versionRef);
-            ResetLayoutTimestamp();
-            ResetRenderCheckTimestamp();
+            InvalidateLayout();
+            ResetRenderCheckFramestamp();
             Update();
         }
     }

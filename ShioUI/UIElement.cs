@@ -35,7 +35,7 @@ public abstract partial class UIElement : ICheckableDisposable
     private string _themePrefix;
     private object? _tag;
     private GCHandle _themeResourceProviderReference;
-    private ulong _location, _size, _layoutTimestamp, _renderCheckTimestamp;
+    private ulong _location, _size, _layoutFramestamp, _renderCheckFramestamp;
     private nuint _requestRedraw, _shouldUpdateWhenUnfreeze, _freezeCount,
         _parentVersion, _boundsVersion, _tagVersion,
         _disposed;
@@ -98,7 +98,7 @@ public abstract partial class UIElement : ICheckableDisposable
     private void SetLayoutExpressionCore(nuint property, LayoutNode? variable)
     {
         Atomics.Write(ref UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_layoutExpressions), property), variable);
-        ResetLayoutTimestamp();
+        InvalidateLayout();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -120,22 +120,22 @@ public abstract partial class UIElement : ICheckableDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ResetLayoutTimestamp() => Atomics.Write(ref _layoutTimestamp, 0);
+    public void InvalidateLayout() => Atomics.Write(ref _layoutFramestamp, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void UpdateLayoutTimestamp(ulong timestamp) => Atomics.Write(ref _layoutTimestamp, timestamp);
+    public void RefreshLayout(ulong framestamp) => Atomics.Write(ref _layoutFramestamp, framestamp);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void UpdateLayoutTimestamp(in Rectangle bounds, ulong timestamp)
+    public void RefreshLayout(in Rectangle bounds, ulong framestamp)
     {
         SetBoundsCore_Pure(bounds);
-        UpdateLayoutTimestamp(timestamp);
+        RefreshLayout(framestamp);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool CheckLayoutOutdated(ulong timestamp)
     {
-        if (Atomics.Read(ref _layoutTimestamp) != timestamp || Atomics.Read(ref _themeContext) is not null)
+        if (Atomics.Read(ref _layoutFramestamp) != timestamp || Atomics.Read(ref _themeContext) is not null)
             return true;
 
         IThemeResourceProvider? provider = Window.GetDefaultThemeResourceProvider();
@@ -146,16 +146,16 @@ public abstract partial class UIElement : ICheckableDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ResetRenderCheckTimestamp()
-        => Atomics.Write(ref _renderCheckTimestamp, 0);
+    private void ResetRenderCheckFramestamp()
+        => Atomics.Write(ref _renderCheckFramestamp, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SyncRenderCheckTimestamp(ulong timestamp)
-        => Atomics.Write(ref _renderCheckTimestamp, timestamp);
+    private void SyncRenderCheckFramestamp(ulong framestamp)
+        => Atomics.Write(ref _renderCheckFramestamp, framestamp);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TrySyncRenderCheckTimestamp(ulong oldTimestamp, ulong newTimestamp)
-        => Atomics.CompareExchange(ref _renderCheckTimestamp, newTimestamp, oldTimestamp) == oldTimestamp;
+    internal bool TrySyncRenderCheckFramestamp(ulong oldFramestamp, ulong newFramestamp)
+        => Atomics.CompareExchange(ref _renderCheckFramestamp, newFramestamp, oldFramestamp) == oldFramestamp;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected Lock.Scope EnterSyncScope() => _syncLock.EnterScope();
@@ -214,7 +214,7 @@ public abstract partial class UIElement : ICheckableDisposable
             }
             finally
             {
-                SyncRenderCheckTimestamp(timestamp);
+                SyncRenderCheckFramestamp(timestamp);
                 if (!enablePartialRendering)
                     context.MarkAsDirty();
             }
@@ -359,7 +359,7 @@ public abstract partial class UIElement : ICheckableDisposable
             return;
         OnLocationChanged();
         OptimisticLock.Increase(ref _boundsVersion);
-        ResetRenderCheckTimestamp();
+        ResetRenderCheckFramestamp();
         Update();
     }
 
@@ -387,7 +387,7 @@ public abstract partial class UIElement : ICheckableDisposable
             return;
         OnSizeChanged();
         OptimisticLock.Increase(ref _boundsVersion);
-        ResetRenderCheckTimestamp();
+        ResetRenderCheckFramestamp();
         Update();
     }
 
@@ -403,7 +403,7 @@ public abstract partial class UIElement : ICheckableDisposable
     {
         if (!SetBoundsCore_Pure(value))
             return;
-        ResetRenderCheckTimestamp();
+        ResetRenderCheckFramestamp();
         Update();
     }
 
