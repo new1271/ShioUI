@@ -3,17 +3,21 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
+
+using RiceTea.Core;
+using RiceTea.Core.Extensions;
 
 using ShioUI.Graphics;
-
-using RiceTea.Core.Extensions;
 using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
-public abstract class MultiPageWindow : CoreWindow
+public abstract partial class MultiPageWindow : CoreWindow
 {
     #region Fields
+    private readonly Lock _pageLock = new Lock();
+    private nuint _alreadyShown;
     private uint _pageIndex;
     #endregion
 
@@ -23,23 +27,24 @@ public abstract class MultiPageWindow : CoreWindow
     public uint CurrentPage
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _pageIndex;
+        get => Atomics.Read(ref _pageIndex);
         set
         {
-            if (_pageIndex == value)
+            uint oldIndex = Atomics.Exchange(ref _pageIndex, value);
+            if (oldIndex == value || Atomics.Read(ref _alreadyShown) == default)
                 return;
-            using BatchUpdateScope scope = EnterBatchUpdateScope();
-            OnCurrentPageChanging();
-            ClearFocusElement();
-            _pageIndex = value;
-            OnCurrentPageChanged();
+            lock (_pageLock)
+            {
+                using BatchUpdateScope scope = EnterBatchUpdateScope();
+
+                ClearFocusElement();
+                OnCurrentPageChanged(new CurrentPageChangedEventArgs(oldIndex, value));
+            }
         }
     }
     #endregion
 
     #region Events
-    public event EventHandler? CurrentPageChanging;
-    public event EventHandler? CurrentPageChanged;
     #endregion
 
     #region Constuctor       
@@ -48,18 +53,6 @@ public abstract class MultiPageWindow : CoreWindow
     protected MultiPageWindow(GraphicsDeviceProvider? deviceProvider) : base(deviceProvider) { }
 
     protected MultiPageWindow(CoreWindow? parent, bool passParentToUnderlyingWindow = false) : base(parent, passParentToUnderlyingWindow) { }
-    #endregion
-
-    #region Event Triggers
-    protected virtual void OnCurrentPageChanging()
-    {
-        CurrentPageChanging?.Invoke(this, EventArgs.Empty);
-    }
-
-    protected virtual void OnCurrentPageChanged()
-    {
-        CurrentPageChanged?.Invoke(this, EventArgs.Empty);
-    }
     #endregion
 
     #region Override Methods
@@ -83,6 +76,21 @@ public abstract class MultiPageWindow : CoreWindow
     protected override void RecalculatePageLayout(Size pageSize, in RecalculateLayoutInformation information)
         => RecalculatePageLayout(pageSize, _pageIndex, information);
 
+    protected override void OnShown(EventArgs args)
+    {
+        base.OnShown(args);
+
+        lock (_pageLock)
+        {
+            _alreadyShown = Booleans.TrueNativeUnsigned;
+            uint pageIndex = _pageIndex;
+
+            using BatchUpdateScope scope = EnterBatchUpdateScope();
+
+            ClearFocusElement();
+            OnCurrentPageChanged(new CurrentPageChangedEventArgs(pageIndex, pageIndex));
+        }
+    }
     #endregion
 
     #region Virtual Methods
@@ -92,5 +100,12 @@ public abstract class MultiPageWindow : CoreWindow
 
     #region Abstract Methods
     protected abstract IEnumerable<UIElement?> EnumerateActiveElements(uint pageIndex);
+    #endregion
+
+    #region Normal Methods
+    private void ChangePage(uint oldPageIndex, uint newPageIndex)
+    {
+
+    }
     #endregion
 }
