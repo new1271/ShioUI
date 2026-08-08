@@ -105,7 +105,7 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
             if (_fontSize == value)
                 return;
             _fontSize = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _format);
+            DisposeHelper.SwapDisposeAtomic(ref _format);
             Interlocked.Exchange(ref _recalcFormat, Booleans.TrueLong);
             if (Items.Count > 0)
                 Update();

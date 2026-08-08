@@ -429,7 +429,7 @@ public abstract class TabbedWindow : MultiPageWindow
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _menuBarButtonLayouts);
+            DisposeHelper.SwapDisposeAtomic(ref _menuBarButtonLayouts);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

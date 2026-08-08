@@ -17,10 +17,15 @@ partial class GroupBox
         {
             (int result, bool reversedFlow) = ContainerAutoSizeHelper.Compute(this, element, context,
                     deltaStart: LayoutProperty.Top, deltaEnd: LayoutProperty.Bottom, initialValue: context.PageSize.Height);
+            int extraPadding = element.Mode switch
+            {
+                GroupBoxMode.Card => UIConstants.ElementMarginDouble,
+                _ => UIConstants.ElementMargin,
+            };
             if (reversedFlow)
-                return result + element.GetContentPageTopCore() + UIConstants.ElementMargin;
+                return result + element.GetContentPageTopCore() + extraPadding;
             else
-                return result + ContentPageBottomPadding + UIConstants.ElementMargin;
+                return result + ContentPageBottomPadding + extraPadding;
         }
     }
 }

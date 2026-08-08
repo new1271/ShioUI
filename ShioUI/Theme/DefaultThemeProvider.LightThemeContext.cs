@@ -110,13 +110,13 @@ partial class DefaultThemeProvider
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(40, 40, 40)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.fore.active",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(20, 20, 20)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(235, 235, 235)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.itemSelected.back",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(160, 199, 227, 235)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120, 200)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.itemHovered.back",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(160, 199, 227, 135)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120, 145)));
         }
     }
 }

@@ -16,7 +16,7 @@ partial class FontIconButton
         {
             if (ReferenceEquals(_icon, value))
                 return;
-            DisposeHelper.SwapDisposeInterlocked(ref _icon, value);
+            DisposeHelper.SwapDisposeAtomic(ref _icon, value);
             Update();
         }
     }

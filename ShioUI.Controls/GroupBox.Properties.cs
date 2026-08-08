@@ -1,6 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 
+using RiceTea.Core;
 using RiceTea.Core.Extensions;
 
 using ShioUI.Layout;
@@ -10,16 +12,30 @@ namespace ShioUI.Controls;
 
 partial class GroupBox : IAutoWidthElement, IAutoHeightElement
 {
-    public string Title
+    public string? Title
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _title;
+        [return: NotNull]
+        get => Atomics.Read(ref _title);
         set
         {
-            if (ReferenceEquals(_title, value))
+            value ??= string.Empty;
+            if (ReferenceEquals(Atomics.Exchange(ref _title, value), value))
                 return;
-            _title = value ?? string.Empty;
             Update(RenderObjectUpdateFlags.Title, RedrawType.RedrawAllContent);
+        }
+    }
+
+    public GroupBoxMode Mode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (GroupBoxMode)Atomics.Read(ref _mode);
+        set
+        {
+            uint rawValue = (uint)value;
+            if (Atomics.Exchange(ref _mode, rawValue) == rawValue)
+                return;
+            Update(RenderObjectUpdateFlags.Format, RedrawType.RedrawAllContent);
         }
     }
 

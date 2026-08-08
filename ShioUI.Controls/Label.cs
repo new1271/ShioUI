@@ -56,7 +56,7 @@ public sealed partial class Label : UIElement
     {
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         _fontName = provider.FontName;
-        DisposeHelper.SwapDisposeInterlocked(ref _layout);
+        DisposeHelper.SwapDisposeAtomic(ref _layout);
         Update(RenderObjectUpdateFlags.Format);
     }
 
@@ -128,7 +128,7 @@ public sealed partial class Label : UIElement
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

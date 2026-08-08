@@ -457,9 +457,9 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         syncLock.Enter();
         try
         {
-            DisposeHelper.SwapDisposeInterlockedWeak(ref _resourceProvider, ThemeResourceProvider.Empty);
+            DisposeHelper.SwapDisposeAtomicWeak(ref _resourceProvider, ThemeResourceProvider.Empty);
             ApplyThemeCore(ThemeResourceProvider.Empty);
-            DisposeHelper.SwapDisposeInterlocked(ref _host);
+            DisposeHelper.SwapDisposeAtomic(ref _host);
             Atomics.Exchange(ref _collector, null);
             Atomics.Exchange(ref _deviceContext, null);
             if (TryGetWindowListSnapshot(_childrenReferenceList, out NativeMemoryPool? pool,
@@ -504,7 +504,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             {
                 Atomics.Write(ref _ownedGDP, 0);
             }
-            DisposeHelper.SwapDisposeInterlocked(ref _graphicsDeviceProvider, deviceProvider);
+            DisposeHelper.SwapDisposeAtomic(ref _graphicsDeviceProvider, deviceProvider);
 
             DebugHelper.WriteLine("Recreating device context...");
             if (!InitRenderObjectsCore(Handle, deviceProvider, out D2D1DeviceContext? deviceContext))
@@ -518,7 +518,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
             DebugHelper.WriteLine("Recreating resources...");
             resourceProvider ??= ThemeResourceProvider.CreateResourceProvider(this, ThemeManager.CurrentTheme);
-            DisposeHelper.SwapDisposeInterlockedWeak(ref _resourceProvider, resourceProvider);
+            DisposeHelper.SwapDisposeAtomicWeak(ref _resourceProvider, resourceProvider);
             ApplyThemeCore(resourceProvider);
             if (TryGetWindowListSnapshot(_childrenReferenceList, out NativeMemoryPool? pool,
                 out TypedNativeMemoryBlock<GCHandle> handles, out int count))
@@ -700,7 +700,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     }
 
     public virtual void RenderBackground(UIElement element, in RegionalRenderingContext context)
-        => context.Clear(_windowBaseColor);
+        => RenderPageBackground(context);
 
     void IRenderable.Render(RenderingController controller)
     {
@@ -1247,6 +1247,10 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected virtual void RenderPageBackground(in RegionalRenderingContext context, in WindowRenderingData data)
+        => RenderPageBackground(context);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected virtual void RenderPageBackground(in RegionalRenderingContext context)
         => context.Clear(_windowBaseColor);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1889,7 +1893,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 SimpleGraphicsHost? host = Atomics.Read(ref _host);
                 if (host is null || host.IsDisposed)
                     return;
-                DisposeHelper.SwapDisposeInterlockedWeak(ref _resourceProvider, provider);
+                DisposeHelper.SwapDisposeAtomicWeak(ref _resourceProvider, provider);
                 ApplyThemeCore(provider);
                 if (TryGetWindowListSnapshot(_childrenReferenceList, out NativeMemoryPool? pool,
                     out TypedNativeMemoryBlock<GCHandle> handles, out int count))
@@ -2042,10 +2046,10 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     {
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlockedWeak(ref _resourceProvider);
-            DisposeHelper.SwapDisposeInterlocked(ref _controller);
-            DisposeHelper.SwapDisposeInterlocked(ref _host);
-            DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
+            DisposeHelper.SwapDisposeAtomicWeak(ref _resourceProvider);
+            DisposeHelper.SwapDisposeAtomic(ref _controller);
+            DisposeHelper.SwapDisposeAtomic(ref _host);
+            DisposeHelper.SwapDisposeAtomic(ref _titleLayout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
             GetOverlayElement()?.Dispose();
             DisposeAllElements();
@@ -2053,7 +2057,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             if (Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
                 SpinWait.SpinUntil(() => Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0);
             if (Atomics.Read(ref _ownedGDP) != 0)
-                DisposeHelper.SwapDisposeInterlocked(ref _graphicsDeviceProvider);
+                DisposeHelper.SwapDisposeAtomic(ref _graphicsDeviceProvider);
             else
                 Atomics.Write(ref _graphicsDeviceProvider, null);
 

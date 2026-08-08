@@ -291,7 +291,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

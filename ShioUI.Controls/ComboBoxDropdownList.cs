@@ -248,7 +248,7 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _layouts);
+            DisposeHelper.SwapDisposeAtomic(ref _layouts);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

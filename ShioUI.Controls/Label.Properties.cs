@@ -21,7 +21,7 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
             if (_alignment == value)
                 return;
             _alignment = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -36,7 +36,7 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
             if (_fontSize == value)
                 return;
             _fontSize = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -51,7 +51,7 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
             if (_fontWeight == value)
                 return;
             _fontWeight = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -66,7 +66,7 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
             if (_fontStyle == value)
                 return;
             _fontStyle = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -81,7 +81,7 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
             if (_postActionForFormat == value)
                 return;
             _postActionForFormat = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }

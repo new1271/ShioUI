@@ -111,8 +111,8 @@ public abstract class WizardWindow : MultiPageWindow
         base.ApplyThemeCore(provider);
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, (nuint)Brush._Last);
         _wizardBaseColor = provider.TryGetColor(ThemeConstants.WizardWindowBaseColor, out D2D1ColorF color) ? color : default;
-        DisposeHelper.SwapDisposeInterlocked(ref _titleLayout, null);
-        DisposeHelper.SwapDisposeInterlocked(ref _titleDescriptionLayout, null);
+        DisposeHelper.SwapDisposeAtomic(ref _titleLayout, null);
+        DisposeHelper.SwapDisposeAtomic(ref _titleDescriptionLayout, null);
         Interlocked.Exchange(ref _updateFlags, -1L);
     }
 
@@ -272,8 +272,8 @@ public abstract class WizardWindow : MultiPageWindow
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
-            DisposeHelper.SwapDisposeInterlocked(ref _titleDescriptionLayout);
+            DisposeHelper.SwapDisposeAtomic(ref _titleLayout);
+            DisposeHelper.SwapDisposeAtomic(ref _titleDescriptionLayout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

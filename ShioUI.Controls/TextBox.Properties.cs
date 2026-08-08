@@ -34,8 +34,8 @@ partial class TextBox : IAutoHeightElement
             if (_alignment == value)
                 return;
             _alignment = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
-            DisposeHelper.SwapDisposeInterlocked(ref _watermarkLayout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _watermarkLayout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -50,8 +50,8 @@ partial class TextBox : IAutoHeightElement
             if (_fontSize == value)
                 return;
             _fontSize = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
-            DisposeHelper.SwapDisposeInterlocked(ref _watermarkLayout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _watermarkLayout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }

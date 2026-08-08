@@ -107,16 +107,16 @@ partial class DefaultThemeProvider
             // 目錄
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.fore",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(210, 210, 210)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(235, 235, 235)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.fore.active",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(230, 230, 230)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(235, 235, 235)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.itemSelected.back",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(71, 119, 155, 235)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120, 200)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.itemHovered.back",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(71, 119, 155, 135)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120, 145)));
         }
     }
 }

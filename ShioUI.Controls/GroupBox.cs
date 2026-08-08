@@ -8,7 +8,7 @@ using System.Threading;
 using InlineMethod;
 
 using RiceTea.Core;
-using RiceTea.Core.Collections;
+using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
@@ -33,7 +33,9 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     {
         "back",
         "border",
-        "fore"
+        "fore",
+        "card.back",
+        "card.fore"
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
@@ -46,6 +48,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     private string _title;
     private ContentPageScopeParams _contentPageScopeParams;
     private long _redrawTypeRaw, _rawUpdateFlags;
+    private uint _mode;
     private int _titleHeight;
 
     public GroupBox(IElementContainer parent) : base(parent, "app.groupBox")
@@ -113,13 +116,13 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
         format.ParagraphAlignment = DWriteParagraphAlignment.Center;
         format.TextAlignment = DWriteTextAlignment.Center;
         format.WordWrapping = DWriteWordWrapping.NoWrap;
-        Interlocked.Exchange(ref _titleHeight, GraphicsUtils.MeasureTextHeightAsInt("Ty", format));
-        DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
+        Atomics.Write(ref _titleHeight, GraphicsUtils.MeasureTextHeightAsInt("Ty", format));
+        DisposeHelper.SwapDisposeAtomic(ref _titleLayout);
         Update(RenderObjectUpdateFlags.Format, RedrawType.RedrawAllContent);
     }
 
-    public void RenderBackground(UIElement element, in RegionalRenderingContext context)
-        => RenderBackground(context, UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.BackBrush));
+    void IElementContainer.RenderBackground(UIElement element, in RegionalRenderingContext context)
+        => RenderBackground(context, GetBackBrush());
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected override void Update() => Update(RedrawType.RedrawAllContent);
@@ -152,23 +155,35 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     {
         if (_redrawTypeRaw > (long)RedrawType.NoRedraw)
             return true;
-        return Interlocked.Read(ref _redrawTypeRaw) > (long)RedrawType.NoRedraw;
+        return Atomics.Read(ref _redrawTypeRaw) > (long)RedrawType.NoRedraw;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void GetLayouts(RenderObjectUpdateFlags flags, out DWriteTextLayout? titleLayout)
+    private void GetLayouts(RenderObjectUpdateFlags flags, GroupBoxMode mode, out DWriteTextLayout? titleLayout)
     {
-        titleLayout = Interlocked.Exchange(ref _titleLayout, null);
+        titleLayout = Atomics.Exchange(ref _titleLayout, null);
 
         DWriteFactory factory = SharedResources.DWriteFactory;
         if ((flags & RenderObjectUpdateFlags.Title) == RenderObjectUpdateFlags.Title)
         {
             DWriteTextFormat? format = titleLayout;
             if (CheckFormatIsNotAvailable(format, flags))
-                format = TextFormatHelper.CreateTextFormat(TextAlignment.MiddleCenter, NullSafetyHelper.ThrowIfNull(_fontName), UIConstants.DefaultFontSize);
+            {
+                format = mode switch
+                {
+                    GroupBoxMode.Card => TextFormatHelper.CreateTextFormat(TextAlignment.MiddleCenter, NullSafetyHelper.ThrowIfNull(_fontName), UIConstants.CardTitleFontSize,
+                                                DWriteFontWeight.Bold, DWriteFontStyle.Normal),
+                    _ => TextFormatHelper.CreateTextFormat(TextAlignment.MiddleCenter, NullSafetyHelper.ThrowIfNull(_fontName), UIConstants.DefaultFontSize,
+                                                DWriteFontWeight.Normal, DWriteFontStyle.Normal),
+                };
+            }
             titleLayout = factory.CreateTextLayout(_title ?? string.Empty, format);
             format.Dispose();
-            titleLayout.MaxWidth = titleLayout.GetMetrics().Width + UIConstants.ElementMarginDouble;
+            titleLayout.MaxWidth = titleLayout.GetMetrics().Width + mode switch
+            {
+                GroupBoxMode.Card => 0,
+                _ => UIConstants.ElementMarginDouble,
+            };
             titleLayout.MaxHeight = Atomics.Read(ref _titleHeight);
         }
     }
@@ -186,8 +201,13 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
         return false;
     }
 
-    protected override bool IsBackgroundOpaqueCore() => GraphicsUtils.CheckBrushIsSolid(
-        UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.BackBrush));
+    protected override bool IsBackgroundOpaqueCore() => GraphicsUtils.CheckBrushIsSolid(GetBackBrush());
+
+    private D2D1Brush GetBackBrush() => (GroupBoxMode)Atomics.Read(ref _mode) switch
+    {
+        GroupBoxMode.Card => _brushes.AsUnsafeRef()[(nuint)Brush.CardBackBrush],
+        _ => _brushes.AsUnsafeRef()[(nuint)Brush.BackBrush]
+    };
 
     bool IElementContainer.IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque();
 
@@ -198,24 +218,40 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
             redrawType = RedrawType.RedrawAllContent;
         else if (redrawType == RedrawType.NoRedraw)
             return true;
-        GetLayouts(GetAndCleanRenderObjectUpdateFlags(), out DWriteTextLayout? titleLayout);
+        GroupBoxMode mode = (GroupBoxMode)Atomics.Read(ref _mode);
+        GetLayouts(GetAndCleanRenderObjectUpdateFlags(), mode, out DWriteTextLayout? titleLayout);
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
-        D2D1Brush backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush);
-        D2D1Brush textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush);
+        D2D1Brush backBrush, textBrush;
+        switch (mode)
+        {
+            case GroupBoxMode.Card:
+                backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardBackBrush);
+                textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardTextBrush);
+                break;
+            default:
+                backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush);
+                textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush);
+                break;
+        }
         switch (redrawType)
         {
             case RedrawType.RedrawAllContent:
                 {
-                    SizeF renderSize = context.Size;
-                    RectF borderBounds = new RectF(0, _titleHeight * 0.5f, renderSize.Width, renderSize.Height);
                     RenderBackground(context, backBrush);
-                    context.DrawBorder(borderBounds, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush));
-                    RenderTitle(context, backBrush, textBrush, titleLayout, incremental: false);
+                    if (mode != GroupBoxMode.Card)
+                    {
+                        SizeF renderSize = context.Size;
+                        RectF borderBounds = new RectF(0, _titleHeight * 0.5f, renderSize.Width, renderSize.Height);
+                        context.DrawBorder(borderBounds, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush));
+                    }
+                    RenderTitle(context, mode, backBrush, textBrush, titleLayout, incremental: false);
+                    if (titleLayout is not null)
+                        DisposeHelper.NullSwapOrDispose(ref _titleLayout, titleLayout);
                     context.MarkAsDirty();
                 }
                 break;
             case RedrawType.RedrawTitle:
-                RenderTitle(context, backBrush, textBrush, titleLayout, incremental: true);
+                RenderTitle(context, mode, backBrush, textBrush, titleLayout, incremental: true);
                 if (titleLayout is not null)
                     DisposeHelper.NullSwapOrDispose(ref _titleLayout, titleLayout);
                 break;
@@ -224,16 +260,33 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RenderTitle(in RegionalRenderingContext context, D2D1Brush backBrush, D2D1Brush textBrush, DWriteTextLayout? layout, bool incremental)
+    private void RenderTitle(in RegionalRenderingContext context, GroupBoxMode mode, D2D1Brush backBrush,
+        D2D1Brush textBrush, DWriteTextLayout? layout, bool incremental)
     {
         if (layout is null)
             return;
 
-        RectF bounds = RectF.FromXYWH(UIConstants.ElementMargin, 0, layout.MaxWidth, layout.MaxHeight);
-        using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
-        RenderBackground(context, backBrush);
-        context.DrawTextLayout(bounds.Location, layout, textBrush, D2D1DrawTextOptions.Clip | D2D1DrawTextOptions.NoSnap);
-        DisposeHelper.NullSwapOrDispose(ref _titleLayout, layout);
+        RectF bounds;
+        switch (mode)
+        {
+            case GroupBoxMode.Card:
+                {
+                    bounds = RectF.FromXYWH(UIConstants.ElementMarginDouble, UIConstants.ElementMarginDouble, layout.MaxWidth, layout.MaxHeight);
+                    using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
+                    if (incremental)
+                        RenderBackground(context, backBrush);
+                    context.DrawTextLayout(bounds.Location, layout, textBrush, D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                }
+                break;
+            default:
+                {
+                    bounds = RectF.FromXYWH(UIConstants.ElementMargin, 0, layout.MaxWidth, layout.MaxHeight);
+                    using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
+                    RenderBackground(context, backBrush);
+                    context.DrawTextLayout(bounds.Location, layout, textBrush, D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                }
+                break;
+        }
         if (incremental)
             context.MarkAsDirty(bounds);
     }
@@ -242,7 +295,15 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     private static int GetContentPageLeftCore() => ContentPageLeftPadding;
 
     [Inline(InlineBehavior.Remove)]
-    private int GetContentPageTopCore() => Atomics.Read(ref _titleHeight);
+    private int GetContentPageTopCore()
+    {
+        int titleHeight = Atomics.Read(ref _titleHeight);
+        return (GroupBoxMode)Atomics.Read(ref _mode) switch
+        {
+            GroupBoxMode.Card => titleHeight + UIConstants.ElementMargin * 3,
+            _ => titleHeight
+        };
+    }
 
     [Inline(InlineBehavior.Remove)]
     private static int GetContentPageRightCore(int width) => width - ContentPageRightPadding;
@@ -265,7 +326,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _titleLayout);
+            DisposeHelper.SwapDisposeAtomic(ref _titleLayout);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
             _children.Dispose();
         }

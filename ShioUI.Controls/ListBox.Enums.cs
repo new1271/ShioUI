@@ -1,5 +1,12 @@
 namespace ShioUI.Controls;
 
+public enum ListBoxMode
+{
+    None,
+    Any,
+    Some
+}
+
 partial class ListBox
 {
     private enum Brush

@@ -198,6 +198,18 @@ partial class ThemeBuildingHandlers
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.groupBox.fore",
                 value: queryBrushFunc("app.control.fore"));
+            yield return KeyValuePair.Create(
+                key: "app.groupBox.card.back",
+                value: ThemedBrushFactory.CreateBuilder(new D2D1ColorF(230, 230, 230))
+                .WithVariant(WindowMaterial.MicaAlt, new D2D1ColorF(255, 255, 255, 200))
+                .WithVariant(WindowMaterial.Mica, new D2D1ColorF(255, 255, 255, 200))
+                .WithVariant(WindowMaterial.Acrylic, new D2D1ColorF(255, 255, 255, 200))
+                .WithVariant(WindowMaterial.Gaussian, new D2D1ColorF(255, 255, 255, 200))
+                .WithVariant(WindowMaterial.Integrated, new D2D1ColorF(255, 255, 255, 200))
+                .Build());
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.groupBox.card.fore",
+                value: queryBrushFunc("app.groupBox.fore"));
 
             // 列表方塊
             yield return new KeyValuePair<string, IThemedBrushFactory>(

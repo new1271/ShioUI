@@ -123,7 +123,7 @@ public sealed partial class ListBox : ScrollableElementBase
         _fontName = fontName;
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _checkBoxBrushes, _checkBoxBrushNames, _checkBoxThemePrefix, (nuint)CheckBoxBrush._Last);
-        DisposeHelper.SwapDisposeInterlocked(ref _format);
+        DisposeHelper.SwapDisposeAtomic(ref _format);
         Atomics.Write(ref _recalcFormat, Booleans.TrueLong);
         Atomics.Write(ref _itemHeight, MathI.Ceiling(FontHeightHelper.GetFontHeight(fontName, _fontSize)) + 2);
         RecalculateHeight();
@@ -414,7 +414,7 @@ public sealed partial class ListBox : ScrollableElementBase
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _format);
+            DisposeHelper.SwapDisposeAtomic(ref _format);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

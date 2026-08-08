@@ -11,6 +11,7 @@ public static class UIConstants
     public const float MenuFontSize = 16f;
     public const float DefaultFontSize = 14f;
     public const float BoxFontSize = 14f;
+    public const float CardTitleFontSize = 16f;
     public const float DescriptionFontSize = 12f;
     public const float WizardWindowTitleFontSize = 22f;
     public const float WizardWindowTitleDescriptionFontSize = 14f;

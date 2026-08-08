@@ -69,7 +69,7 @@ public sealed partial class Button : ButtonBase
     {
         UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, ThemePrefix, (nuint)Brush._Last);
         _fontName = provider.FontName;
-        DisposeHelper.SwapDisposeInterlocked(ref _layout);
+        DisposeHelper.SwapDisposeAtomic(ref _layout);
         Update(RenderObjectUpdateFlags.Format);
     }
 

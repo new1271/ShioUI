@@ -2,6 +2,12 @@ using System;
 
 namespace ShioUI.Controls;
 
+public enum GroupBoxMode : uint
+{
+    Bordered,
+    Card
+}
+
 partial class GroupBox
 {
     private enum RedrawType : long
@@ -25,6 +31,8 @@ partial class GroupBox
         BackBrush,
         BorderBrush,
         TextBrush,
+        CardBackBrush,
+        CardTextBrush,
         _Last
     }
 }

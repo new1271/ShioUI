@@ -52,7 +52,7 @@ public sealed partial class FontIconButton : ButtonBase
         base.DisposeCore(disposing);
         if (disposing)
         {
-            DisposeHelper.SwapDisposeInterlocked(ref _icon);
+            DisposeHelper.SwapDisposeAtomic(ref _icon);
             DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
         }
         SequenceHelper.Clear(_brushes);

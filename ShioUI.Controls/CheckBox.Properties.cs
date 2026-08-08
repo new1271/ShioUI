@@ -35,7 +35,7 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
             if (_fontSize == value)
                 return;
             _fontSize = value;
-            DisposeHelper.SwapDisposeInterlocked(ref _layout);
+            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
