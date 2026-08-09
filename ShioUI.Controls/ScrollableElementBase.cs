@@ -51,14 +51,14 @@ public abstract partial class ScrollableElementBase : UIElement,
     private ulong _updateFlagsRaw, _contentLocationRaw, _contentSizeRaw, _viewportPointRaw, _surfaceSizeRaw;
     private nuint _surfaceSizeVersion, _viewportPointVersion, _contentBoundsVersion;
     private float _pinY;
-    private bool _enabled, _drawWhenDisabled, _hasScrollBar, _stickBottom;
+    private uint _enabled, _drawWhenDisabled;
+    private bool _hasScrollBar, _stickBottom;
 
     protected ScrollableElementBase(IElementContainer parent, string themePrefix) : this(parent, themePrefix, DefaultPrefixForScrollBar) { }
 
     protected ScrollableElementBase(IElementContainer parent, string themePrefix, string scrollBarThemePrefix) : base(parent, themePrefix)
     {
-        _enabled = true;
-        _drawWhenDisabled = false;
+        _enabled = Booleans.TrueIntUnsigned;
         _hasScrollBar = false;
         _updateFlagsRaw = (ulong)ScrollableElementUpdateFlags._NormalFlagAllTrue;
         _oldSurfaceSize = Size.Empty;
@@ -142,8 +142,8 @@ public abstract partial class ScrollableElementBase : UIElement,
         Point viewportPoint;
         Size surfaceSize;
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
-        bool enabled = _enabled;
-        bool drawWhenDisabled = _drawWhenDisabled;
+        bool enabled = Enabled;
+        bool drawWhenDisabled = DrawWhenDisabled;
 
         if (updateFlags.HasFlagFast(ScrollableElementUpdateFlags.RecalcLayout))
         {
@@ -314,7 +314,7 @@ public abstract partial class ScrollableElementBase : UIElement,
                 hasScrollBar = true;
                 break;
             case ScrollBarType.AutoVertial:
-                if (bounds.Height < surfaceSize.Height && _enabled)
+                if (bounds.Height < surfaceSize.Height && Enabled)
                 {
                     goto case ScrollBarType.Vertical;
                 }
@@ -442,7 +442,7 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     protected virtual void OnMouseDown(ref HandleableMouseEventArgs args)
     {
-        if (!_enabled || !_hasScrollBar || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
+        if (!Enabled || !_hasScrollBar || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
             return;
 
         PointF location = args.Location;
@@ -484,7 +484,7 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     protected virtual void OnMouseUp(in MouseEventArgs args)
     {
-        if (_enabled && _hasScrollBar)
+        if (Enabled && _hasScrollBar)
         {
             bool updateScrollBar = false;
             if (_scrollButtonState == ButtonTriState.Pressed)
@@ -514,7 +514,7 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     protected virtual void OnMouseMove(in MouseEventArgs args)
     {
-        if (!_enabled || !_hasScrollBar)
+        if (!Enabled || !_hasScrollBar)
             return;
         bool updateScrollBar = false;
         if (_scrollButtonState != ButtonTriState.Pressed)
@@ -574,7 +574,7 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     protected virtual void OnMouseMoveGlobally(in MouseEventArgs args)
     {
-        if (!_enabled || !_hasScrollBar || _scrollButtonState != ButtonTriState.Pressed)
+        if (!Enabled || !_hasScrollBar || _scrollButtonState != ButtonTriState.Pressed)
             return;
         float currentY = args.Y;
         float oldY = Cells.Exchange(ref _pinY, currentY);
@@ -583,7 +583,7 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     protected virtual void OnMouseScroll(ref HandleableMouseEventArgs args)
     {
-        if (!_enabled || !_hasScrollBar || _scrollButtonState == ButtonTriState.Pressed)
+        if (!Enabled || !_hasScrollBar || _scrollButtonState == ButtonTriState.Pressed)
             return;
         args.Handle();
         Scrolling(-args.Delta);

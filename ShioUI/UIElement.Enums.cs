@@ -1,6 +1,6 @@
 namespace ShioUI;
 
-public enum TextAlignment
+public enum TextAlignment : uint
 {
     TopLeft, TopCenter, TopRight,
     MiddleLeft, MiddleCenter, MiddleRight,

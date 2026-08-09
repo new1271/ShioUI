@@ -1,41 +1,36 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 
-using ShioUI.Layout;
-using ShioUI.Graphics.Native.DirectWrite;
-using ShioUI.Utils;
-
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
-using System.Diagnostics.CodeAnalysis;
+
+using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Layout;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
 partial class TextBox : IAutoHeightElement
 {
-    #region Events
     public event MouseNotifyEventHandler? RequestContextMenu;
     public event KeyInteractEventHandler? KeyDown;
     public event KeyInteractEventHandler? KeyUp;
     public event TextChangingEventHandler? TextChanging;
     public event EventHandler? TextChanged;
-    #endregion
 
-    #region Properties
     public SystemCursorType? Cursor => SystemCursorType.IBeam;
 
     public TextAlignment Alignment
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _alignment;
+        get => (TextAlignment)Atomics.Read(ref UnsafeHelper.As<TextAlignment, uint>(ref _alignment));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_alignment == value)
+            if (Atomics.Exchange(ref UnsafeHelper.As<TextAlignment, uint>(ref _alignment), (uint)value) == (uint)value)
                 return;
-            _alignment = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
-            DisposeHelper.SwapDisposeAtomic(ref _watermarkLayout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -43,15 +38,12 @@ partial class TextBox : IAutoHeightElement
     public float FontSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontSize;
+        get => Atomics.Read(ref _fontSize);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_fontSize == value)
+            if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
-            _fontSize = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
-            DisposeHelper.SwapDisposeAtomic(ref _watermarkLayout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -59,40 +51,40 @@ partial class TextBox : IAutoHeightElement
     public int CaretIndex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _caretIndex;
+        get => Atomics.Read(ref _caretIndex);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             int oldCaretIndex = _caretIndex;
-            if (oldCaretIndex == value)
+            if (Atomics.Exchange(ref oldCaretIndex, value) == value)
                 return;
-            value = AdjustCaretIndex(value, takeGreaterIfNotExists: false);
-            if (oldCaretIndex == value)
+            int adjustedValue = AdjustCaretIndex(value, takeGreaterIfNotExists: false);
+            if (Atomics.CompareExchange(ref oldCaretIndex, adjustedValue, value) != value)
                 return;
-            UpdateCaretIndex(value);
+            UpdateCaretIndex(adjustedValue);
         }
     }
 
-    [AllowNull]
-    public string Text
+    public string? Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
+        [return: NotNull]
+        get => Atomics.Read(ref _text);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => UpdateTextAndCaretIndex(value, _caretIndex);
     }
 
-    public string Watermark
+    public string? Watermark
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _watermark;
+        [return: NotNull]
+        get => Atomics.Read(ref _watermark);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             value = FixString(value);
-            if (_watermark == value)
+            if (ReferenceEquals(Atomics.Exchange(ref _watermark, value), value))
                 return;
-            _watermark = value;
 
             Update(RenderObjectUpdateFlags.WatermarkLayout);
         }
@@ -131,33 +123,29 @@ partial class TextBox : IAutoHeightElement
         }
     }
 
-    public bool IMEEnabled
+    public unsafe char PasswordChar
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _imeEnabled;
-        set
+        get
         {
-            if (_imeEnabled == value)
-                return;
-            _imeEnabled = value;
-
-            if (value && Enabled && _focused)
-                _ime?.Attach(this);
-            else
-                _ime?.Detach(this);
+            uint result = PasswordCodePoint;
+            if (result > char.MaxValue)
+                return '?';
+            return (char)result;
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => PasswordCodePoint = value;
     }
 
-    public char PasswordChar
+    public uint PasswordCodePoint
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _passwordChar;
+        get => Atomics.Read(ref _passwordCP);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_passwordChar == value)
+            if (Atomics.Exchange(ref _passwordCP, value) == value)
                 return;
-            _passwordChar = value;
             Update(RenderObjectUpdateFlags.Layout);
         }
     }
@@ -169,5 +157,4 @@ partial class TextBox : IAutoHeightElement
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _autoLayoutDefinitions[0] ??= new AutoHeightNode(this);
     }
-    #endregion
 }

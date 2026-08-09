@@ -6,23 +6,24 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Graphics.Helpers;
-using ShioUI.Layout;
-using ShioUI.Utils;
-
 using InlineMethod;
-using ShioUI.Graphics;
-using ShioUI.Graphics.Native.Direct2D;
-using ShioUI.Graphics.Native.Direct2D.Brushes;
-using ShioUI.Graphics.Native.DirectWrite;
-using ShioUI.Theme;
 
 using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
+
+using ShioUI.Graphics;
+using ShioUI.Graphics.Helpers;
+using ShioUI.Graphics.Native.Direct2D;
+using ShioUI.Graphics.Native.Direct2D.Brushes;
+using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Layout;
+using ShioUI.Theme;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -49,8 +50,8 @@ public sealed partial class ListBox : ScrollableElementBase
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly D2D1Brush?[] _checkBoxBrushes = new D2D1Brush[(int)CheckBoxBrush._Last];
     private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
-    private readonly BitList _stateVectorList;
-    private readonly ObservableList<string> _items;
+    private readonly SyncList<bool, BitList> _stateVectorList;
+    private readonly SyncList<string, ObservableList<string>> _items;
 
     private DWriteTextFormat? _format;
     private string _checkBoxThemePrefix;
@@ -63,10 +64,13 @@ public sealed partial class ListBox : ScrollableElementBase
 
     public ListBox(IElementContainer parent) : base(parent, "app.listBox")
     {
-        _stateVectorList = new BitList();
-        _items = new ObservableList<string>();
-        _items.Updated += Items_Updated;
-        _items.BeforeAdd += Item_BeforeAdd;
+        _stateVectorList = new SyncList<bool, BitList>(new BitList());
+
+        ObservableList<string> items = new ObservableList<string>();
+        items.Updated += Items_Updated;
+        items.BeforeAdd += Item_BeforeAdd;
+        _items = new SyncList<string, ObservableList<string>>(items);
+
         ScrollBarType = ScrollBarType.AutoVertial;
         _fontSize = UIConstants.BoxFontSize;
         _selectedIndex = -1;
@@ -76,44 +80,76 @@ public sealed partial class ListBox : ScrollableElementBase
 
     public void CopySelectedItemsToBuffer(string[] destination, int startIndex, out int itemCopied)
     {
-        if (startIndex < 0)
-            ArgumentOutOfRangeException.Throw(nameof(startIndex));
-        ObservableList<string> items = _items;
-        int count = items.Count;
-        if (count <= 0)
+        int length;
+        if (startIndex < 0 || startIndex >= (length = destination.Length))
         {
-            itemCopied = 0;
+            ArgumentOutOfRangeException.Throw(nameof(startIndex));
+            goto Empty;
+        }
+
+        SyncList<string, ObservableList<string>> items = _items;
+        using (Lock.Scope scope = items.EnterLockScope())
+        {
+            IList<string> unwrappedItems = items.Items.GetUnderlyingList();
+            int count = MathHelper.Min(unwrappedItems.Count, length - startIndex);
+            if (count <= 0)
+                goto Empty;
+
+            CopySelectedItemsToBufferCore(unwrappedItems, ref destination.AsUnsafeRef()[startIndex], count, out itemCopied);
             return;
         }
-        CopySelectedItemsToBufferCore(items, count, destination, startIndex, out itemCopied);
+
+    Empty:
+        itemCopied = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CopySelectedItemsToBufferCore(ObservableList<string> items, int count, string[] destination, int startIndex, out int itemCopied)
+    private void CopySelectedItemsToBufferCore(IList<string> items, ref string destinationRef, int count, out int itemCopied)
     {
-        BitList stateVectorList = _stateVectorList;
+        SyncList<bool, BitList> stateVectorList = _stateVectorList;
+        using Lock.Scope scope = stateVectorList.EnterLockScope();
+
+        BitList unwrappedStateVectorList = stateVectorList.Items;
+        itemCopied = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (!unwrappedStateVectorList[i])
+                continue;
+            UnsafeHelper.AddTypedOffset(ref destinationRef, itemCopied++) = items[i];
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private unsafe void CopySelectedIndicesToBufferCore(int* destination, int count, out int itemCopied)
+    {
+        SyncList<bool, BitList> stateVectorList = _stateVectorList;
+        using Lock.Scope scope = stateVectorList.EnterLockScope();
+
+        BitList unwrappedStateVectorList = stateVectorList.Items;
         itemCopied = 0;
         for (int i = 0; i < count; i++)
         {
             if (!stateVectorList[i])
                 continue;
-            destination[startIndex++] = items[i];
-            itemCopied++;
+            destination[itemCopied++] = i;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void CopySelectedIndicesToBufferCore(int count, int* destination, int startIndex, out int itemCopied)
+    private unsafe TypedNativeMemoryBlock<bool> CreatePooledStateVectorSnapshot(NativeMemoryPool pool, int count)
     {
-        BitList stateVectorList = _stateVectorList;
-        itemCopied = 0;
+        SyncList<bool, BitList> stateVectorList = _stateVectorList;
+        using Lock.Scope scope = stateVectorList.EnterLockScope();
+
+        TypedNativeMemoryBlock<bool> result = pool.Rent<bool>(count);
+        UnsafeHelper.InitBlockUnaligned(result.NativePointer, 0, (uint)count * sizeof(bool));
+
+        count = MathHelper.Min(count, MathHelper.Max(stateVectorList.Count, 0));
+        BitList unwrappedStateVectorList = stateVectorList.Items;
+        bool* destination = result.NativePointer;
         for (int i = 0; i < count; i++)
-        {
-            if (!stateVectorList[i])
-                continue;
-            destination[startIndex++] = i;
-            itemCopied++;
-        }
+            destination[i] = stateVectorList[i];
+        return result;
     }
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
@@ -167,7 +203,7 @@ public sealed partial class ListBox : ScrollableElementBase
         return format is null || format.IsDisposed;
     }
 
-    protected override bool RenderContent(in RegionalRenderingContext context, D2D1Brush backBrush)
+    protected override unsafe bool RenderContent(in RegionalRenderingContext context, D2D1Brush backBrush)
     {
         if (context.HasDirtyCollector)
         {
@@ -176,7 +212,7 @@ public sealed partial class ListBox : ScrollableElementBase
         }
 
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
-        DWriteTextFormat? format = Interlocked.Exchange(ref _format, null);
+        DWriteTextFormat? format = _format;
         if (CheckFormatIsNotAvailable(format))
             format = BuildTextFormat();
         SizeF renderSize = context.Size;
@@ -198,31 +234,45 @@ public sealed partial class ListBox : ScrollableElementBase
         float itemWidth = itemRightEdge - itemLeftEdge;
         // itemRightEdge 無須做 round 操作，因為 renderSize.Width 與 borderWidth 均已對齊 pixel
 
-        BitList stateVectorList = _stateVectorList;
         D2D1Brush textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush);
-        IList<string> items = _items.GetUnderlyingList();
-        for (int i = startIndex, count = items.Count, selectedIndex = _selectedIndex; i <= endIndex && i < count; i++)
+
+        using ArrayPool<string>.RentScope itemsScope = ArrayPool<string>.Shared.EnterRentScopeAndCapture(_items);
+        int count = itemsScope.Count;
+        if (count > 0)
         {
-            string item = items[i];
-            RectF itemBounds = new RectF(itemLeftEdge, itemTopEdge, itemRightEdge, itemTopEdge + itemHeight);
-            using RegionalRenderingContext itemContext = context.WithAxisAlignedClip(itemBounds, D2D1AntialiasMode.Aliased);
-            switch (mode)
+            NativeMemoryPool memoryPool = NativeMemoryPool.Shared;
+            TypedNativeMemoryBlock<bool> stateVectorSnapshot = CreatePooledStateVectorSnapshot(memoryPool, count);
+            try
             {
-                case ListBoxMode.None:
-                    if (StringHelper.IsNullOrWhiteSpace(item))
-                        break;
-                    itemContext.DrawText(item, format, RectF.FromXYWH(textLeftEdge, 0, itemWidth, itemHeight), textBrush, D2D1DrawTextOptions.Clip, DWriteMeasuringMode.Natural);
-                    break;
-                case ListBoxMode.Any:
-                    DrawRadioBox(in itemContext, itemHeight, stateVectorList[i], selectedIndex == i);
-                    goto case ListBoxMode.None;
-                case ListBoxMode.Some:
-                    DrawCheckBox(in itemContext, itemHeight, stateVectorList[i], selectedIndex == i);
-                    goto case ListBoxMode.None;
+                ref readonly string itemsRef = ref itemsScope.GetReferenceOfFirstElement();
+                bool* stateVectorSnapshotPointer = stateVectorSnapshot.NativePointer;
+                for (int i = startIndex, selectedIndex = _selectedIndex; i <= endIndex && i < count; i++)
+                {
+                    string item = UnsafeHelper.AddTypedOffsetAsReadOnly(in itemsRef, i);
+                    RectF itemBounds = new RectF(itemLeftEdge, itemTopEdge, itemRightEdge, itemTopEdge + itemHeight);
+                    using RegionalRenderingContext itemContext = context.WithAxisAlignedClip(itemBounds, D2D1AntialiasMode.Aliased);
+                    switch (mode)
+                    {
+                        case ListBoxMode.None:
+                            if (StringHelper.IsNullOrWhiteSpace(item))
+                                break;
+                            itemContext.DrawText(item, format, RectF.FromXYWH(textLeftEdge, 0, itemWidth, itemHeight), textBrush, D2D1DrawTextOptions.Clip, DWriteMeasuringMode.Natural);
+                            break;
+                        case ListBoxMode.Any:
+                            DrawRadioBox(in itemContext, itemHeight, stateVectorSnapshotPointer[i], selectedIndex == i);
+                            goto case ListBoxMode.None;
+                        case ListBoxMode.Some:
+                            DrawCheckBox(in itemContext, itemHeight, stateVectorSnapshotPointer[i], selectedIndex == i);
+                            goto case ListBoxMode.None;
+                    }
+                    itemTopEdge += itemHeight;
+                }
             }
-            itemTopEdge += itemHeight;
+            finally
+            {
+                memoryPool.Return(stateVectorSnapshot);
+            }
         }
-        DisposeHelper.NullSwapOrDispose(ref _format, format);
         return true;
     }
 
@@ -289,28 +339,18 @@ public sealed partial class ListBox : ScrollableElementBase
         string? fontName = _fontName;
         if (fontName is null)
             return UIConstants.ElementMargin;
-        IList<string> items = _items.GetUnderlyingList();
-        int count = items.Count;
+
+        using ArrayPool<string>.RentScope scope = ArrayPool<string>.Shared.EnterRentScopeAndCapture(_items);
+        int count = scope.Count;
         if (count <= 0)
             return UIConstants.ElementMargin;
 
-        ArrayPool<string> pool = ArrayPool<string>.Shared;
-        using PooledList<string> list = new PooledList<string>();
-        list.AddRange(items);
-        (string[] buffer, count) = list;
-        try
-        {
-            using DWriteTextFormat format = SharedResources.DWriteFactory.CreateTextFormat(fontName, _fontSize);
-            int maxVal = 0;
-            ref string bufferRef = ref UnsafeHelper.GetArrayDataReference(buffer);
-            for (int i = 0; i < count; i++)
-                maxVal = MathHelper.Max(maxVal, GraphicsUtils.MeasureTextWidthAsInt(UnsafeHelper.AddTypedOffset(ref bufferRef, i), format));
-            return maxVal + UIConstants.ElementMargin;
-        }
-        finally
-        {
-            pool.Return(buffer);
-        }
+        using DWriteTextFormat format = SharedResources.DWriteFactory.CreateTextFormat(fontName, _fontSize);
+        int maxVal = 0;
+        ref string scopeRef = ref scope.GetReferenceOfFirstElement();
+        for (int i = 0; i < count; i++)
+            maxVal = MathHelper.Max(maxVal, GraphicsUtils.MeasureTextWidthAsInt(UnsafeHelper.AddTypedOffset(ref scopeRef, i), format));
+        return maxVal + UIConstants.ElementMargin;
     }
 
     protected override void OnMouseMove(in MouseEventArgs args)
@@ -434,10 +474,23 @@ public sealed partial class ListBox : ScrollableElementBase
     private void RevertCheckStateCore(int index)
         => RevertCheckStateCore(_stateVectorList, index);
 
-    [Inline(InlineBehavior.Remove)]
-    private static void RevertCheckStateCore(BitList stateVectorList, int index)
-        => stateVectorList[index] = !stateVectorList[index];
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RevertCheckStateCore(SyncList<bool, BitList> stateVectorList, int index)
+    {
+        using Lock.Scope scope = stateVectorList.EnterLockScope();
+        BitList list = stateVectorList.Items;
+        list[index] = !list[index];
+    }
 
-    [Inline(InlineBehavior.Remove)]
-    private void ClearCheckStateCore() => _stateVectorList.SetAllBitsAsFalse();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ClearCheckStateCore() => ClearCheckStateCore(_stateVectorList);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ClearCheckStateCore(SyncList<bool, BitList> stateVectorList)
+    {
+        using Lock.Scope scope = stateVectorList.EnterLockScope();
+        BitList list = stateVectorList.Items;
+
+        list.SetAllBitsAsFalse();
+    }
 }

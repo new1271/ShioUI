@@ -1,6 +1,6 @@
 namespace ShioUI.Controls;
 
-public enum ListBoxMode
+public enum ListBoxMode : uint
 {
     None,
     Any,

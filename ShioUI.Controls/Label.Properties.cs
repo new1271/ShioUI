@@ -1,11 +1,12 @@
+using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-using ShioUI.Layout;
-using ShioUI.Graphics.Native.DirectWrite;
-
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
-using System.Diagnostics.CodeAnalysis;
-using System;
+
+using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Layout;
 
 namespace ShioUI.Controls;
 
@@ -14,14 +15,12 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     public TextAlignment Alignment
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _alignment;
+        get => (TextAlignment)Atomics.Read(ref UnsafeHelper.As<TextAlignment, uint>(ref _alignment));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_alignment == value)
+            if (Atomics.Exchange(ref UnsafeHelper.As<TextAlignment, uint>(ref _alignment), (uint)value) == (uint)value)
                 return;
-            _alignment = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -29,14 +28,12 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     public float FontSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontSize;
+        get => Atomics.Read(ref _fontSize);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_fontSize == value)
+            if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
-            _fontSize = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -44,14 +41,12 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     public DWriteFontWeight FontWeight
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontWeight;
+        get => (DWriteFontWeight)Atomics.Read(ref UnsafeHelper.As<DWriteFontWeight, int>(ref _fontWeight));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_fontWeight == value)
+            if (Atomics.Exchange(ref UnsafeHelper.As<DWriteFontWeight, int>(ref _fontWeight), (int)value) == (int)value)
                 return;
-            _fontWeight = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -59,14 +54,12 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     public DWriteFontStyle FontStyle
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontStyle;
+        get => (DWriteFontStyle)Atomics.Read(ref UnsafeHelper.As<DWriteFontStyle, int>(ref _fontStyle));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_fontStyle == value)
+            if (Atomics.Exchange(ref UnsafeHelper.As<DWriteFontStyle, int>(ref _fontStyle), (int)value) == (int)value)
                 return;
-            _fontStyle = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -74,14 +67,12 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     public Action<DWriteTextFormat>? PostActionForBuildingFormat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _postActionForFormat;
+        get => Atomics.Read(ref _postActionForFormat);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_postActionForFormat == value)
+            if (ReferenceEquals(Atomics.Exchange(ref _postActionForFormat, value), value))
                 return;
-            _postActionForFormat = value;
-            DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -90,14 +81,13 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     {
         [return: NotNull]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
+        get => Atomics.Read(ref _text);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             value ??= string.Empty;
-            if (_text == value)
+            if (ReferenceEquals(Atomics.Exchange(ref _text, value), value))
                 return;
-            _text = value;
             Update(RenderObjectUpdateFlags.Layout);
         }
     }
@@ -105,13 +95,13 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
     public bool WordWrap
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _wordWrap;
+        get => MathHelper.ToBoolean(Atomics.Read(ref _wordWrap));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_wordWrap == value)
+            uint rawValue = MathHelper.BooleanToUInt32(value);
+            if (Atomics.Exchange(ref _wordWrap, rawValue) == rawValue)
                 return;
-            _wordWrap = value;
             Update();
         }
     }

@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Layout;
-
 using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Collections;
+using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+
+using ShioUI.Layout;
 
 namespace ShioUI.Controls;
 
@@ -21,15 +22,17 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
     {
         get
         {
-            ObservableList<string> items = _items;
-            int count = items.Count;
+            SyncList<string, ObservableList<string>> items = _items;
+            using Lock.Scope scope = items.EnterLockScope();
+            IList<string> unwrappedItems = items.Items.GetUnderlyingList();
+            int count = unwrappedItems.Count;
             if (count <= 0)
                 return Array.Empty<string>();
             ArrayPool<string> pool = ArrayPool<string>.Shared;
             string[] buffer = pool.Rent(count);
             try
             {
-                CopySelectedItemsToBufferCore(items, count, buffer, 0, out int resultLength);
+                CopySelectedItemsToBufferCore(items, ref buffer.AsUnsafeRef().FirstElement, count, out int resultLength);
                 if (resultLength <= 0)
                     return Array.Empty<string>();
                 string[] result = new string[resultLength];
@@ -47,8 +50,10 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
     {
         get
         {
-            ObservableList<string> items = _items;
-            int count = items.Count;
+            SyncList<string, ObservableList<string>> items = _items;
+            using Lock.Scope scope = items.EnterLockScope();
+            IList<string> unwrappedItems = items.Items.GetUnderlyingList();
+            int count = unwrappedItems.Count;
             if (count <= 0)
                 return Array.Empty<int>();
             NativeMemoryPool pool = NativeMemoryPool.Shared;
@@ -56,7 +61,7 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
             int* ptr = buffer.NativePointer;
             try
             {
-                CopySelectedIndicesToBufferCore(count, ptr, 0, out int resultLength);
+                CopySelectedIndicesToBufferCore(ptr, count, out int resultLength);
                 if (resultLength <= 0)
                     return Array.Empty<int>();
                 int[] result = new int[resultLength];
@@ -80,12 +85,12 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
     public ListBoxMode Mode
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _chooseMode;
+        get => (ListBoxMode)Atomics.Read(ref UnsafeHelper.As<ListBoxMode, uint>(ref _chooseMode));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_chooseMode == value)
+            if (Atomics.Exchange(ref UnsafeHelper.As<ListBoxMode, uint>(ref _chooseMode), (uint)value) == (uint)value)
                 return;
-            _chooseMode = value;
             Update();
         }
     }
@@ -99,16 +104,13 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
     public float FontSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontSize;
+        get => Atomics.Read(ref _fontSize);
         set
         {
-            if (_fontSize == value)
+            if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
-            _fontSize = value;
-            DisposeHelper.SwapDisposeAtomic(ref _format);
-            Interlocked.Exchange(ref _recalcFormat, Booleans.TrueLong);
-            if (Items.Count > 0)
-                Update();
+            Atomics.Write(ref _recalcFormat, Booleans.TrueLong);
+            Update();
         }
     }
 
@@ -117,12 +119,7 @@ partial class ListBox : IAutoWidthElement, IAutoHeightElement
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _checkBoxThemePrefix;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
-        {
-            if (SequenceHelper.Equals(_checkBoxThemePrefix, value))
-                return;
-            _checkBoxThemePrefix = value;
-        }
+        init => _checkBoxThemePrefix = value;
     }
 
     public LayoutNode AutoWidthDefinition

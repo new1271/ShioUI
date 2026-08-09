@@ -2,11 +2,12 @@ using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
+using RiceTea.Core;
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Threading;
+
 using ShioUI.Layout;
 using ShioUI.Utils;
-
-using RiceTea.Core.Threading;
-using RiceTea.Core;
 
 namespace ShioUI.Controls;
 
@@ -21,12 +22,12 @@ partial class ScrollableElementBase : IAutoHeightElement
     public bool Enabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _enabled;
+        get => MathHelper.ToBoolean(Atomics.Read(ref _enabled));
         set
         {
-            if (_enabled == value)
+            uint rawValue = MathHelper.BooleanToUInt32(value);
+            if (Atomics.Exchange(ref _enabled, rawValue) == rawValue)
                 return;
-            _enabled = value;
 
             OnEnableChanged(value);
             Update(ScrollableElementUpdateFlags.RecalcLayout);
@@ -36,12 +37,12 @@ partial class ScrollableElementBase : IAutoHeightElement
     protected bool DrawWhenDisabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _drawWhenDisabled;
+        get => MathHelper.ToBoolean(Atomics.Read(ref _drawWhenDisabled));
         set
         {
-            if (_drawWhenDisabled == value)
+            uint rawValue = MathHelper.BooleanToUInt32(value);
+            if (Atomics.Exchange(ref _drawWhenDisabled, rawValue) == rawValue)
                 return;
-            _drawWhenDisabled = value;
 
             Update(ScrollableElementUpdateFlags.All);
         }
@@ -50,13 +51,12 @@ partial class ScrollableElementBase : IAutoHeightElement
     protected ScrollBarType ScrollBarType
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _scrollBarType;
+        get => (ScrollBarType)Atomics.Read(ref UnsafeHelper.As<ScrollBarType, uint>(ref _scrollBarType));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_scrollBarType == value)
+            if (Atomics.Exchange(ref UnsafeHelper.As<ScrollBarType, uint>(ref _scrollBarType), (uint)value) == (uint)value)
                 return;
-            _scrollBarType = value;
 
             Update(ScrollableElementUpdateFlags.RecalcLayout);
         }

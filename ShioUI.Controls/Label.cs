@@ -39,7 +39,7 @@ public sealed partial class Label : UIElement
     private DWriteFontStyle _fontStyle;
     private long _rawUpdateFlags;
     private float _fontSize;
-    private bool _wordWrap;
+    private uint _wordWrap;
 
     public Label(IElementContainer parent) : base(parent, "app.label")
     {
@@ -74,7 +74,7 @@ public sealed partial class Label : UIElement
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private DWriteTextLayout? GetTextLayout(RenderObjectUpdateFlags flags)
     {
-        DWriteTextLayout? layout = Interlocked.Exchange(ref _layout, null);
+        DWriteTextLayout? layout = _layout;
 
         if ((flags & RenderObjectUpdateFlags.Layout) == RenderObjectUpdateFlags.Layout)
         {
@@ -89,6 +89,7 @@ public sealed partial class Label : UIElement
                 layout = null;
             else
                 layout = SharedResources.DWriteFactory.CreateTextLayout(text, format);
+            _layout = layout;
             format.Dispose();
         }
         return layout;
@@ -117,9 +118,8 @@ public sealed partial class Label : UIElement
         SizeF renderSize = context.Size;
         layout.MaxWidth = renderSize.Width;
         layout.MaxHeight = renderSize.Height;
-        layout.WordWrapping = _wordWrap ? DWriteWordWrapping.EmergencyBreak : DWriteWordWrapping.NoWrap;
+        layout.WordWrapping = WordWrap ? DWriteWordWrapping.EmergencyBreak : DWriteWordWrapping.NoWrap;
         context.DrawTextLayout(PointF.Empty, layout, foreBrush, D2D1DrawTextOptions.EnableColorFont);
-        DisposeHelper.NullSwapOrDispose(ref _layout, layout);
         return true;
     }
 

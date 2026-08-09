@@ -1,6 +1,6 @@
 namespace ShioUI.Controls;
 
-public enum ScrollBarType
+public enum ScrollBarType : uint
 {
     None = 0,
     Vertical = 1,

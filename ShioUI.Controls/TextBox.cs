@@ -65,9 +65,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     private ulong _lastClickedTime = ulong.MinValue;
     private long _rawUpdateFlags;
     private float _fontSize;
-    private uint _clicks;
+    private uint _clicks, _passwordCP;
     private int _caretIndex, _compositionCaretIndex, _borderBrushIndex;
-    private char _passwordChar;
     private bool _caretState, _focused, _multiLine, _imeEnabled, _drag;
 
     public TextBox(IElementContainer parent) : base(parent, "app.textBox")
@@ -82,7 +81,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         _watermark = string.Empty;
         _fontSize = UIConstants.BoxFontSize;
         _borderBrushIndex = (int)Brush.BorderBrush;
-        _passwordChar = '\0';
+        _passwordCP = '\0';
         ScrollBarType = ScrollBarType.AutoVertial;
         SurfaceSize = new Size(int.MaxValue, 0);
         DrawWhenDisabled = true;
@@ -205,8 +204,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     private void GetTextLayouts(out DWriteTextLayout? layout, out DWriteTextLayout? watermarkLayout)
     {
         RenderObjectUpdateFlags flags = GetAndCleanRenderObjectUpdateFlags();
-        layout = Interlocked.Exchange(ref _layout, null);
-        watermarkLayout = Interlocked.Exchange(ref _watermarkLayout, null);
+        layout = _layout;
+        watermarkLayout = _watermarkLayout;
         if ((flags & RenderObjectUpdateFlags.Layout) == RenderObjectUpdateFlags.Layout)
         {
             DWriteTextFormat? format = layout;
@@ -216,22 +215,22 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             string text = _text;
             if (!StringHelper.IsNullOrEmpty(text))
             {
-                char passwordChar = PasswordChar;
-                if (passwordChar != '\0') //has password char
+                uint passwordCP = _passwordCP;
+                if (passwordCP != default) //has password char
                 {
                     DWriteTextRange compositionRange = _compositionRange;
                     if (compositionRange.Length > 0) //has ime composition
                     {
                         if (compositionRange.StartPosition > 0)
                         {
-                            text = string.Concat(new string(passwordChar, MathHelper.MakeSigned(compositionRange.StartPosition)),
+                            text = string.Concat(BuildString(passwordCP, MathHelper.MakeSigned(compositionRange.StartPosition)),
                                 text.Substring(MathHelper.MakeSigned(compositionRange.StartPosition), MathHelper.MakeSigned(compositionRange.Length)),
-                                new string(passwordChar, text.Length - MathHelper.MakeSigned(compositionRange.StartPosition + compositionRange.Length)));
+                                BuildString(passwordCP, text.Length - MathHelper.MakeSigned(compositionRange.StartPosition + compositionRange.Length)));
                         }
                     }
                     else
                     {
-                        text = new string(passwordChar, text.Length);
+                        text = BuildString(passwordCP, text.Length);
                     }
                 }
             }
@@ -246,6 +245,23 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             watermarkLayout = SharedResources.DWriteFactory.CreateTextLayout(_watermark ?? string.Empty, format);
             format.Dispose();
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe string BuildString(uint unicodeValue, int count)
+    {
+        if (count <= 0)
+            return string.Empty;
+        if (unicodeValue <= char.MaxValue)
+            return new string((char)unicodeValue, count);
+
+        string result = new string(' ', count * 2);
+        fixed (char* ptr = result)
+        {
+            StringHelper.WriteUtf32CharacterToUtf16Buffer_Unchecked((char*)&unicodeValue, unicodeValue);
+            SequenceHelper.Fill((uint*)ptr, (nuint)count, unicodeValue);
+        }
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -375,17 +391,11 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 watermarkLayout, PointF.Empty);
             if (focused)
                 DrawCaret(context, watermarkLayout, PointF.Empty, 0);
-            if (layout is not null)
-                DisposeHelper.NullSwapOrDispose(ref _layout, layout);
-            DisposeHelper.NullSwapOrDispose(ref _watermarkLayout, watermarkLayout);
             return true;
         }
 
         SetRenderingProperties(layout, renderSize, context.PixelsPerPoint, _multiLine);
         RenderLayout(context, focused, layout, RectF.FromXYWH(PointF.Empty, renderSize));
-        DisposeHelper.NullSwapOrDispose(ref _layout, layout);
-        if (watermarkLayout is not null)
-            DisposeHelper.NullSwapOrDispose(ref _watermarkLayout, watermarkLayout);
 
         return true;
     }
@@ -475,6 +485,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
 
     private void UpdateTextAndCaretIndex(string? text, int caretIndex, bool checkCaretIndex = true)
     {
+        using Lock.Scope scope = EnterSyncScope();
+
         text = FixString(text);
 
         if (!IsRenderedOnce)
@@ -498,8 +510,9 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
 
         int length = text.Length;
         GraphemeInfo graphemeInfo = CreateGraphemeInfoForString(text);
-        _text = text;
-        Atomics.Exchange(ref _textGraphemeInfoLazy, new LazyTiny<GraphemeInfo>(graphemeInfo));
+
+        Atomics.Write(ref _text, text);
+        Atomics.Write(ref _textGraphemeInfoLazy, new LazyTiny<GraphemeInfo>(graphemeInfo));
         if (checkCaretIndex)
         {
             if (caretIndex <= 0)
@@ -982,7 +995,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
 
     private void UpdateCaretIndex(int caretIndex, RenderObjectUpdateFlags updateFlags = RenderObjectUpdateFlags.None)
     {
-        FreezeUpdate();
+        using Lock.Scope scope = EnterSyncScope();
+
         _caretIndex = caretIndex;
         _caretState = true;
         if (Enabled && _focused)
@@ -997,7 +1011,6 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 UpdateIMECaret(context, caretIndex + _compositionCaretIndex);
         }
         Atomics.Or(ref _rawUpdateFlags, (long)updateFlags);
-        UnfreezeUpdate(forceUpdate: true);
     }
 
     [Inline(InlineBehavior.Remove)]

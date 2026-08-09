@@ -22,7 +22,7 @@ partial class Label
                 return 0;
             float fontSize = element._fontSize;
             string text = element._text;
-            if (element._wordWrap)
+            if (element.WordWrap)
             {
                 using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text,
                     fontName, element._alignment, element._fontSize);
