@@ -116,7 +116,7 @@ partial class MainWindow
                 TopExpression = label.BottomDefinition + UIConstants.ElementMarginDefinition,
                 RightExpression = rightButton.LeftDefinition - UIConstants.ElementMarginDefinition,
                 HeightExpression = leftButton.HeightDefinition,
-                Maximium = 100.0f,
+                Maximum = 100.0f,
                 Value = 50.0f
             };
             TextBox textBox2 = new TextBox(this, _ime)
@@ -187,7 +187,7 @@ partial class MainWindow
             MultiLine = true
         };
         textbox.HeightExpression = MathHelper.Min(textbox.AutoHeightDefinition, PageHeightDefinition / 2 - textbox.TopDefinition);
-        textbox.TextChanging += (object sender, ref TextChangingEventArgs _) => (sender as UIElement)?.ResetLayoutTimestamp(); // 強制讓元件下次渲染時重算布局
+        textbox.TextChanging += (object sender, ref TextChangingEventArgs _) => (sender as UIElement)?.InvalidateLayout(); // 強制讓元件下次渲染時重算布局
 
         Label label = new Label(this)
         {

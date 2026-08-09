@@ -42,7 +42,7 @@ internal sealed partial class MainWindow : TabbedWindow
     private void InitializeBaseInformation()
     {
         MinimumSize = new Size(640, 560);
-        Text = nameof(MainWindow);
+        Title = nameof(MainWindow);
         using Stream? stream = Assembly.GetEntryAssembly()?.GetManifestResourceStream("ShioUI.Test.app-icon.ico");
         if (stream is null)
             return;
@@ -53,8 +53,7 @@ internal sealed partial class MainWindow : TabbedWindow
     {
         if (sender is not TextBox textBox || args.Key != VirtualKey.Enter)
             return;
-        string text = textBox.Text;
-        textBox.Text = string.Empty;
+        (string? text, textBox.Text) = (textBox.Text, string.Empty);
 
         if (SequenceHelper.Equals(text, "cleanup"))
             GC.Collect();
