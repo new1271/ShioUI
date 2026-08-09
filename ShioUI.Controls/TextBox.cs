@@ -235,6 +235,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 }
             }
             layout = SharedResources.DWriteFactory.CreateTextLayout(text ?? string.Empty, format);
+            _layout = layout;
             format.Dispose();
         }
         if ((flags & RenderObjectUpdateFlags.WatermarkLayout) == RenderObjectUpdateFlags.WatermarkLayout)
@@ -242,7 +243,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             DWriteTextFormat? format = watermarkLayout;
             if (CheckFormatIsNotAvailable(format, flags))
                 format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
-            watermarkLayout = SharedResources.DWriteFactory.CreateTextLayout(_watermark ?? string.Empty, format);
+            watermarkLayout = SharedResources.DWriteFactory.CreateTextLayout(_watermark, format);
+            _watermarkLayout = watermarkLayout;
             format.Dispose();
         }
     }
@@ -255,12 +257,11 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (unicodeValue <= char.MaxValue)
             return new string((char)unicodeValue, count);
 
-        string result = new string(' ', count * 2);
+        StringHelper.WriteUtf32CharacterToUtf16Buffer_Unchecked((char*)&unicodeValue, unicodeValue);
+
+        string result = StringHelper.AllocateRawString(count * 2);
         fixed (char* ptr = result)
-        {
-            StringHelper.WriteUtf32CharacterToUtf16Buffer_Unchecked((char*)&unicodeValue, unicodeValue);
             SequenceHelper.Fill((uint*)ptr, (nuint)count, unicodeValue);
-        }
         return result;
     }
 
@@ -1011,6 +1012,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 UpdateIMECaret(context, caretIndex + _compositionCaretIndex);
         }
         Atomics.Or(ref _rawUpdateFlags, (long)updateFlags);
+        Update();
     }
 
     [Inline(InlineBehavior.Remove)]
