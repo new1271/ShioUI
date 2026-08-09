@@ -1,8 +1,11 @@
-using System.Runtime.CompilerServices;
 using System;
-using RiceTea.Core.Helpers;
-using ShioUI.Layout;
+using System.Runtime.CompilerServices;
+
+using RiceTea.Core;
 using RiceTea.Core.Extensions;
+using RiceTea.Core.Helpers;
+
+using ShioUI.Layout;
 
 namespace ShioUI.Controls;
 
@@ -13,13 +16,13 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
     public bool Checked
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _checkState;
+        get => MathHelper.ToBoolean(Atomics.Read(ref _checked));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (_checkState == value)
+            uint rawValue = MathHelper.BooleanToUInt32(value);
+            if (Atomics.Exchange(ref _checked, rawValue) == rawValue)
                 return;
-            _checkState = value;
             CheckedChanged?.Invoke(this, EventArgs.Empty);
             Update(RedrawType.RedrawCheckBox);
         }
@@ -28,13 +31,11 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
     public float FontSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontSize;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Atomics.Read(ref _fontSize);
         set
         {
-            if (_fontSize == value)
+            if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
-            _fontSize = value;
             DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
@@ -43,13 +44,11 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
     public string Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Atomics.Read(ref _text);
         set
         {
-            if (ReferenceEquals(_text, value))
+            if (ReferenceEquals(Atomics.Exchange(ref _text, value), value))
                 return;
-            _text = value;
             Update(RenderObjectUpdateFlags.Layout);
         }
     }

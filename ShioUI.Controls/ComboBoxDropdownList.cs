@@ -99,7 +99,7 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
 
         int maxViewCount = MathHelper.Min(parent.DropdownListVisibleCount, count);
         int lastIndex = MathHelper.Clamp(parent.SelectedIndex, -1, count - 1);
-        _selectedIndex = -1;
+        Atomics.Write(ref _selectedIndex, -1);
         _maxViewCount = maxViewCount;
         SurfaceSize = new Size(0, MathI.Ceiling(itemHeight * count));
 
@@ -221,19 +221,21 @@ public sealed partial class ComboBoxDropdownList : ScrollableElementBase, IGloba
     protected override void OnMouseMove(in MouseEventArgs args)
     {
         base.OnMouseMove(args);
+        int selectedIndex;
         if (args.IsInSpecificSize(ContentSize) && (!_isClicking || _isClickingClient))
         {
             float y = args.Y + ViewportPoint.Y;
             int hoverIndex = MathI.Floor(y / _itemHeight);
             if (hoverIndex < 0 || hoverIndex >= _owner.Items.Count)
-                _selectedIndex = -1;
+                selectedIndex = -1;
             else
-                _selectedIndex = hoverIndex;
+                selectedIndex = hoverIndex;
         }
         else
         {
-            _selectedIndex = -1;
+            selectedIndex = -1;
         }
+        Atomics.Write(ref _selectedIndex, selectedIndex);
         Update(ScrollableElementUpdateFlags.Content);
     }
 

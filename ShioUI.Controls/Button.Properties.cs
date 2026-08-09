@@ -1,9 +1,10 @@
 using System.Runtime.CompilerServices;
 
-using ShioUI.Layout;
-
-using RiceTea.Core.Helpers;
+using RiceTea.Core;
 using RiceTea.Core.Extensions;
+using RiceTea.Core.Helpers;
+
+using ShioUI.Layout;
 
 namespace ShioUI.Controls;
 
@@ -12,12 +13,11 @@ partial class Button : IAutoWidthElement, IAutoHeightElement
     public float FontSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontSize;
+        get => Atomics.Read(ref _fontSize);
         set
         {
-            if (_fontSize == value)
+            if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
-            _fontSize = value;
             DisposeHelper.SwapDisposeAtomic(ref _layout);
             Update(RenderObjectUpdateFlags.Format);
         }
@@ -26,12 +26,11 @@ partial class Button : IAutoWidthElement, IAutoHeightElement
     public string Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
+        get => Atomics.Read(ref _text);
         set
         {
-            if (_text == value)
+            if (ReferenceEquals(Atomics.Exchange(ref _text, value), value))
                 return;
-            _text = value;
             Update(RenderObjectUpdateFlags.Layout);
         }
     }

@@ -1,6 +1,8 @@
 using System;
 using System.Runtime.CompilerServices;
 
+using RiceTea.Core;
+
 namespace ShioUI.Controls;
 
 partial class ComboBoxDropdownList
@@ -16,6 +18,6 @@ partial class ComboBoxDropdownList
     public int SelectedIndex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _selectedIndex;
+        get => Atomics.Read(ref _selectedIndex);
     }
 }

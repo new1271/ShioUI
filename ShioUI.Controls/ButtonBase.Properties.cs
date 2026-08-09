@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 
 using RiceTea.Core;
-using RiceTea.Core.Threading;
+using RiceTea.Core.Helpers;
 
 namespace ShioUI.Controls;
 
@@ -12,34 +12,18 @@ partial class ButtonBase
     protected ButtonTriState PressState
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            ref readonly uint valueRef = ref _pressState;
-            ref readonly nuint versionRef = ref _version;
-
-            uint value = OptimisticLock.EnterWithPrimitive(in valueRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in valueRef, in versionRef, ref value, ref version)) ;
-            return (ButtonTriState)value;
-        }
+        get => (ButtonTriState)Atomics.Read(ref _pressState);
     }
 
     public bool Enabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            ref readonly bool valueRef = ref _enabled;
-            ref readonly nuint versionRef = ref _version;
-
-            bool value = OptimisticLock.EnterWithPrimitive(in valueRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in valueRef, in versionRef, ref value, ref version)) ;
-            return value;
-        }
+        get => MathHelper.ToBoolean(Atomics.Read(ref _enabled));
         set
         {
-            if (Cells.Exchange(ref _enabled, value) == value)
+            uint rawValue = MathHelper.BooleanToUInt32(value);
+            if (Atomics.Exchange(ref _enabled, rawValue) == rawValue)
                 return;
-            OptimisticLock.Increase(ref _version);
             Update();
         }
     }

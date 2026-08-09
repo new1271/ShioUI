@@ -49,14 +49,15 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     private ButtonTriState _buttonState;
     private long _redrawTypeRaw, _rawUpdateFlags;
     private float _fontSize;
-    private bool _checkState, _isPressed;
+    private uint _checked;
+    private bool _isPressed;
 
     public CheckBox(IElementContainer parent) : base(parent, "app.checkBox")
     {
         _rawUpdateFlags = (long)RenderObjectUpdateFlags.FlagsAllTrue;
         _redrawTypeRaw = (long)RedrawType.RedrawAllContent;
         _fontSize = UIConstants.DefaultFontSize;
-        _checkState = false;
+        _checked = default;
         _text = string.Empty;
 
         EnablePartialRendering = true;
@@ -205,7 +206,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
             RenderBackground(in context);
             context.MarkAsDirty(renderingBounds);
         }
-        DrawCheckBoxUnsafe(context, _brushes, renderingBounds, _checkState, buttonState);
+        DrawCheckBoxUnsafe(context, _brushes, renderingBounds, Checked, buttonState);
     }
 
     public static RectangleF GetCheckBoxRenderingBounds(in RegionalRenderingContext context, float itemHeight)

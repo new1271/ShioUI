@@ -2,19 +2,17 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
-using RiceTea.Core.Threading;
 
 namespace ShioUI.Controls;
 
 public abstract partial class ButtonBase : UIElement, IMouseInteractHandler, IMouseMoveHandler
 {
-    private nuint _version;
-    private uint _pressState;
-    private bool _enabled, _isPressed;
+    private uint _pressState, _enabled;
+    private bool _isPressed;
 
     public ButtonBase(IElementContainer parent, string themePrefix) : base(parent, themePrefix)
     {
-        _enabled = true;
+        _enabled = Booleans.TrueIntUnsigned;
         _pressState = (uint)ButtonTriState.None;
     }
 
@@ -23,44 +21,36 @@ public abstract partial class ButtonBase : UIElement, IMouseInteractHandler, IMo
     void IMouseMoveHandler.OnMouseMove(in MouseEventArgs args)
     {
         uint pressState;
-        if (_enabled && args.IsInSpecificSize(Size))
+        if (Enabled && args.IsInSpecificSize(Size))
             pressState = _isPressed ? (uint)ButtonTriState.Pressed : (uint)ButtonTriState.Hovered;
         else
             pressState = (uint)ButtonTriState.None;
-        if (Cells.Exchange(ref _pressState, pressState) != pressState)
-        {
-            OptimisticLock.Increase(ref _version);
+
+        if (Atomics.Exchange(ref _pressState, pressState) != pressState)
             Update();
-        }
     }
 
     void IMouseInteractHandler.OnMouseDown(ref HandleableMouseEventArgs args)
     {
-        if (!_enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
+        if (!Enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
             return;
         args.Handle();
         _isPressed = true;
-        if (Cells.Exchange(ref _pressState, (uint)ButtonTriState.Pressed) != (uint)ButtonTriState.Pressed)
-        {
-            OptimisticLock.Increase(ref _version);
+        if (Atomics.Exchange(ref _pressState, (uint)ButtonTriState.Pressed) != (uint)ButtonTriState.Pressed)
             Update();
-        }
     }
 
     void IMouseInteractHandler.OnMouseUp(in MouseEventArgs args)
     {
-        if (!_enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
+        if (!Enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
             return;
 
         _isPressed = false;
         if (PressState != ButtonTriState.Pressed)
             return;
 
-        if (Cells.Exchange(ref _pressState, (uint)ButtonTriState.Hovered) != (uint)ButtonTriState.Hovered)
-        {
-            OptimisticLock.Increase(ref _version);
+        if (Atomics.Exchange(ref _pressState, (uint)ButtonTriState.Hovered) != (uint)ButtonTriState.Hovered)
             Update();
-        }
         OnClick(in args);
     }
 

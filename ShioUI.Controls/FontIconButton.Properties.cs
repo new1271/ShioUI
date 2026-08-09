@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
 
-using ShioUI.Utils;
+using RiceTea.Core;
 
-using RiceTea.Core.Helpers;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -11,12 +11,11 @@ partial class FontIconButton
     public FontIcon? Icon
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _icon;
+        get => Atomics.Read(ref _icon);
         set
         {
-            if (ReferenceEquals(_icon, value))
+            if (ReferenceEquals(Atomics.Exchange(ref _icon, value), value))
                 return;
-            DisposeHelper.SwapDisposeAtomic(ref _icon, value);
             Update();
         }
     }
