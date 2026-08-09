@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
+
+using RiceTea.Core;
+using RiceTea.Core.Collections;
+using RiceTea.Core.Helpers;
 
 using ShioUI.Layout;
-
-using RiceTea.Core.Helpers;
 
 namespace ShioUI.Controls;
 
@@ -16,14 +19,13 @@ partial class ComboBox : IAutoHeightElement
     public bool Enabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _enabled;
+        get => MathHelper.ToBoolean(Atomics.Read(ref _enabled));
         set
         {
-            if (_enabled == value)
+            uint rawValue = MathHelper.BooleanToUInt32(value);
+            if (Atomics.Exchange(ref _enabled, rawValue) == rawValue)
                 return;
-            _enabled = value;
-            if (_state != ButtonTriState.None)
-                _state = ButtonTriState.None;
+            _state = ButtonTriState.None;
             Update();
         }
     }
@@ -31,43 +33,44 @@ partial class ComboBox : IAutoHeightElement
     public int SelectedIndex
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _selectedIndex;
+        get => Atomics.Read(ref _selectedIndex);
         set
         {
-            int oldSelectedIndex = _selectedIndex;
-            if (oldSelectedIndex == value)
-                return;
-            if (value < 0)
-                goto Empty;
+            lock (_selectedIndexLock)
+            {
+                SyncList<string, ObservableList<string>> items = _items;
+                IList<string> unwrappedItems = items.Items.GetUnderlyingList();
 
-            IList<string> items = _items.GetUnderlyingList();
-            int itemsCount = items.Count;
-            if (itemsCount <= 0)
-                goto Empty;
+                string text;
+                using (Lock.Scope scope = items.EnterLockScope())
+                {
+                    int count = unwrappedItems.Count;
+                    if (count <= 0 || value < 0)
+                    {
+                        value = -1;
+                        text = string.Empty;
+                    }
+                    else
+                    {
+                        value = MathHelper.Min(value, count - 1);
+                        text = unwrappedItems[value];
+                    }
+                }
 
-            value = MathHelper.Min(value, itemsCount - 1);
-            if (oldSelectedIndex == value)
-                return;
-            _selectedIndex = value;
-            Text = items[value];
-            return;
-
-        Empty:
-            if (oldSelectedIndex != -1)
-                _selectedIndex = -1;
-            Text = string.Empty;
+                Atomics.Write(ref _selectedIndex, value);
+                Text = text;
+            }
         }
     }
 
     public float FontSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fontSize;
+        get => Atomics.Read(ref _fontSize);
         set
         {
-            if (_fontSize == value)
+            if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
-            _fontSize = value;
             Update(RenderObjectUpdateFlags.Format);
         }
     }
@@ -75,12 +78,11 @@ partial class ComboBox : IAutoHeightElement
     public string Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _text;
+        get => Atomics.Read(ref _text);
         set
         {
-            if (ReferenceEquals(_text, value))
+            if (ReferenceEquals(Atomics.Exchange(ref _text, value), value))
                 return;
-            _text = value;
             Update(RenderObjectUpdateFlags.Layout);
         }
     }
@@ -94,9 +96,9 @@ partial class ComboBox : IAutoHeightElement
     public int DropdownListVisibleCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _dropDownListVisibleCount;
+        get => Atomics.Read(ref _dropDownListVisibleCount);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => _dropDownListVisibleCount = value;
+        set => Atomics.Write(ref _dropDownListVisibleCount, value);
     }
 
     public LayoutNode AutoHeightDefinition

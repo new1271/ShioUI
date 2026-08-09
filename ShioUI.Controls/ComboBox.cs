@@ -1,25 +1,26 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Layout;
-using ShioUI.Utils;
-
 using InlineMethod;
+
+using RiceTea.Core;
+using RiceTea.Core.Collections;
+using RiceTea.Core.Extensions;
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Structures;
+
 using ShioUI.Controls.Internals;
 using ShioUI.Graphics;
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.DirectWrite;
+using ShioUI.Layout;
 using ShioUI.Theme;
-
-using RiceTea.Core.Collections;
-using RiceTea.Core.Extensions;
-using RiceTea.Core.Helpers;
-using RiceTea.Core.Structures;
-using RiceTea.Core;
+using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
@@ -39,7 +40,8 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[1];
-    private readonly ObservableList<string> _items;
+    private readonly SyncList<string, ObservableList<string>> _items;
+    private readonly Lock _selectedIndexLock = new Lock();
 
     private DWriteTextLayout? _layout;
     private string? _fontName;
@@ -47,18 +49,48 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
     private ButtonTriState _state = ButtonTriState.None;
     private long _rawUpdateFlags;
     private float _fontSize;
+    private uint _enabled;
     private int _selectedIndex, _dropDownListVisibleCount;
-    private bool _isPressed, _hovered, _enabled;
+    private bool _isPressed, _isHovered;
 
     public ComboBox(IElementContainer parent) : base(parent, "app.comboBox")
     {
-        _items = new ObservableList<string>();
+        ObservableList<string> items = new ObservableList<string>();
+        _items = new SyncList<string, ObservableList<string>>(items);
         _text = string.Empty;
         _selectedIndex = -1;
         _dropDownListVisibleCount = 10;
-        _enabled = true;
+        _enabled = Booleans.TrueInt;
         _fontSize = UIConstants.BoxFontSize;
         _rawUpdateFlags = -1L;
+
+        items.Updated += OnItemsUpdated;
+    }
+
+    private void OnItemsUpdated(object? sender, EventArgs e)
+    {
+        if (sender is not ObservableList<string> items)
+            return;
+        IList<string> unwrappedItems = items.GetUnderlyingList();
+
+        lock (_selectedIndexLock)
+        {
+            int count = unwrappedItems.Count, selectedIndex = Atomics.Read(ref _selectedIndex);
+            string text;
+            if (count <= 0 || selectedIndex < 0)
+            {
+                selectedIndex = -1;
+                text = string.Empty;
+            }
+            else
+            {
+                selectedIndex = MathHelper.Min(selectedIndex, count - 1);
+                text = unwrappedItems[selectedIndex];
+            }
+
+            Atomics.Write(ref _selectedIndex, selectedIndex);
+            Text = text;
+        }
     }
 
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
@@ -126,7 +158,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (Enabled)
         {
             DebugHelper.ThrowUnless((nuint)Brush.BackBrush + 2 == (nuint)Brush.BackHoveredBrush);
-            backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush + 2 * MathHelper.BooleanToNativeUnsigned(_hovered));
+            backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush + 2 * MathHelper.BooleanToNativeUnsigned(_isHovered));
         }
         else
             backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackDisabledBrush);
@@ -141,7 +173,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (Enabled)
         {
             DebugHelper.ThrowUnless((nuint)Brush.BackBrush + 2 == (nuint)Brush.BackHoveredBrush);
-            backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush + 2 * MathHelper.BooleanToNativeUnsigned(_hovered));
+            backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush + 2 * MathHelper.BooleanToNativeUnsigned(_isHovered));
         }
         else
             backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackDisabledBrush);
@@ -176,7 +208,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
 
     void IMouseInteractHandler.OnMouseDown(ref HandleableMouseEventArgs args)
     {
-        if (!_enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
+        if (!Enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
             return;
 
         _isPressed = true;
@@ -199,7 +231,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
 
     void IMouseInteractHandler.OnMouseUp(in MouseEventArgs args)
     {
-        if (!_enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
+        if (!Enabled || !args.Buttons.HasFlagFast(MouseButtons.LeftButton))
             return;
 
         _isPressed = false;
@@ -213,7 +245,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
 
     void IMouseMoveHandler.OnMouseMove(in MouseEventArgs args)
     {
-        if (!_enabled)
+        if (!Enabled)
             return;
 
         bool newHovered;
@@ -237,10 +269,10 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         newButtonState = buttonRect.Contains(args.Location) ? ButtonTriState.Hovered : ButtonTriState.None;
 
     Update:
-        if (_state == newButtonState && _hovered == newHovered)
+        if (_state == newButtonState && _isHovered == newHovered)
             return;
         _state = newButtonState;
-        _hovered = newHovered;
+        _isHovered = newHovered;
         Update();
     }
 
