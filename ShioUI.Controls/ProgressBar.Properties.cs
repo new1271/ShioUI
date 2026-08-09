@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 
+using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
 namespace ShioUI.Controls;
@@ -9,29 +10,23 @@ partial class ProgressBar
     public double Value
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _value;
+        get => Atomics.Read(ref _value);
         set
         {
-            double oldValue = _value;
-            if (oldValue == value)
+            if (Atomics.Exchange(ref _value, value) == value)
                 return;
-            value = MathHelper.Clamp(value, 0.0, _maximium);
-            if (oldValue == value)
-                return;
-            _value = value;
             Update();
         }
     }
 
-    public double Maximium
+    public double Maximum
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _maximium;
+        get => Atomics.Read(ref _maximum);
         set
         {
-            if (_maximium == value || value <= 0.0)
+            if (Atomics.Exchange(ref _maximum, value) == value)
                 return;
-            _maximium = value;
             Update();
         }
     }
