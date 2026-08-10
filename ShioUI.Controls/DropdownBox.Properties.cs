@@ -11,10 +11,9 @@ using ShioUI.Layout;
 
 namespace ShioUI.Controls;
 
-partial class ComboBox : IAutoHeightElement
+partial class DropdownBox : IAutoHeightElement
 {
     public event EventHandler? ItemClicked;
-    public event EventHandler<DropdownListEventArgs>? RequestDropdownListOpening;
 
     public bool Enabled
     {

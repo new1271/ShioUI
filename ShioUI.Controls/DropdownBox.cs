@@ -24,7 +24,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
-public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseMoveHandler
+public sealed partial class DropdownBox : UIElement, IMouseInteractHandler, IMouseMoveHandler
 {
     private static readonly string[] _brushNames = new string[(int)Brush._Last]
     {
@@ -53,7 +53,7 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
     private int _selectedIndex, _dropDownListVisibleCount;
     private bool _isPressed, _isHovered;
 
-    public ComboBox(IElementContainer parent) : base(parent, "app.comboBox")
+    public DropdownBox(IElementContainer parent) : base(parent, "app.dropdownBox")
     {
         ObservableList<string> items = new ObservableList<string>();
         _items = new SyncList<string, ObservableList<string>>(items);
@@ -218,15 +218,9 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         if (_items.Count <= 0)
             return;
 
-        WindowMessageLoop.InvokeAsync(static (_this) =>
-        {
-            EventHandler<DropdownListEventArgs>? eventHandler = _this.RequestDropdownListOpening;
-            if (eventHandler is null)
-                return;
-            ComboBoxDropdownList dropdownList = new ComboBoxDropdownList(_this.Parent, _this);
-            dropdownList.ItemClicked += _this.ListControl_ItemClicked;
-            eventHandler.Invoke(_this, new DropdownListEventArgs(dropdownList));
-        }, this);
+        List list = new List(this);
+        list.ItemClicked += OnItemClicked;
+        RootWindow.ChangeOverlayElement(list);
     }
 
     void IMouseInteractHandler.OnMouseUp(in MouseEventArgs args)
@@ -276,9 +270,9 @@ public sealed partial class ComboBox : UIElement, IMouseInteractHandler, IMouseM
         Update();
     }
 
-    private void ListControl_ItemClicked(object? sender, int selectedIndex)
+    private void OnItemClicked(object? sender, int selectedIndex)
     {
-        if (sender is not ComboBoxDropdownList dropdownList)
+        if (sender is not List dropdownList)
             return;
         if (_state != ButtonTriState.None)
         {

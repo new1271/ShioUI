@@ -5,13 +5,13 @@ using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
-partial class ComboBox
+partial class DropdownBox
 {
-    private sealed class AutoHeightNode : UIElementDependedNode<ComboBox>
+    private sealed class AutoHeightNode : UIElementDependedNode<DropdownBox>
     {
-        public AutoHeightNode(ComboBox element) : base(element) { }
+        public AutoHeightNode(DropdownBox element) : base(element) { }
 
-        protected override int ComputeCore(ComboBox element, in LayoutContext context)
+        protected override int ComputeCore(DropdownBox element, in LayoutContext context)
         {
             string? fontName = element._fontName;
             if (fontName is null)

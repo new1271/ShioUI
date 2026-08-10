@@ -16,7 +16,7 @@ internal sealed class FontIconResources : IDisposable
     private static readonly FontIconResources _instance = new FontIconResources();
 
     private readonly FontIcon? _scrollUpIcon, _scrollDownIcon;
-    private readonly OptimisticLock<Dictionary<float, FontIcon>> _comboBoxDropdownIconDict, _checkMarkIconDict;
+    private readonly OptimisticLock<Dictionary<float, FontIcon>> _dropDownIconDict, _checkMarkIconDict;
 
     private bool _disposed;
 
@@ -27,7 +27,7 @@ internal sealed class FontIconResources : IDisposable
         FontIconFactory factory = FontIconFactory.Instance;
         _scrollUpIcon = GetScrollUpIcon(factory);
         _scrollDownIcon = GetScrollDownIcon(factory);
-        _comboBoxDropdownIconDict = OptimisticLock.Create<Dictionary<float, FontIcon>>();
+        _dropDownIconDict = OptimisticLock.Create<Dictionary<float, FontIcon>>();
         _checkMarkIconDict = OptimisticLock.Create<Dictionary<float, FontIcon>>();
     }
 
@@ -49,7 +49,7 @@ internal sealed class FontIconResources : IDisposable
         return null;
     }
 
-    private static FontIcon? CreateComboBoxDropDownIcon(float layoutHeight)
+    private static FontIcon? CreateDropDownIcon(float layoutHeight)
     {
         FontIconFactory factory = FontIconFactory.Instance;
         const uint ComboBoxDropdownCharater = 0xE011;
@@ -95,8 +95,8 @@ internal sealed class FontIconResources : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe void DrawDropDownButton(in RegionalRenderingContext context, in RectangleF rect, D2D1Brush brush)
-        => GetOrCreateIcon(_comboBoxDropdownIconDict,
-            rect.Height - UIConstants.ElementMargin, &CreateComboBoxDropDownIcon)?.Render(context, rect, brush);
+        => GetOrCreateIcon(_dropDownIconDict,
+            rect.Height - UIConstants.ElementMargin, &CreateDropDownIcon)?.Render(context, rect, brush);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawScrollBarUpButton(in RegionalRenderingContext context, in RectangleF rect, D2D1Brush brush)
@@ -121,7 +121,7 @@ internal sealed class FontIconResources : IDisposable
         {
             _scrollUpIcon?.Dispose();
             _scrollDownIcon?.Dispose();
-            _comboBoxDropdownIconDict.Value.Clear();
+            _dropDownIconDict.Value.Clear();
         }
     }
 

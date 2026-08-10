@@ -1789,20 +1789,14 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         static void Core(CoreWindow _this, UIElement? element)
         {
             using BatchUpdateScope scope = _this.EnterBatchUpdateScope();
-            UIElement? oldElement = null;
-            try
+            UIElement? oldElement;
+            lock (_this._syncLock)
             {
-                lock (_this._syncLock)
-                {
-                    oldElement = Cells.Exchange(ref _this._overlayElement, element);
-                    _this.OnOverlayLayerChanged(element, oldElement);
-                }
-                _this.UpdateAndResize();
+                oldElement = Cells.Exchange(ref _this._overlayElement, element);
+                _this.OnOverlayLayerChanged(element, oldElement);
             }
-            finally
-            {
-                oldElement?.Dispose();
-            }
+            _this.UpdateAndResize();
+            _this.OnOverlayElementChanged(new OverlayElementChangedEventArgs(oldElement, element));
         }
     }
 
@@ -1820,6 +1814,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 _this.OnOverlayLayerChanged(element, oldElement);
             }
             _this.UpdateAndResize();
+            _this.OnOverlayElementChanged(new OverlayElementChangedEventArgs(oldElement, element));
             return oldElement;
         }
     }
@@ -1840,6 +1835,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 _this.OnOverlayLayerChanged(element, oldElement);
             }
             _this.UpdateAndResize();
+            _this.OnOverlayElementChanged(new OverlayElementChangedEventArgs(oldElement, element));
         }
     }
 

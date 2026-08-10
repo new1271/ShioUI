@@ -144,37 +144,37 @@ partial class ThemeBuildingHandlers
 
             // 下拉式方塊
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.back",
+                key: "app.dropdownBox.back",
                 value: queryBrushFunc("app.control.back"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.back.disabled",
+                key: "app.dropdownBox.back.disabled",
                 value: queryBrushFunc("app.control.back.disabled"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.back.hovered",
+                key: "app.dropdownBox.back.hovered",
                 value: queryBrushFunc("app.control.back.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.border",
+                key: "app.dropdownBox.border",
                 value: queryBrushFunc("app.control.border"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.fore",
+                key: "app.dropdownBox.fore",
                 value: queryBrushFunc("app.control.fore"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.list.back.hovered",
+                key: "app.dropdownBox.list.back.hovered",
                 value: queryBrushFunc("app.contextMenu.back.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.list.back.pressed",
+                key: "app.dropdownBox.list.back.pressed",
                 value: queryBrushFunc("app.contextMenu.back.pressed"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.list.fore.hovered",
+                key: "app.dropdownBox.list.fore.hovered",
                 value: queryBrushFunc("app.contextMenu.fore.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.button",
+                key: "app.dropdownBox.button",
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(215, 215, 215)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.button.hovered",
+                key: "app.dropdownBox.button.hovered",
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(190, 190, 190)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.comboBox.button.pressed",
+                key: "app.dropdownBox.button.pressed",
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
 
             // 進度條

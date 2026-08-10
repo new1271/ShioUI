@@ -2,7 +2,7 @@ using System;
 
 namespace ShioUI.Controls;
 
-partial class ComboBox
+partial class DropdownBox
 {
     [Flags]
     private enum RenderObjectUpdateFlags

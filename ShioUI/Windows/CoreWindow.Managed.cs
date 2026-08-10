@@ -20,6 +20,10 @@ using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
+public readonly record struct OverlayElementChangedEventArgs(UIElement? oldElement, UIElement? newElement);
+
+public delegate void OverlayElementChangedEventHandler(object? sender,in OverlayElementChangedEventArgs args);
+
 public abstract partial class CoreWindow : NativeWindow
 {
     #region Static Fields
@@ -38,6 +42,7 @@ public abstract partial class CoreWindow : NativeWindow
 
     #region Events
     public event EventHandler? DpiChanged;
+    public event OverlayElementChangedEventHandler? OverlayElementChanged;
     #endregion
 
     #region Event Triggers
@@ -48,6 +53,8 @@ public abstract partial class CoreWindow : NativeWindow
     }
 
     protected virtual void OnDpiChanged() => DpiChanged?.Invoke(this, EventArgs.Empty);
+
+    protected virtual void OnOverlayElementChanged(in OverlayElementChangedEventArgs args) => OverlayElementChanged?.Invoke(this, args);
 
     protected virtual void OnMouseDown(ref HandleableMouseEventArgs args)
     {
