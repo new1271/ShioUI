@@ -12,10 +12,10 @@ namespace ShioUI.Controls;
 
 partial class GroupBox : IAutoWidthElement, IAutoHeightElement
 {
-    public string? Title
+    [AllowNull]
+    public string Title
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NotNull]
         get => Atomics.Read(ref _title);
         set
         {

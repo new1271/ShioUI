@@ -70,10 +70,11 @@ public abstract class WizardWindow : MultiPageWindow
     #endregion
 
     #region Properties
-    public string? Heading
+
+    [AllowNull]
+    public string Heading
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NotNull]
         get => Atomics.Read(ref _heading);
         set
         {
@@ -83,10 +84,10 @@ public abstract class WizardWindow : MultiPageWindow
         }
     }
 
-    public string? HeadingDescription
+    [AllowNull]
+    public string HeadingDescription
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NotNull]
         get => Atomics.Read(ref _headingDescription);
         protected set
         {

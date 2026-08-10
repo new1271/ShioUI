@@ -65,19 +65,19 @@ partial class TextBox : IAutoHeightElement
         }
     }
 
-    public string? Text
+    [AllowNull]
+    public string Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NotNull]
         get => Atomics.Read(ref _text);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => UpdateTextAndCaretIndex(value, _caretIndex);
     }
 
-    public string? Watermark
+    [AllowNull]
+    public string Watermark
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [return: NotNull]
         get => Atomics.Read(ref _watermark);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set

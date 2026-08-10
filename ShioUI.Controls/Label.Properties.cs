@@ -77,9 +77,9 @@ partial class Label : IAutoWidthElement, IAutoHeightElement
         }
     }
 
-    public string? Text
+    [AllowNull]
+    public string Text
     {
-        [return: NotNull]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Atomics.Read(ref _text);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
