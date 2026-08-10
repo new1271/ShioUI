@@ -129,7 +129,8 @@ public abstract partial class UIElement : ICheckableDisposable
     public void RefreshLayout(in Rectangle bounds, ulong framestamp)
     {
         using Lock.Scope scope = EnterSyncScope();
-        _bounds.Value = bounds;
+
+        SetBoundsCore(bounds);
         RefreshLayout(framestamp);
     }
 
@@ -341,6 +342,19 @@ public abstract partial class UIElement : ICheckableDisposable
         if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != default)
             return;
         DisposeCore(disposing);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetBoundsCore(in Rectangle value)
+    {
+        Rectangle bounds = _bounds.GetValueUnsafe();
+        if (bounds == value)
+            return;
+        _bounds.Value = value;
+        if (bounds.Location != value.Location)
+            OnLocationChanged();
+        if (bounds.Size != value.Size)
+            OnSizeChanged();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

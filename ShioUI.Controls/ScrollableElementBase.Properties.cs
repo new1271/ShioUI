@@ -50,11 +50,11 @@ partial class ScrollableElementBase : IAutoHeightElement
     public Size SurfaceSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => BoundsHelper.ConvertUInt64ToSize(Atomics.Read(ref _surfaceSizeRaw));
+        get => BoundsHelper.AsSize(Atomics.Read(ref _surfaceSizeRaw));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected set
         {
-            ulong castedValue = BoundsHelper.ConvertSizeToUInt64(value);
+            ulong castedValue = BoundsHelper.AsUInt64(value);
             if (Atomics.Exchange(ref _surfaceSizeRaw, castedValue) == castedValue)
                 return;
             Update(ScrollableElementUpdateFlags.RecalcLayout);
@@ -64,11 +64,11 @@ partial class ScrollableElementBase : IAutoHeightElement
     public Point ViewportPoint
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => BoundsHelper.ConvertUInt64ToPoint(Atomics.Read(ref _viewportPointRaw));
+        get => BoundsHelper.AsPoint(Atomics.Read(ref _viewportPointRaw));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected set
         {
-            ulong castedValue = BoundsHelper.ConvertPointToUInt64(value);
+            ulong castedValue = BoundsHelper.AsUInt64(value);
             if (Atomics.Exchange(ref _viewportPointRaw, castedValue) == castedValue)
                 return;
             Update(ScrollableElementUpdateFlags.RecalcScrollBar | ScrollableElementUpdateFlags.TriggerViewportPointChanged | ScrollableElementUpdateFlags.All);
@@ -84,13 +84,13 @@ partial class ScrollableElementBase : IAutoHeightElement
     protected Point ContentLocation
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _contentBounds.Value.Location;
+        get => BoundsHelper.FastGetLocation(in _contentBounds);
     }
 
     protected Size ContentSize
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _contentBounds.Value.Size;
+        get => BoundsHelper.FastGetSize(in _contentBounds);
     }
 
     protected bool StickBottom

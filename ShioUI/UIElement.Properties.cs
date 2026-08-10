@@ -7,6 +7,7 @@ using RiceTea.Core;
 
 using ShioUI.Layout;
 using ShioUI.Theme;
+using ShioUI.Utils;
 using ShioUI.Windows;
 
 namespace ShioUI;
@@ -73,7 +74,7 @@ partial class UIElement
     public Point Location
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bounds.Value.Location;
+        get => BoundsHelper.FastGetLocation(in _bounds);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
@@ -92,7 +93,7 @@ partial class UIElement
     public Size Size
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bounds.Value.Size;
+        get => BoundsHelper.FastGetSize(in _bounds);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
@@ -117,14 +118,7 @@ partial class UIElement
         {
             using Lock.Scope scope = EnterSyncScope();
 
-            Rectangle bounds = _bounds.GetValueUnsafe();
-            if (bounds == value)
-                return;
-            _bounds.Value = value;
-            if (bounds.Location != value.Location)
-                OnLocationChanged();
-            if (bounds.Size != value.Size)
-                OnSizeChanged();
+            SetBoundsCore(value);
             AfterBoundsChanged();
         }
     }
@@ -132,7 +126,7 @@ partial class UIElement
     public int X
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bounds.Value.X;
+        get => BoundsHelper.FastGetX(in _bounds);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
@@ -173,7 +167,7 @@ partial class UIElement
     public int Y
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bounds.Value.Y;
+        get => BoundsHelper.FastGetY(in _bounds);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
@@ -292,7 +286,7 @@ partial class UIElement
     public int Width
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bounds.Value.Width;
+        get => BoundsHelper.FastGetWidth(in _bounds);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
@@ -325,7 +319,7 @@ partial class UIElement
     public int Height
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bounds.Value.Height;
+        get => BoundsHelper.FastGetHeight(in _bounds);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {

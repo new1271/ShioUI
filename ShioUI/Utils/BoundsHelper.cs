@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
 using System.Runtime.CompilerServices;
-using System.Threading;
+using System.Runtime.InteropServices;
 
 using InlineIL;
 
@@ -10,6 +10,7 @@ using InlineMethod;
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
+using RiceTea.Core.Threading;
 
 namespace ShioUI.Utils;
 
@@ -111,15 +112,63 @@ public static unsafe partial class BoundsHelper
         return IL.Return<Rect>();
     }
 
-    [Inline(InlineBehavior.Keep, export: true)]
-    public static ulong ConvertPointToUInt64(Point value) => (ulong)(uint)value.X << 32 | (uint)value.Y;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong AsUInt64(Point value)
+        => UnsafeHelper.As<Point, PointLayout>(ref value).Raw;
 
-    [Inline(InlineBehavior.Keep, export: true)]
-    public static ulong ConvertSizeToUInt64(Size value) => (ulong)(uint)value.Width << 32 | (uint)value.Height;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong AsUInt64(Size value)
+        => UnsafeHelper.As<Size, SizeLayout>(ref value).Raw;
 
-    [Inline(InlineBehavior.Keep, export: true)]
-    public static Point ConvertUInt64ToPoint(ulong value) => new Point((int)(uint)(value >>> 32), (int)(uint)value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Point AsPoint(ulong value)
+        => UnsafeHelper.As<ulong, PointLayout>(ref value).Point;
 
-    [Inline(InlineBehavior.Keep, export: true)]
-    public static Size ConvertUInt64ToSize(ulong value) => new Size((int)(uint)(value >>> 32), (int)(uint)value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Size AsSize(ulong value)
+        => UnsafeHelper.As<ulong, SizeLayout>(ref value).Size;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref readonly ulong AsUInt64(ref readonly Point reference)
+        => ref UnsafeHelper.As<Point, PointLayout>(ref UnsafeHelper.AsRefIn(in reference)).Raw;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref readonly ulong AsUInt64(ref readonly Size reference) 
+        => ref UnsafeHelper.As<Size, SizeLayout>(ref UnsafeHelper.AsRefIn(in reference)).Raw;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref readonly Point AsPoint(ref readonly ulong reference) 
+        => ref UnsafeHelper.As<ulong, PointLayout>(ref UnsafeHelper.AsRefIn(in reference)).Point;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref readonly Size AsSize(ref readonly ulong reference) 
+        => ref UnsafeHelper.As<ulong, SizeLayout>(ref UnsafeHelper.AsRefIn(in reference)).Size;
+
+    [StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
+    private readonly struct PointLayout
+    {
+        [FieldOffset(0)]
+        public readonly Point Point;
+        [FieldOffset(0)]
+        public readonly ulong Raw;
+
+        [FieldOffset(0)]
+        public readonly int X;
+        [FieldOffset(4)]
+        public readonly int Y;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
+    private readonly struct SizeLayout
+    {
+        [FieldOffset(0)]
+        public readonly Size Size;
+        [FieldOffset(0)]
+        public readonly ulong Raw;
+
+        [FieldOffset(0)]
+        public readonly int Width;
+        [FieldOffset(4)]
+        public readonly int Height;
+    }
 }

@@ -138,33 +138,33 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     public Rectangle MinimizeButtonBounds => _minimizeButtonBounds.Value;
 
-    public Point MinimizeButtonLocation => _minimizeButtonBounds.Value.Location;
+    public Point MinimizeButtonLocation => BoundsHelper.FastGetLocation(in _minimizeButtonBounds);
 
-    public Size MinimizeButtonSize => _minimizeButtonBounds.Value.Size;
+    public Size MinimizeButtonSize => BoundsHelper.FastGetSize(in _minimizeButtonBounds);
 
     public Rectangle MaximizeButtonBounds => _maximizeButtonBounds.Value;
 
-    public Point MaximizeButtonLocation => _maximizeButtonBounds.Value.Location;
+    public Point MaximizeButtonLocation => BoundsHelper.FastGetLocation(in _maximizeButtonBounds);
 
-    public Size MaximizeButtonSize => _maximizeButtonBounds.Value.Size;
+    public Size MaximizeButtonSize => BoundsHelper.FastGetSize(in _maximizeButtonBounds);
 
     public Rectangle CloseButtonBounds => _closeButtonBounds.Value;
 
-    public Point CloseButtonLocation => _closeButtonBounds.Value.Location;
+    public Point CloseButtonLocation => BoundsHelper.FastGetLocation(in _closeButtonBounds);
 
-    public Size CloseButtonSize => _closeButtonBounds.Value.Size;
+    public Size CloseButtonSize => BoundsHelper.FastGetSize(in _closeButtonBounds);
 
     public Rectangle TitleBarBounds => _titleBarBounds.Value;
 
-    public Point TitleBarLocation => _titleBarBounds.Value.Location;
+    public Point TitleBarLocation => BoundsHelper.FastGetLocation(in _titleBarBounds);
 
-    public Size TitleBarSize => _titleBarBounds.Value.Size;
+    public Size TitleBarSize => BoundsHelper.FastGetSize(in _titleBarBounds);
 
     public Rectangle PageBounds => _pageBounds.Value;
 
-    public Point PageLocation => _pageBounds.Value.Location;
+    public Point PageLocation => BoundsHelper.FastGetLocation(in _pageBounds);
 
-    public Size PageSize => _pageBounds.Value.Size;
+    public Size PageSize => BoundsHelper.FastGetSize(in _pageBounds);
     #endregion
 
     #region Init

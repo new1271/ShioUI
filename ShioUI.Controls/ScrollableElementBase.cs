@@ -285,11 +285,11 @@ public abstract partial class ScrollableElementBase : UIElement,
             }
             if (originalViewportPoint == viewportPoint)
                 break;
-            ulong originalViewportPointAsUInt64 = BoundsHelper.ConvertPointToUInt64(originalViewportPoint);
-            ulong currentViewportPointAsUInt64 = Atomics.CompareExchange(ref _viewportPointRaw, BoundsHelper.ConvertPointToUInt64(viewportPoint), originalViewportPointAsUInt64);
+            ulong originalViewportPointAsUInt64 = BoundsHelper.AsUInt64(originalViewportPoint);
+            ulong currentViewportPointAsUInt64 = Atomics.CompareExchange(ref _viewportPointRaw, BoundsHelper.AsUInt64(viewportPoint), originalViewportPointAsUInt64);
             if (currentViewportPointAsUInt64 == originalViewportPointAsUInt64)
                 break;
-            viewportPoint = BoundsHelper.ConvertUInt64ToPoint(currentViewportPointAsUInt64);
+            viewportPoint = BoundsHelper.AsPoint(currentViewportPointAsUInt64);
         }
         while (true);
         if (_oldViewportPoint == viewportPoint)
@@ -339,7 +339,7 @@ public abstract partial class ScrollableElementBase : UIElement,
         else
             viewportPoint = new Point(MathHelper.Clamp(viewportPoint.X, 0, maxX), MathHelper.Clamp(viewportPoint.Y, 0, maxY));
 
-        Atomics.Write(ref _viewportPointRaw, BoundsHelper.ConvertPointToUInt64(viewportPoint));
+        Atomics.Write(ref _viewportPointRaw, BoundsHelper.AsUInt64(viewportPoint));
         if (oldContentBounds != contentBounds)
         {
             _contentBounds.Value = contentBounds;
