@@ -22,7 +22,7 @@ namespace ShioUI.Controls;
 
 partial class DropdownBox
 {
-    public sealed partial class List : ScrollableElementBase, IGlobalMouseInteractHandler
+    private sealed partial class List : ScrollableElementBase, IGlobalMouseInteractHandler
     {
         private static readonly string[] _brushNames = new string[(int)Brush._Last]
         {
