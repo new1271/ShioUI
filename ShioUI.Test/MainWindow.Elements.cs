@@ -84,7 +84,7 @@ partial class MainWindow
                 Text = "可以勾選的方塊"
             }.WithAutoWidth().WithAutoHeight());
 
-            ComboBox comboBox = new ComboBox(this)
+            DropdownBox comboBox = new DropdownBox(this)
             {
                 LeftExpression = leftNode,
                 TopExpression = groupBox.FirstChild!.BottomDefinition + UIConstants.ElementMarginDefinition,
@@ -129,7 +129,6 @@ partial class MainWindow
             groupBox.AddChildren(comboBox, label, leftButton, rightButton, progressBar, textBox2);
 
             _progressBar = progressBar;
-            comboBox.RequestDropdownListOpening += ComboBox_RequestDropdownListOpening;
             items = comboBox.Items;
             for (int i = 1; i <= 200; i++)
                 items.Add("選項 " + i.ToString());

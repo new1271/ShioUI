@@ -59,11 +59,6 @@ internal sealed partial class MainWindow : TabbedWindow
             GC.Collect();
     }
 
-    private void ComboBox_RequestDropdownListOpening(object? sender, DropdownListEventArgs e)
-    {
-        ChangeOverlayElement(e.DropdownList);
-    }
-
     private void Button_Click(UIElement sender, in MouseEventArgs args)
     {
         if (CurrentTheme?.IsDarkTheme ?? false)
