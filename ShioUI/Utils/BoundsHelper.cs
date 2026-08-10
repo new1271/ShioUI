@@ -122,31 +122,4 @@ public static unsafe partial class BoundsHelper
 
     [Inline(InlineBehavior.Keep, export: true)]
     public static Size ConvertUInt64ToSize(ulong value) => new Size((int)(uint)(value >>> 32), (int)(uint)value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rectangle ConvertUInt64SlotsToBounds(ulong location, ulong size)
-        => new Rectangle(
-            location: ConvertUInt64ToPoint(location),
-            size: ConvertUInt64ToSize(size)
-            );
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ConvertBoundsToUInt64Slots(in Rectangle bounds, ref ulong locationSlot, ref ulong sizeSlot)
-    {
-        locationSlot = ConvertPointToUInt64(bounds.Location);
-        sizeSlot = ConvertSizeToUInt64(bounds.Size);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Rectangle LoadBoundsFromUInt64Fields(ref readonly ulong locationSlot, ref readonly ulong sizeSlot) => new Rectangle(
-            location: ConvertUInt64ToPoint(Volatile.Read(ref UnsafeHelper.AsRefIn(in locationSlot))),
-            size: ConvertUInt64ToSize(Volatile.Read(ref UnsafeHelper.AsRefIn(in sizeSlot)))
-            );
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SaveBoundsToUInt64Fields(in Rectangle bounds, ref ulong locationSlot, ref ulong sizeSlot)
-    {
-        Volatile.Write(ref locationSlot, ConvertPointToUInt64(bounds.Location));
-        Volatile.Write(ref sizeSlot, ConvertSizeToUInt64(bounds.Size));
-    }
 }

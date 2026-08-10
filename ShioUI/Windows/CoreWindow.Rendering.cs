@@ -103,12 +103,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     private DWriteTextLayout? _titleLayout;
     private D2D1ColorF _clearDCColor, _windowBaseColor;
     private Point _drawingOffset;
-    private ulong _resizeTimestamp, _renderFramestamp,
-        _minimizeButtonLocation, _minimizeButtonSize,
-        _maximizeButtonLocation, _maximizeButtonSize,
-        _closeButtonLocation, _closeButtonSize,
-        _pageLocation, _pageSize,
-        _titleBarLocation, _titleBarSize;
+    private StateTiny.SingleWriter<Rectangle> _minimizeButtonBounds, _maximizeButtonBounds, _closeButtonBounds, _pageBounds, _titleBarBounds;
+    private ulong _resizeTimestamp, _renderFramestamp;
     private nuint _ownedGDP, _recreateGraphicsDeviceProviderBarrier, _recalculateLayoutVersion;
     private int _activeBorderWidth;
 
@@ -140,210 +136,35 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     public D2D1ColorF WindowBaseColor => _windowBaseColor;
 
-    public Rectangle MinimizeButtonBounds
-    {
-        get
-        {
-            ulong location, size;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            nuint version = OptimisticLock.Enter(in versionRef);
-            do
-            {
-                location = Volatile.Read(ref _minimizeButtonLocation);
-                size = Volatile.Read(ref _minimizeButtonSize);
-            }
-            while (!OptimisticLock.TryLeave(in versionRef, ref version));
-            return BoundsHelper.ConvertUInt64SlotsToBounds(location, size);
-        }
-    }
+    public Rectangle MinimizeButtonBounds => _minimizeButtonBounds.Value;
 
-    public Point MinimizeButtonLocation
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _minimizeButtonLocation;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToPoint(result);
-        }
-    }
+    public Point MinimizeButtonLocation => _minimizeButtonBounds.Value.Location;
 
-    public Size MinimizeButtonSize
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _minimizeButtonSize;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToSize(result);
-        }
-    }
+    public Size MinimizeButtonSize => _minimizeButtonBounds.Value.Size;
 
-    public Rectangle MaximizeButtonBounds
-    {
-        get
-        {
-            ulong location, size;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            nuint version = OptimisticLock.Enter(in versionRef);
-            do
-            {
-                location = Volatile.Read(ref _maximizeButtonLocation);
-                size = Volatile.Read(ref _maximizeButtonSize);
-            }
-            while (!OptimisticLock.TryLeave(in versionRef, ref version));
-            return BoundsHelper.ConvertUInt64SlotsToBounds(location, size);
-        }
-    }
+    public Rectangle MaximizeButtonBounds => _maximizeButtonBounds.Value;
 
-    public Point MaximizeButtonLocation
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _maximizeButtonLocation;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToPoint(result);
-        }
-    }
+    public Point MaximizeButtonLocation => _maximizeButtonBounds.Value.Location;
 
-    public Size MaximizeButtonSize
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _maximizeButtonSize;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToSize(result);
-        }
-    }
+    public Size MaximizeButtonSize => _maximizeButtonBounds.Value.Size;
 
-    public Rectangle CloseButtonBounds
-    {
-        get
-        {
-            ulong location, size;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            nuint version = OptimisticLock.Enter(in versionRef);
-            do
-            {
-                location = Volatile.Read(ref _closeButtonLocation);
-                size = Volatile.Read(ref _closeButtonSize);
-            }
-            while (!OptimisticLock.TryLeave(in versionRef, ref version));
-            return BoundsHelper.ConvertUInt64SlotsToBounds(location, size);
-        }
-    }
+    public Rectangle CloseButtonBounds => _closeButtonBounds.Value;
 
-    public Point CloseButtonLocation
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _closeButtonLocation;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToPoint(result);
-        }
-    }
+    public Point CloseButtonLocation => _closeButtonBounds.Value.Location;
 
-    public Size CloseButtonSize
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _closeButtonSize;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToSize(result);
-        }
-    }
+    public Size CloseButtonSize => _closeButtonBounds.Value.Size;
 
-    public Rectangle TitleBarBounds
-    {
-        get
-        {
-            ulong location, size;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            nuint version = OptimisticLock.Enter(in versionRef);
-            do
-            {
-                location = Volatile.Read(ref _titleBarLocation);
-                size = Volatile.Read(ref _titleBarSize);
-            }
-            while (!OptimisticLock.TryLeave(in versionRef, ref version));
-            return BoundsHelper.ConvertUInt64SlotsToBounds(location, size);
-        }
-    }
+    public Rectangle TitleBarBounds => _titleBarBounds.Value;
 
-    public Point TitleBarLocation
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _titleBarLocation;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToPoint(result);
-        }
-    }
+    public Point TitleBarLocation => _titleBarBounds.Value.Location;
 
-    public Size TitleBarSize
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _titleBarSize;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToSize(result);
-        }
-    }
+    public Size TitleBarSize => _titleBarBounds.Value.Size;
 
-    public Rectangle PageBounds
-    {
-        get
-        {
-            ulong location, size;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            nuint version = OptimisticLock.Enter(in versionRef);
-            do
-            {
-                location = Volatile.Read(ref _pageLocation);
-                size = Volatile.Read(ref _pageSize);
-            }
-            while (!OptimisticLock.TryLeave(in versionRef, ref version));
-            return BoundsHelper.ConvertUInt64SlotsToBounds(location, size);
-        }
-    }
+    public Rectangle PageBounds => _pageBounds.Value;
 
-    public Point PageLocation
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _pageLocation;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToPoint(result);
-        }
-    }
+    public Point PageLocation => _pageBounds.Value.Location;
 
-    public Size PageSize
-    {
-        get
-        {
-            ref readonly ulong resultRef = ref _pageSize;
-            ref readonly nuint versionRef = ref _recalculateLayoutVersion;
-            ulong result = OptimisticLock.EnterWithPrimitive(in resultRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithPrimitive(in resultRef, in versionRef, ref result, ref version)) ;
-            return BoundsHelper.ConvertUInt64ToSize(result);
-        }
-    }
+    public Size PageSize => _pageBounds.Value.Size;
     #endregion
 
     #region Init
@@ -1036,11 +857,11 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         {
             Layout = new()
             {
-                MinimizeButtonBounds = BoundsHelper.ConvertUInt64SlotsToBounds(_minimizeButtonLocation, _minimizeButtonSize),
-                MaximizeButtonBounds = BoundsHelper.ConvertUInt64SlotsToBounds(_maximizeButtonLocation, _maximizeButtonSize),
-                CloseButtonBounds = BoundsHelper.ConvertUInt64SlotsToBounds(_closeButtonLocation, _closeButtonSize),
-                PageBounds = BoundsHelper.ConvertUInt64SlotsToBounds(_pageLocation, _pageSize),
-                TitleBarBounds = BoundsHelper.ConvertUInt64SlotsToBounds(_titleBarLocation, _titleBarSize),
+                MinimizeButtonBounds = _minimizeButtonBounds.GetValueUnsafe(),
+                MaximizeButtonBounds = _maximizeButtonBounds.GetValueUnsafe(),
+                CloseButtonBounds = _closeButtonBounds.GetValueUnsafe(),
+                PageBounds = _pageBounds.GetValueUnsafe(),
+                TitleBarBounds = _titleBarBounds.GetValueUnsafe(),
                 DrawingOffset = _drawingOffset,
                 ActiveBorderWidth = _activeBorderWidth
             },
@@ -1097,11 +918,11 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 RecalculateLayout(
                     data: ref layoutData,
                     windowSize: GraphicsUtils.ScalingSizeAndConvert(clirentSizeInPixel, _pointsPerPixel));
-                BoundsHelper.SaveBoundsToUInt64Fields(layoutData.MinimizeButtonBounds, ref _minimizeButtonLocation, ref _minimizeButtonSize);
-                BoundsHelper.SaveBoundsToUInt64Fields(layoutData.MaximizeButtonBounds, ref _maximizeButtonLocation, ref _maximizeButtonSize);
-                BoundsHelper.SaveBoundsToUInt64Fields(layoutData.CloseButtonBounds, ref _closeButtonLocation, ref _closeButtonSize);
-                BoundsHelper.SaveBoundsToUInt64Fields(layoutData.PageBounds, ref _pageLocation, ref _pageSize);
-                BoundsHelper.SaveBoundsToUInt64Fields(layoutData.TitleBarBounds, ref _titleBarLocation, ref _titleBarSize);
+                _minimizeButtonBounds.Value = layoutData.MinimizeButtonBounds;
+                _maximizeButtonBounds.Value = layoutData.MaximizeButtonBounds;
+                _closeButtonBounds.Value = layoutData.CloseButtonBounds;
+                _pageBounds.Value = layoutData.PageBounds;
+                _titleBarBounds.Value = layoutData.TitleBarBounds;
 
                 ulong timestamp = data.ResizeFramestamp;
                 _resizeTimestamp = timestamp;
@@ -1109,7 +930,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 _activeBorderWidth = layoutData.ActiveBorderWidth;
                 Atomics.Increment(ref _recalculateLayoutVersion);
 
-                Size pageSize = layoutData.PageBounds.Size;
+                Size pageSize = layoutData.PageSize;
                 if (pageSize.IsValid())
                     RecalculatePageLayout(pageSize, new(data.ResizeFramestamp));
             }
@@ -1175,7 +996,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         [MethodImpl(MethodImplOptions.NoInlining)]
         bool Overdraw(SimpleGraphicsHost host, RenderingController controller, RenderResult resultFlags, ref WindowRenderingData data)
         {
-            Size pageSize = data.Layout.PageBounds.Size;
+            Size pageSize = data.Layout.PageSize;
             if (!pageSize.IsValid())
                 return false;
 
@@ -1201,7 +1022,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                     if (flags.HasResize())
                     {
                         bool dropped = true;
-                        if (!TryResize(host, controller, ref data, flags, ref dropped) || !(pageSize = data.Layout.PageBounds.Size).IsValid())
+                        if (!TryResize(host, controller, ref data, flags, ref dropped) || !(pageSize = data.Layout.PageSize).IsValid())
                             return false;
                     }
                     else

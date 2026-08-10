@@ -38,20 +38,21 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     private readonly Timer _repeatingTimer;
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
+    private readonly ScrollBarType _scrollBarType;
+    private readonly bool _drawWhenDisabled;
 
     private LayoutNode? _autoHeightLayoutNode;
     private string _scrollBarThemePrefix;
     private Action? _repeatingAction;
     private Point _oldViewportPoint;
     private Size _oldSurfaceSize;
+    private StateTiny.SingleWriter<Rectangle> _contentBounds;
     private Rect _scrollBarBounds;
     private RectF _scrollBarScrollButtonBounds, _scrollBarUpButtonBounds, _scrollBarDownButtonBounds;
     private ButtonTriState _scrollButtonState, _scrollUpButtonState, _scrollDownButtonState;
-    private ScrollBarType _scrollBarType;
-    private ulong _updateFlagsRaw, _contentLocationRaw, _contentSizeRaw, _viewportPointRaw, _surfaceSizeRaw;
-    private nuint _surfaceSizeVersion, _viewportPointVersion, _contentBoundsVersion;
+    private ulong _updateFlagsRaw, _viewportPointRaw, _surfaceSizeRaw;
     private float _pinY;
-    private uint _enabled, _drawWhenDisabled;
+    private uint _enabled;
     private bool _hasScrollBar, _stickBottom;
 
     protected ScrollableElementBase(IElementContainer parent, string themePrefix) : this(parent, themePrefix, DefaultPrefixForScrollBar) { }
@@ -263,30 +264,34 @@ public abstract partial class ScrollableElementBase : UIElement,
 
     private bool AdjustViewportPoint(Size surfaceSize, Size contentSize, ref Point viewportPoint)
     {
-        Point originalViewportPoint = viewportPoint;
-        if (viewportPoint.X < 0)
-            viewportPoint.X = 0;
-        else
+        do
         {
-            int maxX = MathHelper.Max(surfaceSize.Width - contentSize.Width, 0);
-            if (viewportPoint.X > maxX)
-                viewportPoint.X = maxX;
-        }
-        if (viewportPoint.Y < 0)
-            viewportPoint.Y = 0;
-        else
-        {
-            int maxY = MathHelper.Max(surfaceSize.Height - contentSize.Height, 0);
-            if (viewportPoint.Y > maxY)
-                viewportPoint.Y = maxY;
-        }
-        if (originalViewportPoint != viewportPoint)
-        {
+            Point originalViewportPoint = viewportPoint;
+            if (viewportPoint.X < 0)
+                viewportPoint.X = 0;
+            else
+            {
+                int maxX = MathHelper.Max(surfaceSize.Width - contentSize.Width, 0);
+                if (viewportPoint.X > maxX)
+                    viewportPoint.X = maxX;
+            }
+            if (viewportPoint.Y < 0)
+                viewportPoint.Y = 0;
+            else
+            {
+                int maxY = MathHelper.Max(surfaceSize.Height - contentSize.Height, 0);
+                if (viewportPoint.Y > maxY)
+                    viewportPoint.Y = maxY;
+            }
+            if (originalViewportPoint == viewportPoint)
+                break;
             ulong originalViewportPointAsUInt64 = BoundsHelper.ConvertPointToUInt64(originalViewportPoint);
-            if (Atomics.CompareExchange(ref _viewportPointRaw,
-                BoundsHelper.ConvertPointToUInt64(viewportPoint), originalViewportPointAsUInt64) == originalViewportPointAsUInt64)
-                OptimisticLock.Increase(ref _viewportPointVersion);
+            ulong currentViewportPointAsUInt64 = Atomics.CompareExchange(ref _viewportPointRaw, BoundsHelper.ConvertPointToUInt64(viewportPoint), originalViewportPointAsUInt64);
+            if (currentViewportPointAsUInt64 == originalViewportPointAsUInt64)
+                break;
+            viewportPoint = BoundsHelper.ConvertUInt64ToPoint(currentViewportPointAsUInt64);
         }
+        while (true);
         if (_oldViewportPoint == viewportPoint)
             return false;
         _oldViewportPoint = viewportPoint;
@@ -327,13 +332,6 @@ public abstract partial class ScrollableElementBase : UIElement,
             viewportPoint.Y + oldContentBounds.Height >= oldSurfaceSize.Height);
         _hasScrollBar = hasScrollBar;
         OnContentBoundsChanging(ref contentBounds);
-        if (oldContentBounds != contentBounds)
-        {
-            Atomics.Write(ref _contentLocationRaw, BoundsHelper.ConvertPointToUInt64(contentBounds.Location));
-            Atomics.Write(ref _contentSizeRaw, BoundsHelper.ConvertSizeToUInt64(contentBounds.Size));
-            OptimisticLock.Increase(ref _contentBoundsVersion);
-            OnContentBoundsChanged();
-        }
         int maxX = MathHelper.Max(surfaceSize.Width - contentBounds.Width, 0);
         int maxY = MathHelper.Max(surfaceSize.Height - contentBounds.Height, 0);
         if (isStick)
@@ -341,10 +339,14 @@ public abstract partial class ScrollableElementBase : UIElement,
         else
             viewportPoint = new Point(MathHelper.Clamp(viewportPoint.X, 0, maxX), MathHelper.Clamp(viewportPoint.Y, 0, maxY));
 
+        Atomics.Write(ref _viewportPointRaw, BoundsHelper.ConvertPointToUInt64(viewportPoint));
+        if (oldContentBounds != contentBounds)
+        {
+            _contentBounds.Value = contentBounds;
+            OnContentBoundsChanged();
+        }
+
         ScrollableElementUpdateFlags result = hasScrollBar ? (ScrollableElementUpdateFlags.RecalcScrollBar | ScrollableElementUpdateFlags.All) : ScrollableElementUpdateFlags.Content;
-        ulong viewportPointAsUInt64 = BoundsHelper.ConvertPointToUInt64(viewportPoint);
-        if (Atomics.Exchange(ref _viewportPointRaw, viewportPointAsUInt64) == viewportPointAsUInt64)
-            OptimisticLock.Increase(ref _viewportPointVersion);
         if (_oldViewportPoint != viewportPoint)
         {
             _oldViewportPoint = viewportPoint;
@@ -375,7 +377,7 @@ public abstract partial class ScrollableElementBase : UIElement,
         RectF scrollBarDownButtonBounds = RectF.FromXYWH(baseX, scrollBarBounds.Bottom - UIConstantsPrivate.ScrollBarWidth, UIConstantsPrivate.ScrollBarWidth, UIConstantsPrivate.ScrollBarWidth);
         float scrollBarMaxHeight = scrollBarDownButtonBounds.Top - scrollBarUpButtonBounds.Bottom;
         float height = MathHelper.Max((float)(contentHeight * 1.0 / surfaceHeight * scrollBarMaxHeight), MinimumScrollBarButtonHeight);
-        float top = scrollBarUpButtonBounds.Bottom + (viewportY * 1.0f / (surfaceHeight - contentHeight)* (scrollBarMaxHeight - height));
+        float top = scrollBarUpButtonBounds.Bottom + (viewportY * 1.0f / (surfaceHeight - contentHeight) * (scrollBarMaxHeight - height));
         _scrollBarUpButtonBounds = scrollBarUpButtonBounds;
         _scrollBarDownButtonBounds = scrollBarDownButtonBounds;
         _scrollBarScrollButtonBounds = RectF.FromXYWH(baseX, top, UIConstantsPrivate.ScrollBarWidth, height);

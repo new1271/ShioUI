@@ -27,19 +27,19 @@ public abstract partial class UIElement : ICheckableDisposable
     private readonly LayoutNode?[] _layoutDefinitions = new LayoutNode?[(int)LayoutProperty._Last];
     private readonly LayoutNode?[] _layoutExpressions = new LayoutNode?[(int)LayoutProperty._Last];
     private readonly Lock _syncLock = new Lock(), _themeAccessLock = new Lock();
+    private readonly string _themePrefix;
     private readonly int _identifier;
+    private readonly bool _enablePartialRendering;
 
     private WeakReference<UIElement>? _reference;
     private IElementContainer _parent;
     private IThemeContext? _themeContext;
-    private string _themePrefix;
     private object? _tag;
     private GCHandle _themeResourceProviderReference;
-    private ulong _location, _size, _layoutFramestamp, _renderCheckFramestamp;
+    private StateTiny.SingleWriter<Rectangle> _bounds; // 使用外部鎖來保證單一寫入
+    private ulong _layoutFramestamp, _renderCheckFramestamp;
     private nuint _requestRedraw, _shouldUpdateWhenUnfreeze, _freezeCount,
-        _parentVersion, _boundsVersion, _tagVersion,
-        _disposed;
-    private bool _enablePartialRendering;
+         _disposed;
 
     public UIElement(IElementContainer parent, string themePrefix)
     {
@@ -128,7 +128,8 @@ public abstract partial class UIElement : ICheckableDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(in Rectangle bounds, ulong framestamp)
     {
-        SetBoundsCore_Pure(bounds);
+        using Lock.Scope scope = EnterSyncScope();
+        _bounds.Value = bounds;
         RefreshLayout(framestamp);
     }
 
@@ -205,7 +206,7 @@ public abstract partial class UIElement : ICheckableDisposable
     {
         lock (_syncLock)
         {
-            bool enablePartialRendering = Volatile.Read(ref _enablePartialRendering);
+            bool enablePartialRendering = _enablePartialRendering;
             try
             {
                 ResetNeedRefreshFlag();
@@ -342,90 +343,10 @@ public abstract partial class UIElement : ICheckableDisposable
         DisposeCore(disposing);
     }
 
-    [Inline(InlineBehavior.Remove)]
-    private Point GetLocationCore()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AfterBoundsChanged()
     {
-        ref readonly ulong valRef = ref _location;
-        ref readonly nuint versionRef = ref _boundsVersion;
-        ulong val = OptimisticLock.EnterWithPrimitive(in valRef, in versionRef, out nuint version);
-        while (!OptimisticLock.TryLeaveWithPrimitive(in valRef, in versionRef, ref val, ref version)) ;
-        return BoundsHelper.ConvertUInt64ToPoint(val);
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private void SetLocationCore(in Point value)
-    {
-        if (!SetLocationCore_Pure(in value))
-            return;
-        OnLocationChanged();
-        OptimisticLock.Increase(ref _boundsVersion);
         ResetRenderCheckFramestamp();
         Update();
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private bool SetLocationCore_Pure(in Point value)
-    {
-        ulong val = BoundsHelper.ConvertPointToUInt64(value);
-        return Atomics.Exchange(ref _location, val) != val;
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private Size GetSizeCore()
-    {
-        ref readonly ulong valRef = ref _size;
-        ref readonly nuint versionRef = ref _boundsVersion;
-        ulong val = OptimisticLock.EnterWithPrimitive(in valRef, in versionRef, out nuint version);
-        while (!OptimisticLock.TryLeaveWithPrimitive(in valRef, in versionRef, ref val, ref version)) ;
-        return BoundsHelper.ConvertUInt64ToSize(val);
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private void SetSizeCore(in Size value)
-    {
-        if (!SetSizeCore_Pure(in value))
-            return;
-        OnSizeChanged();
-        OptimisticLock.Increase(ref _boundsVersion);
-        ResetRenderCheckFramestamp();
-        Update();
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private bool SetSizeCore_Pure(in Size value)
-    {
-        ulong val = BoundsHelper.ConvertSizeToUInt64(value);
-        return Atomics.Exchange(ref _size, val) != val;
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private void SetBoundsCore(in Rectangle value)
-    {
-        if (!SetBoundsCore_Pure(value))
-            return;
-        ResetRenderCheckFramestamp();
-        Update();
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private bool SetBoundsCore_Pure(in Rectangle value)
-    {
-        bool locationChanged = SetLocationCore_Pure(value.Location);
-        bool sizeChanged = SetSizeCore_Pure(value.Size);
-        if (locationChanged)
-        {
-            OnLocationChanged();
-            if (sizeChanged)
-                OnSizeChanged();
-            OptimisticLock.Increase(ref _boundsVersion);
-            return true;
-        }
-        if (sizeChanged)
-        {
-            OnSizeChanged();
-            OptimisticLock.Increase(ref _boundsVersion);
-            return true;
-        }
-        return false;
     }
 }

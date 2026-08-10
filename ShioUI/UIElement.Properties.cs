@@ -3,12 +3,11 @@ using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Layout;
-using ShioUI.Windows;
-using ShioUI.Theme;
-
-using RiceTea.Core.Threading;
 using RiceTea.Core;
+
+using ShioUI.Layout;
+using ShioUI.Theme;
+using ShioUI.Windows;
 
 namespace ShioUI;
 
@@ -45,9 +44,9 @@ partial class UIElement
     protected bool EnablePartialRendering
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Volatile.Read(ref _enablePartialRendering);
+        get => _enablePartialRendering;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => Volatile.Write(ref _enablePartialRendering, value);
+        init => _enablePartialRendering = value;
     }
 
     public bool IsRenderedOnce
@@ -59,22 +58,12 @@ partial class UIElement
     public IElementContainer Parent
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            ref readonly IElementContainer parentRef = ref _parent;
-            ref readonly nuint versionRef = ref _parentVersion;
-            IElementContainer parent = OptimisticLock.EnterWithObject(in parentRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithObject(in parentRef, in versionRef, ref parent, ref version)) ;
-            return parent;
-        }
+        get => Atomics.Read(ref _parent);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
-            ref IElementContainer parentRef = ref _parent;
-            ref nuint versionRef = ref _parentVersion;
             if (ReferenceEquals(Atomics.Exchange(ref _parent, value), value))
                 return;
-            OptimisticLock.Increase(ref versionRef);
             InvalidateLayout();
             ResetRenderCheckFramestamp();
             Update();
@@ -84,41 +73,87 @@ partial class UIElement
     public Point Location
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore();
+        get => _bounds.Value.Location;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetLocationCore(value);
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds.Location == value)
+                return;
+
+            _bounds.Value = new(location: value, size: bounds.Size);
+            OnLocationChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public Size Size
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetSizeCore();
+        get => _bounds.Value.Size;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetSizeCore(value);
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds.Size == value)
+                return;
+
+            _bounds.Value = new(location: bounds.Location, size: value);
+            OnSizeChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public Rectangle Bounds
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new Rectangle(GetLocationCore(), GetSizeCore());
+        get => _bounds.Value;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetBoundsCore(value);
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds == value)
+                return;
+            _bounds.Value = value;
+            if (bounds.Location != value.Location)
+                OnLocationChanged();
+            if (bounds.Size != value.Size)
+                OnSizeChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public int X
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore().X;
+        get => _bounds.Value.X;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetLocationCore(GetLocationCore() with { X = value });
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds.X == value)
+                return;
+
+            _bounds.Value = new(location: new(x: value, bounds.Y), size: bounds.Size);
+            OnLocationChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public int Left
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore().X;
+        get => X;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetLocationCore(GetLocationCore() with { X = value });
+        set => X = value;
     }
 
     public LayoutNode LeftDefinition
@@ -138,17 +173,28 @@ partial class UIElement
     public int Y
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore().Y;
+        get => _bounds.Value.Y;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetLocationCore(GetLocationCore() with { Y = value });
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds.Y == value)
+                return;
+
+            _bounds.Value = new(location: new(bounds.X, y: value), size: bounds.Size);
+            OnLocationChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public int Top
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore().Y;
+        get => Y;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetLocationCore(GetLocationCore() with { Y = value });
+        set => Y = value;
     }
 
     public LayoutNode TopDefinition
@@ -168,9 +214,26 @@ partial class UIElement
     public int Right
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore().X + GetSizeCore().Width;
+        get => _bounds.Value.Right;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetSizeCore(GetSizeCore() with { Width = value - GetLocationCore().X });
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            int left = bounds.Left;
+            int width = bounds.Width;
+            int newWidth = value - left;
+
+            if (width == newWidth)
+                return;
+            if (newWidth < 0)
+                ArgumentOutOfRangeException.Throw(nameof(value));
+
+            _bounds.Value = new(location: bounds.Location, size: new(width: newWidth, height: bounds.Height));
+            OnSizeChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public LayoutNode RightDefinition
@@ -190,9 +253,26 @@ partial class UIElement
     public int Bottom
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLocationCore().Y + GetSizeCore().Height;
+        get => _bounds.Value.Bottom;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetSizeCore(GetSizeCore() with { Height = value - GetLocationCore().Y });
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            int top = bounds.Top;
+            int height = bounds.Height;
+            int newHeight = value - top;
+
+            if (height == newHeight)
+                return;
+            if (newHeight < 0)
+                ArgumentOutOfRangeException.Throw(nameof(value));
+
+            _bounds.Value = new(location: bounds.Location, size: new(width: bounds.Width, height: newHeight));
+            OnSizeChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public LayoutNode BottomDefinition
@@ -209,34 +289,23 @@ partial class UIElement
         set => SetLayoutExpressionCore((nuint)LayoutProperty.Bottom, value);
     }
 
-    public int Height
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetSizeCore().Height;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetSizeCore(GetSizeCore() with { Height = value });
-    }
-
-    public LayoutNode HeightDefinition
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLayoutDefinitionCore((nuint)LayoutProperty.Height);
-    }
-
-    public LayoutNode? HeightExpression
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetLayoutExpressionCore((nuint)LayoutProperty.Height);
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetLayoutExpressionCore((nuint)LayoutProperty.Height, value);
-    }
-
     public int Width
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetSizeCore().Width;
+        get => _bounds.Value.Width;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => SetSizeCore(GetSizeCore() with { Width = value });
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds.Width == value)
+                return;
+
+            _bounds.Value = new(location: bounds.Location, size: new(width: value, height: bounds.Height));
+            OnSizeChanged();
+            AfterBoundsChanged();
+        }
     }
 
     public LayoutNode WidthDefinition
@@ -251,6 +320,39 @@ partial class UIElement
         get => GetLayoutExpressionCore((nuint)LayoutProperty.Width);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => SetLayoutExpressionCore((nuint)LayoutProperty.Width, value);
+    }
+
+    public int Height
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _bounds.Value.Height;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set
+        {
+            using Lock.Scope scope = EnterSyncScope();
+
+            Rectangle bounds = _bounds.GetValueUnsafe();
+            if (bounds.Height == value)
+                return;
+
+            _bounds.Value = new(location: bounds.Location, size: new(width: bounds.Width, height: value));
+            OnSizeChanged();
+            AfterBoundsChanged();
+        }
+    }
+
+    public LayoutNode HeightDefinition
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => GetLayoutDefinitionCore((nuint)LayoutProperty.Height);
+    }
+
+    public LayoutNode? HeightExpression
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => GetLayoutExpressionCore((nuint)LayoutProperty.Height);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => SetLayoutExpressionCore((nuint)LayoutProperty.Height, value);
     }
 
     public IThemeContext? CurrentTheme
@@ -282,23 +384,9 @@ partial class UIElement
     public object? Tag
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            ref readonly object? tagRef = ref _tag;
-            ref readonly nuint versionRef = ref _tagVersion;
-            object? tag = OptimisticLock.EnterWithObject(in tagRef, in versionRef, out nuint version);
-            while (!OptimisticLock.TryLeaveWithObject(in tagRef, in versionRef, ref tag, ref version)) ;
-            return tag;
-        }
+        get => Atomics.Read(ref _tag);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
-        {
-            ref object? tagRef = ref _tag;
-            ref nuint versionRef = ref _tagVersion;
-            if (ReferenceEquals(Atomics.Exchange(ref _tag, value), value))
-                return;
-            OptimisticLock.Increase(ref versionRef);
-        }
+        set => Atomics.Write(ref _tag, value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

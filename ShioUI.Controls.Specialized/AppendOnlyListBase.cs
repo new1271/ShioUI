@@ -23,6 +23,7 @@ public abstract partial class AppendOnlyListBase<TItem, TMeasuringContext> : Scr
         _itemStore = itemStore;
         itemStore.HeightChanged += ItemStore_HeightChanged;
         itemStore.Bind(this);
+        ScrollBarType = ScrollBarType.AutoVertial;
         Initialize();
     }
 
@@ -31,12 +32,12 @@ public abstract partial class AppendOnlyListBase<TItem, TMeasuringContext> : Scr
         _itemStore = itemStore;
         itemStore.HeightChanged += ItemStore_HeightChanged;
         itemStore.Bind(this);
+        ScrollBarType = ScrollBarType.AutoVertial;
         Initialize();
     }
 
     protected virtual void Initialize()
     {
-        ScrollBarType = ScrollBarType.AutoVertial;
         StickBottom = true;
         _ignoreNeedRefresh = true;
     }

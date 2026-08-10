@@ -16,6 +16,66 @@ partial class CoreWindow
         public Rectangle MinimizeButtonBounds, MaximizeButtonBounds, CloseButtonBounds, PageBounds, TitleBarBounds;
         public Point DrawingOffset;
         public int ActiveBorderWidth;
+
+        public Point MinimizeButtonLocation
+        {
+            readonly get => MinimizeButtonBounds.Location;
+            set => MinimizeButtonBounds.Location = value;
+        }
+
+        public Size MinimizeButtonSize
+        {
+            readonly get => MinimizeButtonBounds.Size;
+            set => MinimizeButtonBounds.Size = value;
+        }
+
+        public Point MaximizeButtonLocation
+        {
+            readonly get => MaximizeButtonBounds.Location;
+            set => MaximizeButtonBounds.Location = value;
+        }
+
+        public Size MaximizeButtonSize
+        {
+            readonly get => MaximizeButtonBounds.Size;
+            set => MaximizeButtonBounds.Size = value;
+        }
+
+        public Point CloseButtonLocation
+        {
+            readonly get => CloseButtonBounds.Location;
+            set => CloseButtonBounds.Location = value;
+        }
+
+        public Size CloseButtonSize
+        {
+            readonly get => CloseButtonBounds.Size;
+            set => CloseButtonBounds.Size = value;
+        }
+
+        public Point TitleBarLocation
+        {
+            readonly get => TitleBarBounds.Location;
+            set => TitleBarBounds.Location = value;
+        }
+
+        public Size TitleBarSize
+        {
+            readonly get => TitleBarBounds.Size;
+            set => TitleBarBounds.Size = value;
+        }
+
+        public Point PageLocation
+        {
+            readonly get => PageBounds.Location;
+            set => PageBounds.Location = value;
+        }
+
+        public Size PageSize
+        {
+            readonly get => PageBounds.Size;
+            set => PageBounds.Size = value;
+        }
     }
 
     [StructLayout(LayoutKind.Auto)]
