@@ -135,9 +135,9 @@ public abstract partial class UIElement : ICheckableDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool CheckLayoutOutdated(ulong timestamp)
+    internal bool CheckLayoutOutdated(ulong framestamp)
     {
-        if (Atomics.Read(ref _layoutFramestamp) != timestamp || Atomics.Read(ref _themeContext) is not null)
+        if (Atomics.Read(ref _layoutFramestamp) != framestamp || Atomics.Read(ref _themeContext) is not null)
             return true;
 
         IThemeResourceProvider? provider = Window.GetDefaultThemeResourceProvider();

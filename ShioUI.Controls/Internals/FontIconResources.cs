@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+
+using RiceTea.Core;
 
 using ShioUI.Graphics;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Utils;
-
-using RiceTea.Core.Threading;
 
 namespace ShioUI.Controls.Internals;
 
@@ -16,7 +16,7 @@ internal sealed class FontIconResources : IDisposable
     private static readonly FontIconResources _instance = new FontIconResources();
 
     private readonly FontIcon? _scrollUpIcon, _scrollDownIcon;
-    private readonly OptimisticLock<Dictionary<float, FontIcon>> _dropDownIconDict, _checkMarkIconDict;
+    private readonly ConcurrentDictionary<float, FontIcon?> _dropDownIconDict, _checkMarkIconDict;
 
     private bool _disposed;
 
@@ -27,8 +27,8 @@ internal sealed class FontIconResources : IDisposable
         FontIconFactory factory = FontIconFactory.Instance;
         _scrollUpIcon = GetScrollUpIcon(factory);
         _scrollDownIcon = GetScrollDownIcon(factory);
-        _dropDownIconDict = OptimisticLock.Create<Dictionary<float, FontIcon>>();
-        _checkMarkIconDict = OptimisticLock.Create<Dictionary<float, FontIcon>>();
+        _dropDownIconDict = new ConcurrentDictionary<float, FontIcon?>();
+        _checkMarkIconDict = new ConcurrentDictionary<float, FontIcon?>();
     }
 
     private static FontIcon? GetScrollUpIcon(FontIconFactory factory)
@@ -71,26 +71,15 @@ internal sealed class FontIconResources : IDisposable
         return null;
     }
 
-    private static unsafe FontIcon? GetOrCreateIcon(OptimisticLock<Dictionary<float, FontIcon>> dictWithLock, float layoutHeight,
+    private static unsafe FontIcon? GetOrCreateIcon(ConcurrentDictionary<float, FontIcon?> dict, float layoutHeight,
         delegate* managed<float, FontIcon?> createFunc)
     {
         if (layoutHeight < float.Epsilon)
             return null;
-        StrongBox<FontIcon?> resultBox = new StrongBox<FontIcon?>();
-        if (dictWithLock.Read(dict => dict.TryGetValue(layoutHeight, out resultBox.Value)))
-            return resultBox.Value;
-        FontIcon? result = createFunc(layoutHeight);
-        if (result is not null)
-        {
-            dictWithLock.Write(dict =>
-            {
-                if (!dict.TryGetValue(layoutHeight, out FontIcon? oldItem))
-                    oldItem = null;
-                dict[layoutHeight] = result;
-                oldItem?.Dispose();
-            });
-        }
-        return result;
+        return dict.AddOrUpdate(layoutHeight,
+            static (size, func) => ((delegate* managed<float, FontIcon?>)func)(size),
+            static (size, old, func) => old ?? ((delegate* managed<float, FontIcon?>)func)(size),
+            (nuint)createFunc);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -112,27 +101,19 @@ internal sealed class FontIconResources : IDisposable
             rect.Height, &CreateCheckMarkIcon)?.Render(context, rect.Location, brush);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Dispose(bool disposing)
+    private void DisposeCore()
     {
-        if (_disposed)
+        if (Cells.Exchange(ref _disposed, true))
             return;
-        _disposed = true;
-        if (disposing)
-        {
-            _scrollUpIcon?.Dispose();
-            _scrollDownIcon?.Dispose();
-            _dropDownIconDict.Value.Clear();
-        }
-    }
-
-    ~FontIconResources()
-    {
-        Dispose(disposing: false);
+        _scrollUpIcon?.Dispose();
+        _scrollDownIcon?.Dispose();
+        _dropDownIconDict.Clear();
+        _checkMarkIconDict.Clear();
     }
 
     public void Dispose()
     {
-        Dispose(disposing: true);
+        DisposeCore();
         GC.SuppressFinalize(this);
     }
 }

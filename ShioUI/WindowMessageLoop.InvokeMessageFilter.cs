@@ -21,7 +21,7 @@ partial class WindowMessageLoop
     {
         public static readonly InvokeMessageFilter Instance = new InvokeMessageFilter();
 
-        private readonly Swapable<Queue<IInvokeClosure>> _invokeClosureQueue = Swapable.CreateQueue<IInvokeClosure>(optimistic: true);
+        private readonly ISwapable<Queue<IInvokeClosure>> _invokeClosureQueue = Swapable.CreateQueue<IInvokeClosure>(optimistic: true);
 
         [ThreadStatic]
         private static Queue<IInvokeClosure>? _currentProcessingQueue;

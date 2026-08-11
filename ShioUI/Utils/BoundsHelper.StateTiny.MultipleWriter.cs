@@ -19,14 +19,14 @@ partial class BoundsHelper
             if (UnsafeHelper.PointerSize < Size)
                 return reference.Value.X;
             else
-                return reference.GetValueUnsafe().X;
+                return reference.GetValueReferenceUnsafe().X;
         }
         else
         {
             if (UnsafeHelper.PointerSizeConstant < Size)
                 return reference.Value.X;
             else
-                return reference.GetValueUnsafe().X;
+                return reference.GetValueReferenceUnsafe().X;
         }
 #pragma warning restore CS0162
     }
@@ -42,14 +42,14 @@ partial class BoundsHelper
             if (UnsafeHelper.PointerSize < Size)
                 return reference.Value.Y;
             else
-                return reference.GetValueUnsafe().Y;
+                return reference.GetValueReferenceUnsafe().Y;
         }
         else
         {
             if (UnsafeHelper.PointerSizeConstant < Size)
                 return reference.Value.Y;
             else
-                return reference.GetValueUnsafe().Y;
+                return reference.GetValueReferenceUnsafe().Y;
         }
 #pragma warning restore CS0162
     }
@@ -65,14 +65,14 @@ partial class BoundsHelper
             if (UnsafeHelper.PointerSize < Size)
                 return reference.Value.Width;
             else
-                return reference.GetValueUnsafe().Width;
+                return reference.GetValueReferenceUnsafe().Width;
         }
         else
         {
             if (UnsafeHelper.PointerSizeConstant < Size)
                 return reference.Value.Width;
             else
-                return reference.GetValueUnsafe().Width;
+                return reference.GetValueReferenceUnsafe().Width;
         }
 #pragma warning restore CS0162
     }
@@ -88,14 +88,14 @@ partial class BoundsHelper
             if (UnsafeHelper.PointerSize < Size)
                 return reference.Value.Height;
             else
-                return reference.GetValueUnsafe().Height;
+                return reference.GetValueReferenceUnsafe().Height;
         }
         else
         {
             if (UnsafeHelper.PointerSizeConstant < Size)
                 return reference.Value.Height;
             else
-                return reference.GetValueUnsafe().Height;
+                return reference.GetValueReferenceUnsafe().Height;
         }
 #pragma warning restore CS0162
     }
@@ -111,14 +111,14 @@ partial class BoundsHelper
             if (UnsafeHelper.PointerSize < Size)
                 return reference.Value.Location;
             else
-                return reference.GetValueUnsafe().Location;
+                return reference.GetValueReferenceUnsafe().Location;
         }
         else
         {
             if (UnsafeHelper.PointerSizeConstant < Size)
                 return reference.Value.Location;
             else
-                return reference.GetValueUnsafe().Location;
+                return reference.GetValueReferenceUnsafe().Location;
         }
 #pragma warning restore CS0162
     }
@@ -134,14 +134,14 @@ partial class BoundsHelper
             if (UnsafeHelper.PointerSize < Size)
                 return reference.Value.Size;
             else
-                return reference.GetValueUnsafe().Size;
+                return reference.GetValueReferenceUnsafe().Size;
         }
         else
         {
             if (UnsafeHelper.PointerSizeConstant < Size)
                 return reference.Value.Size;
             else
-                return reference.GetValueUnsafe().Size;
+                return reference.GetValueReferenceUnsafe().Size;
         }
 #pragma warning restore CS0162
     }
