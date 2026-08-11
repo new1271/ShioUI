@@ -10,7 +10,6 @@ using InlineMethod;
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
-using RiceTea.Core.Threading;
 
 namespace ShioUI.Utils;
 
@@ -114,19 +113,19 @@ public static unsafe partial class BoundsHelper
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong AsUInt64(Point value)
-        => UnsafeHelper.As<Point, PointLayout>(ref value).Raw;
+        => new PointLayout(value).Raw;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong AsUInt64(Size value)
-        => UnsafeHelper.As<Size, SizeLayout>(ref value).Raw;
+        => new SizeLayout(value).Raw;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Point AsPoint(ulong value)
-        => UnsafeHelper.As<ulong, PointLayout>(ref value).Point;
+        => new PointLayout(value).Point;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Size AsSize(ulong value)
-        => UnsafeHelper.As<ulong, SizeLayout>(ref value).Size;
+        => new SizeLayout(value).Size;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref readonly ulong AsUInt64(ref readonly Point reference)
@@ -156,6 +155,12 @@ public static unsafe partial class BoundsHelper
         public readonly int X;
         [FieldOffset(4)]
         public readonly int Y;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PointLayout(Point original) => Point = original;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PointLayout(ulong original) => Raw = original;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
@@ -170,5 +175,11 @@ public static unsafe partial class BoundsHelper
         public readonly int Width;
         [FieldOffset(4)]
         public readonly int Height;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SizeLayout(Size original) => Size = original;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SizeLayout(ulong original) => Raw = original;
     }
 }
