@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
@@ -26,6 +27,20 @@ partial class GroupBox : IAutoWidthElement, IAutoHeightElement
         }
     }
 
+    [AllowNull]
+    public string TitleDescription
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Atomics.Read(ref _titleDescription);
+        set
+        {
+            value ??= string.Empty;
+            if (ReferenceEquals(Atomics.Exchange(ref _titleDescription, value), value))
+                return;
+            Update(RenderObjectUpdateFlags.TitleDescription, RedrawType.RedrawAllContent);
+        }
+    }
+
     public GroupBoxMode Mode
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -33,6 +48,7 @@ partial class GroupBox : IAutoWidthElement, IAutoHeightElement
         set
         {
             uint rawValue = (uint)value;
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rawValue, (uint)GroupBoxMode._Last, nameof(value));
             if (Atomics.Exchange(ref _mode, rawValue) == rawValue)
                 return;
             Update(RenderObjectUpdateFlags.Format, RedrawType.RedrawAllContent);

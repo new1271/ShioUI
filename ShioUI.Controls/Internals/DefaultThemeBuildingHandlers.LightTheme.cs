@@ -190,14 +190,14 @@ partial class ThemeBuildingHandlers
 
             // 群組方塊
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.groupBox.back",
-                value: queryBrushFunc("app.control.back"));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.groupBox.border",
                 value: queryBrushFunc("app.control.border"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.groupBox.fore",
                 value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.groupBox.fore.description",
+                value: queryBrushFunc("app.control.fore.description"));
             yield return KeyValuePair.Create(
                 key: "app.groupBox.card.back",
                 value: ThemedBrushFactory.CreateBuilder(new D2D1ColorF(230, 230, 230))
@@ -210,6 +210,9 @@ partial class ThemeBuildingHandlers
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.groupBox.card.fore",
                 value: queryBrushFunc("app.groupBox.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.groupBox.card.fore.description",
+                value: queryBrushFunc("app.groupBox.fore.description"));
 
             // 列表方塊
             yield return new KeyValuePair<string, IThemedBrushFactory>(
