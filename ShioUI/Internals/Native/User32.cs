@@ -12,6 +12,8 @@ using ShioUI.Windows;
 
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Extensions;
 
 namespace ShioUI.Internals.Native;
 
@@ -24,12 +26,12 @@ internal static unsafe class User32
 
     private const string LibraryName = "user32.dll";
     private static readonly void*[] _pointers =
-        NativeMethods.GetImportedMethodPointers(LibraryName, "GetDpiForWindow");
+        NativeMethods.GetImportedMethodPointers(LibraryName, "GetDpiForWindow", "GetSystemMetricsForDpi");
 
     public static SysBool32 TryGetDpiForWindow(IntPtr hWnd, out uint dpiX, out uint dpiY)
     {
-        void* pointer = _pointers[0];
-        if (pointer != null)
+        void* pointer = (void*)UnsafeHelper.As<nuint[]>(_pointers).AsUnsafeRef()[0];
+        if (pointer is not null)
         {
             dpiX = ((delegate* unmanaged
 #if NET8_0_OR_GREATER
@@ -78,6 +80,37 @@ internal static unsafe class User32
         dpiX = 0;
         dpiY = 0;
         return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetSystemMetricsForDpi(SystemMetric smIndex, uint dpi, out int result)
+    {
+        result = GetSystemMetricsForDpi(smIndex, dpi);
+        return result != 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetSystemMetrics(SystemMetric smIndex, out int result)
+    {
+        result = GetSystemMetrics(smIndex);
+        return result != 0;
+    }
+
+    public static int GetSystemMetricsForDpi(SystemMetric smIndex, uint dpi)
+    {
+        void* pointer = (void*)UnsafeHelper.As<nuint[]>(_pointers).AsUnsafeRef()[1];
+        if (pointer is not null)
+        {
+            return ((delegate* unmanaged
+#if NET8_0_OR_GREATER
+                [Stdcall, SuppressGCTransition]
+#else
+                [Stdcall]
+#endif
+                <SystemMetric, uint, int>)pointer)(smIndex, dpi);
+        }
+
+        return 0;
     }
 
     [SuppressGCTransition]

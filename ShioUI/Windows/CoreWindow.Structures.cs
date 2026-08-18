@@ -14,8 +14,8 @@ partial class CoreWindow
     protected ref struct WindowLayoutData
     {
         public Rectangle MinimizeButtonBounds, MaximizeButtonBounds, CloseButtonBounds, PageBounds, TitleBarBounds;
+        public Size ActiveBorderSize;
         public Point DrawingOffset;
-        public int ActiveBorderWidth;
 
         public Point MinimizeButtonLocation
         {

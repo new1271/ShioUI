@@ -134,7 +134,7 @@ public abstract class TabbedWindow : MultiPageWindow
         else
         {
             x = pageBounds.X;
-            y = data.TitleBarBounds.Height + data.DrawingOffset.Y;
+            y = pageBounds.Y;
         }
         for (int i = 0; i < pageCount; i++)
         {

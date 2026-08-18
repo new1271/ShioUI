@@ -104,9 +104,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     private D2D1ColorF _clearDCColor, _windowBaseColor;
     private Point _drawingOffset;
     private StateTiny.SingleWriter<Rectangle> _minimizeButtonBounds, _maximizeButtonBounds, _closeButtonBounds, _pageBounds, _titleBarBounds;
-    private ulong _resizeTimestamp, _renderFramestamp;
+    private ulong _resizeTimestamp, _renderFramestamp, _activeBorderSize, _normalBorderSize;
     private nuint _ownedGDP, _recreateGraphicsDeviceProviderBarrier, _recalculateLayoutVersion;
-    private int _activeBorderWidth;
 
     protected BitVector64 _titleBarButtonStatus, _titleBarButtonChangedStatus;
     #endregion
@@ -135,6 +134,22 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     public D2D1ColorF ClearDCColor => _clearDCColor;
 
     public D2D1ColorF WindowBaseColor => _windowBaseColor;
+
+    public Size ActiveBorderSize
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => BoundsHelper.AsSize(Atomics.Read(ref _activeBorderSize));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private set => Atomics.Write(ref _activeBorderSize, BoundsHelper.AsUInt64(value));
+    }
+
+    private Size NormalBorderSize
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => BoundsHelper.AsSize(Atomics.Read(ref _normalBorderSize));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Atomics.Write(ref _normalBorderSize, BoundsHelper.AsUInt64(value));
+    }
 
     public Rectangle MinimizeButtonBounds => _minimizeButtonBounds.Value;
 
@@ -766,7 +781,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 return;
 
             Vector2 pointsPerPixel = _pointsPerPixel;
-            int activeBorderWidth, drawingOffsetX, drawingOffsetY;
+            Size activeBorderSize; 
+            int drawingOffsetX, drawingOffsetY;
             if (User32.IsZoomed(handle))
             {
                 Rect windowRect;
@@ -777,26 +793,29 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 Rect workingArea = screenInfo.WorkingArea;
                 drawingOffsetX = MathI.Round((workingArea.Left - windowRect.Left) * pointsPerPixel.X, MidpointRounding.AwayFromZero);
                 drawingOffsetY = MathI.Round((workingArea.Top - windowRect.Top) * pointsPerPixel.Y, MidpointRounding.AwayFromZero);
-                activeBorderWidth = 0;
+                activeBorderSize = Size.Empty;
             }
             else
             {
-                activeBorderWidth = _borderWidth;
+                activeBorderSize = NormalBorderSize;
                 drawingOffsetX = 0;
                 drawingOffsetY = 0;
             }
-            data.ActiveBorderWidth = activeBorderWidth;
+            data.ActiveBorderSize = activeBorderSize;
             data.DrawingOffset = new Point(drawingOffsetX, drawingOffsetY);
             int x = windowSize.Width - 1 - drawingOffsetX, y = drawingOffsetY;
-            data.CloseButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y, UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarButtonSizeHeight);
-            data.MaximizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y, UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarButtonSizeHeight);
-            data.MinimizeButtonBounds = new Rectangle(x - UIConstantsPrivate.TitleBarButtonSizeWidth, y, UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarButtonSizeHeight);
-            Rectangle titleBarBounds = new Rectangle(drawingOffsetX + 1, drawingOffsetY + 1, Size.Width - 2, 26);
+            data.CloseButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y, 
+                UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
+            data.MaximizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
+                UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
+            data.MinimizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y, 
+                UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
+            Rectangle titleBarBounds =  new Rectangle(drawingOffsetX, y, x - drawingOffsetX, UIConstantsPrivate.TitleBarHeight);
             pageBounds = Rectangle.FromLTRB(
-                left: drawingOffsetX + activeBorderWidth,
+                left: drawingOffsetX + activeBorderSize.Width,
                 top: titleBarBounds.Bottom + 1,
-                right: windowSize.Width - drawingOffsetX - activeBorderWidth,
-                bottom: windowSize.Height - activeBorderWidth);
+                right: windowSize.Width - drawingOffsetX - activeBorderSize.Width,
+                bottom: windowSize.Height - activeBorderSize.Height);
             pageSize = pageBounds.Size;
             data.TitleBarBounds = titleBarBounds;
         }
@@ -863,7 +882,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 PageBounds = _pageBounds.GetValueUnsafe(),
                 TitleBarBounds = _titleBarBounds.GetValueUnsafe(),
                 DrawingOffset = _drawingOffset,
-                ActiveBorderWidth = _activeBorderWidth
+                ActiveBorderSize = BoundsHelper.AsSize(_activeBorderSize)
             },
             ResizeFramestamp = _resizeTimestamp,
             LastRenderTimestamp = _renderFramestamp,
@@ -927,7 +946,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 ulong timestamp = data.ResizeFramestamp;
                 _resizeTimestamp = timestamp;
                 _drawingOffset = layoutData.DrawingOffset;
-                _activeBorderWidth = layoutData.ActiveBorderWidth;
+                ActiveBorderSize = layoutData.ActiveBorderSize;
                 Atomics.Increment(ref _recalculateLayoutVersion);
 
                 Size pageSize = layoutData.PageSize;

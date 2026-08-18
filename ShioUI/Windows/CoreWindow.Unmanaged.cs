@@ -4,14 +4,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-using ShioUI.Graphics;
-
 using InlineMethod;
 
 using LocalsInit;
-using ShioUI.Internals;
-using ShioUI.Internals.Native;
-using ShioUI.Utils;
 
 using RiceTea.Core;
 using RiceTea.Core.Collections;
@@ -20,17 +15,70 @@ using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.Structures;
 
+using ShioUI.Graphics;
+using ShioUI.Internals;
+using ShioUI.Internals.Native;
+using ShioUI.Utils;
+
 namespace ShioUI.Windows;
 
 public unsafe partial class CoreWindow
 {
     #region Fields
+    private static readonly Size BorderSize = GetBorderSize();
+
+    private static Size GetBorderSize()
+    {
+        const int DefaultBorderWidth = 1;
+
+        int baseBorderX, baseBorderY;
+
+        if (User32.TryGetSystemMetricsForDpi(SystemMetric.SM_CXBORDER, dpi: 96, out baseBorderX) &&
+            User32.TryGetSystemMetricsForDpi(SystemMetric.SM_CYBORDER, dpi: 96, out baseBorderY))
+        {
+            baseBorderX += User32.GetSystemMetricsForDpi(SystemMetric.SM_CXSIZEFRAME, dpi: 96);
+            baseBorderY += User32.GetSystemMetricsForDpi(SystemMetric.SM_CYSIZEFRAME, dpi: 96);
+            goto Return;
+        }
+
+        if (User32.TryGetSystemMetrics(SystemMetric.SM_CXBORDER, out baseBorderX) &&
+           User32.TryGetSystemMetrics(SystemMetric.SM_CYBORDER, out baseBorderY))
+        {
+            baseBorderX += User32.GetSystemMetrics(SystemMetric.SM_CXSIZEFRAME);
+            baseBorderY += User32.GetSystemMetrics(SystemMetric.SM_CYSIZEFRAME);
+
+            IntPtr systemHdc = User32.GetDC(default);
+            if (systemHdc == IntPtr.Zero)
+                goto Failed;
+            try
+            {
+                const int LOGPIXELSX = 88;
+                const int LOGPIXELSY = 90;
+
+                baseBorderX = baseBorderX * 96 / Gdi32.GetDeviceCaps(systemHdc, LOGPIXELSX);
+                baseBorderY = baseBorderY * 96 / Gdi32.GetDeviceCaps(systemHdc, LOGPIXELSY);
+            }
+            finally
+            {
+                User32.ReleaseDC(default, systemHdc);
+            }
+            goto Return;
+        }
+
+        goto Failed;
+
+    Return:
+        return new Size(baseBorderX, baseBorderY);
+
+    Failed:
+        return new Size(DefaultBorderWidth, DefaultBorderWidth);
+    }
+
     private readonly UnwrappableList<IWindowMessageFilter> _filterList = new UnwrappableList<IWindowMessageFilter>(1);
     private SizeF _minimumSize, _maximumSize;
     private MouseButtons _lastMouseDownButtons;
     private IntPtr _associatedMonitor;
     private nint _beforeHitTest;
-    private int _borderWidth;
     private bool _isMaximized, _isCreateByDefaultX, _isCreateByDefaultY, _hasMouseCapture, _isSystemPrepareBoosting, _sizeModeState;
     #endregion
 
@@ -89,8 +137,6 @@ public unsafe partial class CoreWindow
                 WindowPositionFlags.SwapWithNoZOrder | WindowPositionFlags.SwapWithNoActivate);
         }
     }
-
-    protected int FormBorderWidth => _borderWidth;
     #endregion
 
     #region Initialize
@@ -462,7 +508,7 @@ public unsafe partial class CoreWindow
                 break;
             case WindowMessage.NCHitTest:
                 {
-                    HitTestValue hitTest = DoHitTestShioUI(lParam);
+                    HitTestValue hitTest = DoHitTestForDefault(lParam);
                     result = hitTest == HitTestValue.NoWhere ? (nint)HitTestValue.Client : (nint)hitTest;
                 }
                 break;
@@ -494,7 +540,7 @@ public unsafe partial class CoreWindow
                 goto default;
             case WindowMessage.NCHitTest:
                 {
-                    HitTestValue hitTest = DoHitTestForIntergratedUI(lParam);
+                    HitTestValue hitTest = DoHitTestForIntergrated(lParam);
                     if (hitTest == HitTestValue.NoWhere)
                         goto default;
                     result = (nint)hitTest;
@@ -526,13 +572,13 @@ public unsafe partial class CoreWindow
     #endregion
 
     #region HitTests
-    private HitTestValue DoHitTestForIntergratedUI(IntPtr lParam)
+    private HitTestValue DoHitTestForIntergrated(IntPtr lParam)
     {
         PointF point = PointToClient(UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32());
         return CustomHitTest(point);
     }
 
-    private HitTestValue DoHitTestShioUI(IntPtr lParam)
+    private HitTestValue DoHitTestForDefault(IntPtr lParam)
     {
         Rectangle bounds = RawBounds;
         Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
@@ -543,13 +589,13 @@ public unsafe partial class CoreWindow
         {
             if (HasSizableBorder)
             {
-                int borderWidth = _borderWidth;
+                Size borderSize = ActiveBorderSize;
                 int x = point.X;
                 int y = point.Y;
-                int topBorder = borderWidth;
-                int leftBorder = borderWidth;
-                int rightBorder = bounds.Width - borderWidth;
-                int bottomBorder = bounds.Height - borderWidth;
+                int topBorder = borderSize.Height;
+                int leftBorder = borderSize.Width;
+                int rightBorder = bounds.Width - borderSize.Width;
+                int bottomBorder = bounds.Height - borderSize.Height;
                 if (y < topBorder)
                 {
                     if (x < leftBorder) return HitTestValue.TopLeftBorder;
@@ -645,8 +691,6 @@ public unsafe partial class CoreWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ChangeDpi(uint dpiX, uint dpiY)
     {
-        _borderWidth = User32.GetSystemMetrics(SystemMetric.SM_CXBORDER) + User32.GetSystemMetrics(SystemMetric.SM_CXPADDEDBORDER);
-
         dpiX = MathHelper.Min(dpiX, SystemConstants.Float32IntegerLimit);
         dpiY = MathHelper.Min(dpiY, SystemConstants.Float32IntegerLimit);
         CalculateDpi(dpiX, out float pointsPerPixelX, out float pixelsPerPointX);
@@ -656,8 +700,13 @@ public unsafe partial class CoreWindow
         Vector2 pixelsPerPoint = new Vector2(pixelsPerPointX, pixelsPerPointY);
         PointU dpi = new PointU(dpiX, dpiX);
 
-        _pixelsPerPoint = pointsPerPixel;
-        _pointsPerPixel = pixelsPerPoint;
+        Size borderSize = BorderSize;
+        borderSize.Width = MathI.Round(borderSize.Width * pixelsPerPointX, MidpointRounding.AwayFromZero);
+        borderSize.Height = MathI.Round(borderSize.Height * pixelsPerPointY, MidpointRounding.AwayFromZero);
+
+        NormalBorderSize = borderSize;
+        _pixelsPerPoint = pixelsPerPoint;
+        _pointsPerPixel = pointsPerPixel;
         _dpi = dpi;
 
         ChangeDpi_RenderingPart(dpi, pointsPerPixel, pixelsPerPoint);
@@ -677,13 +726,13 @@ public unsafe partial class CoreWindow
         }
 
     Normal:
-        pointsPerPixel = 1.0f;
         pixelsPerPoint = 1.0f;
+        pointsPerPixel = 1.0f;
         return;
 
     NeedAmplified:
-        pointsPerPixel = dpi / 96.0f;
-        pixelsPerPoint = 96.0f / dpi;
+        pixelsPerPoint = dpi / 96.0f;
+        pointsPerPixel = 96.0f / dpi;
         return;
     }
 
@@ -709,7 +758,6 @@ public unsafe partial class CoreWindow
         bool hasMaximum = titleBarStates[2];
         int clientX = MathI.Truncate(clientPoint.X);
         int clientY = MathI.Truncate(clientPoint.Y);
-        int activeBorderWidth = _activeBorderWidth;
         int titleRightLoc;
         Rectangle minimizeButtonBounds = MinimizeButtonBounds;
         Rectangle maximizeButtonBounds = MaximizeButtonBounds;
@@ -720,7 +768,7 @@ public unsafe partial class CoreWindow
             titleRightLoc = maximizeButtonBounds.X;
         else
             titleRightLoc = closeButtonBounds.X;
-        if (clientX < titleRightLoc && clientY <= TitleBarBounds.Bottom && clientX >= activeBorderWidth && clientY >= activeBorderWidth)
+        if (clientX < titleRightLoc && clientY <= TitleBarBounds.Bottom)
         {
             return HitTestValue.Caption;
         }

@@ -311,6 +311,8 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void RenderTitle_Bordered(in RegionalRenderingContext context, in Layouts layouts, bool incremental)
     {
+        const D2D1DrawTextOptions DrawTextOptions = D2D1DrawTextOptions.EnableColorFont;
+
         (DWriteTextLayout? layout, DWriteTextLayout? descriptionLayout) = layouts;
 
         RectF bounds;
@@ -323,7 +325,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 bounds = RectF.FromXYWH(UIConstants.ElementMargin, 0, descriptionLayout.MaxWidth, descriptionLayout.MaxHeight);
                 using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
                 RenderBackground(context);
-                context.DrawTextLayout(bounds.Location, descriptionLayout, _brushes.AsUnsafeRef()[(nuint)Brush.TitleDescriptionBrush], D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                context.DrawTextLayout(bounds.Location, descriptionLayout, _brushes.AsUnsafeRef()[(nuint)Brush.TitleDescriptionBrush], DrawTextOptions);
             }
         }
         else
@@ -333,7 +335,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 bounds = RectF.FromXYWH(UIConstants.ElementMargin, 0, layout.MaxWidth, layout.MaxHeight);
                 using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
                 RenderBackground(context);
-                context.DrawTextLayout(bounds.Location, layout, _brushes.AsUnsafeRef()[(nuint)Brush.TitleBrush], D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                context.DrawTextLayout(bounds.Location, layout, _brushes.AsUnsafeRef()[(nuint)Brush.TitleBrush], DrawTextOptions);
             }
             else
             {
@@ -343,10 +345,9 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 using RenderingClipScope scope = context.PushPixelAlignedClip(ref bounds, D2D1AntialiasMode.Aliased);
                 RenderBackground(context);
                 ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
-                context.DrawTextLayout(bounds.Location, layout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleBrush),
-                    D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                context.DrawTextLayout(bounds.Location, layout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleBrush), DrawTextOptions);
                 context.DrawTextLayout(new PointF(bounds.X + titleWidth - BorderedTitleExtraWidth / 2, bounds.Y), layout,
-                    UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleDescriptionBrush), D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                    UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleDescriptionBrush), DrawTextOptions);
             }
         }
         if (incremental)
@@ -356,6 +357,8 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void RenderTitle_Card(in RegionalRenderingContext context, in Layouts layouts, bool incremental)
     {
+        const D2D1DrawTextOptions DrawTextOptions = D2D1DrawTextOptions.EnableColorFont;
+
         (DWriteTextLayout? layout, DWriteTextLayout? descriptionLayout) = layouts;
 
         RectF bounds;
@@ -371,7 +374,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 if (incremental)
                     RenderBackground(context, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardBackBrush));
                 context.DrawTextLayout(bounds.Location, descriptionLayout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardTitleDescriptionBrush),
-                    D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                    DrawTextOptions);
             }
         }
         else
@@ -385,7 +388,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 if (incremental)
                     RenderBackground(context, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardBackBrush));
                 context.DrawTextLayout(bounds.Location, layout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardTitleBrush),
-                    D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                    DrawTextOptions);
             }
             else
             {
@@ -396,9 +399,9 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 if (incremental)
                     RenderBackground(context, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardBackBrush));
                 context.DrawTextLayout(bounds.Location, layout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardTitleBrush),
-                    D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                    DrawTextOptions);
                 context.DrawTextLayout(new PointF(bounds.X + titleWidth + CardTitleDescriptionExtraLeftPadding, bounds.Y), descriptionLayout,
-                    UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardTitleDescriptionBrush), D2D1DrawTextOptions.None | D2D1DrawTextOptions.NoSnap);
+                    UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.CardTitleDescriptionBrush), DrawTextOptions);
             }
         }
         if (incremental)
