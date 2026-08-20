@@ -1490,7 +1490,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
         Exit:
             result = element;
-            localPoint = point;
+            localPoint = element.PageToLocal(point);
             return true;
         }
     }

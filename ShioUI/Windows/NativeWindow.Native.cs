@@ -78,10 +78,8 @@ partial class NativeWindow
 
     private void Dispose(bool disposing)
     {
-        if (Cells.Exchange(ref _disposed, true))
+        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
             return;
-        if (disposing)
-            Thread.MemoryBarrier();
         DisposeCore(disposing);
     }
 

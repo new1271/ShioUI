@@ -3,10 +3,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 
 using ShioUI.Internals.Native;
@@ -18,6 +20,8 @@ namespace ShioUI.Accessibility;
 
 public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
 {
+    public static readonly int DefaultShowDelay = (int)SystemParameters.DoubleClickTime;
+
     private readonly ConditionalWeakTable<UIElement, string> _elementTooltipTable = new();
     private readonly Lock _syncLock = new();
     private readonly CoreWindow _owner;
@@ -26,6 +30,7 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
 
     private Window? _activeWindow;
     private ulong _recordedPoint;
+    private int _showDelay = DefaultShowDelay;
     private nuint _disposed, _mouseDownState;
 
     public bool IsDisposed => MathHelper.ToBoolean(Atomics.Read(ref _disposed));
@@ -113,14 +118,14 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
             {
                 DisposeHelper.SwapDispose(ref _activeWindow);
                 _recordedPoint = BoundsHelper.AsUInt64(point);
-                _timer.Change(SystemParameters.MouseHoverTime, Timeout.Infinite);
+                _timer.Change(Atomics.Read(ref _showDelay), Timeout.Infinite);
             }
         }
         goto Tail;
 
     Skip:
         DisposeHelper.SwapDispose(ref _activeWindow);
-        _timer.Change(SystemParameters.MouseHoverTime, Timeout.Infinite);
+        _timer.Change(Timeout.Infinite, Timeout.Infinite);
         goto Tail;
 
     Tail:
@@ -130,6 +135,7 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
 
     private async void Timer_Tick()
     {
+        await Task.Yield();
         Point lastPoint = BoundsHelper.AsPoint(Atomics.Read(ref _recordedPoint));
         Point screenPoint = MouseHelper.GetMousePosition();
         if (MathHelper.Abs(lastPoint.X - screenPoint.X) > SystemParameters.MouseHoverWidth ||
@@ -147,7 +153,7 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
         {
             Window window = new Window(this, result, 500, screenPoint);
             window.Show();
-            _activeWindow = window;
+            DisposeHelper.SwapDisposeAtomic(ref _activeWindow, window);
         }
     }
 

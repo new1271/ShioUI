@@ -116,16 +116,32 @@ public static unsafe partial class BoundsHelper
         => new PointLayout(value).Raw;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong AsUInt64(PointF value)
+        => new PointFLayout(value).Raw;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong AsUInt64(Size value)
         => new SizeLayout(value).Raw;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong AsUInt64(SizeF value)
+        => new SizeFLayout(value).Raw;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Point AsPoint(ulong value)
         => new PointLayout(value).Point;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PointF AsPointF(ulong value)
+        => new PointFLayout(value).Point;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Size AsSize(ulong value)
         => new SizeLayout(value).Size;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SizeF AsSizeF(ulong value)
+        => new SizeFLayout(value).Size;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref readonly ulong AsUInt64(ref readonly Point reference)
@@ -164,6 +180,26 @@ public static unsafe partial class BoundsHelper
     }
 
     [StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
+    private readonly struct PointFLayout
+    {
+        [FieldOffset(0)]
+        public readonly PointF Point;
+        [FieldOffset(0)]
+        public readonly ulong Raw;
+
+        [FieldOffset(0)]
+        public readonly float X;
+        [FieldOffset(4)]
+        public readonly float Y;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PointFLayout(PointF original) => Point = original;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public PointFLayout(ulong original) => Raw = original;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
     private readonly struct SizeLayout
     {
         [FieldOffset(0)]
@@ -181,5 +217,25 @@ public static unsafe partial class BoundsHelper
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SizeLayout(ulong original) => Raw = original;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = sizeof(ulong))]
+    private readonly struct SizeFLayout
+    {
+        [FieldOffset(0)]
+        public readonly SizeF Size;
+        [FieldOffset(0)]
+        public readonly ulong Raw;
+
+        [FieldOffset(0)]
+        public readonly float Width;
+        [FieldOffset(4)]
+        public readonly float Height;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SizeFLayout(SizeF original) => Size = original;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SizeFLayout(ulong original) => Raw = original;
     }
 }

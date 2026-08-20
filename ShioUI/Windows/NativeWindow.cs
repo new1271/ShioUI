@@ -37,9 +37,8 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
      * bit[2] = focused or not
      * (all bit set) = handle is destroyed
      */
-    private nuint _windowFlags;
+    private nuint _windowFlags, _disposed;
     private uint _windowState, _closeReason, _dialogResult;
-    private bool _disposed;
 
     public NativeWindow(IHwndOwner? parent = null)
     {

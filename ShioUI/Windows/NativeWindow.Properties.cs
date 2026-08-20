@@ -103,7 +103,7 @@ partial class NativeWindow
     public bool IsDisposed
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _disposed;
+        get => MathHelper.ToBoolean(Atomics.Read(ref _disposed));
     }
 
     public IntPtr Handle

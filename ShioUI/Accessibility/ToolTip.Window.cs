@@ -38,6 +38,8 @@ partial class ToolTip
 
         private DWriteTextLayout? _textLayout;
 
+        public ToolTip Owner => _owner;
+
         public Window(ToolTip owner, string text, uint animationTicks, Point locationOnScreen) :
             base(owner._owner, passParentToUnderlyingWindow: true)
         {
@@ -54,8 +56,20 @@ partial class ToolTip
             result.Styles &= ~WindowStyles.OverlappedWindow;
             result.Styles |= WindowStyles.Popup | WindowStyles.ClipSiblings;
             result.ExtendedStyles &= ~(WindowExtendedStyles.AppWindow | WindowExtendedStyles.WindowEdge);
-            result.ExtendedStyles |= WindowExtendedStyles.TopMost | WindowExtendedStyles.ToolWindow | 
+            result.ExtendedStyles |= WindowExtendedStyles.TopMost | WindowExtendedStyles.ToolWindow |
                 WindowExtendedStyles.NoActivate;
+
+            CoreWindow ownedWindow = _owner._owner;
+            string? fontName = ownedWindow.GetThemeResourceProvider()?.FontName;
+            if (fontName is not null && Screen.TryGetScreenInfoFromHwnd(ownedWindow.Handle, out ScreenInfo screenInfo))
+            {
+                using DWriteTextLayout layout = CreateTextLayoutCore(_text, fontName);
+                Rectangle bounds = GetToolTipBoundsForScreen(screenInfo.WorkingArea, layout);
+                result.X = bounds.X;
+                result.Y = bounds.Y;
+                result.Width = bounds.Width;
+                result.Height = bounds.Height;
+            }
             return result;
         }
 
@@ -73,27 +87,7 @@ partial class ToolTip
 
             if (Screen.TryGetScreenInfoFromHwnd(Handle, out ScreenInfo screenInfo))
             {
-                Rect workingArea = screenInfo.WorkingArea;
-
-                Point locationOnScreen = _locationOnScreen;
-                Vector2 pointsPerPixel = PointsPerPixel;
-                int xOffset = MathI.Round(10 * pointsPerPixel.X, MidpointRounding.AwayFromZero);
-                int yOffset = MathI.Round(18 * pointsPerPixel.Y, MidpointRounding.AwayFromZero);
-                Size sizeOnScreen = GraphicsUtils.ScalingSizeAndConvert(
-                    new SizeF(layout.MaxWidth + UIConstants.ElementMarginDouble, layout.MaxHeight + UIConstants.ElementMarginDouble),
-                    pointsPerPixel);
-
-                Rectangle predictedBounds = new Rectangle(locationOnScreen, sizeOnScreen);
-                if (predictedBounds.Right >= workingArea.Right)
-                    predictedBounds.X -= predictedBounds.Width + xOffset;
-                else
-                    predictedBounds.X += xOffset;
-                if (predictedBounds.Bottom >= workingArea.Bottom)
-                    predictedBounds.Y -= predictedBounds.Height + yOffset;
-                else
-                    predictedBounds.Y += yOffset;
-
-                RawBounds = predictedBounds;
+                RawBounds = GetToolTipBoundsForScreen(screenInfo.WorkingArea, layout);
                 UpdateAndResize();
             }
         }
@@ -133,13 +127,51 @@ partial class ToolTip
 
         protected override void ShowCore(IntPtr handle) => User32.ShowWindow(handle, ShowWindowCommands.ShowNA);
 
+
+        private Rectangle GetToolTipBoundsForScreen(in Rect workingArea, DWriteTextLayout layout)
+        {
+            Point locationOnScreen = _locationOnScreen;
+            Vector2 pointsPerPixel = PointsPerPixel;
+            int xOffset = MathI.Round(10 * pointsPerPixel.X, MidpointRounding.AwayFromZero);
+            int yOffset = MathI.Round(18 * pointsPerPixel.Y, MidpointRounding.AwayFromZero);
+            Size sizeOnScreen = GraphicsUtils.ScalingSizeAndConvert(
+                new SizeF(layout.MaxWidth + UIConstants.ElementMarginDouble, layout.MaxHeight + UIConstants.ElementMarginDouble),
+                pointsPerPixel);
+
+            Rectangle predictedBounds = new Rectangle(locationOnScreen, sizeOnScreen);
+            if (predictedBounds.Right >= workingArea.Right)
+                predictedBounds.X -= predictedBounds.Width + xOffset;
+            else
+                predictedBounds.X += xOffset;
+            if (predictedBounds.Bottom >= workingArea.Bottom)
+                predictedBounds.Y -= predictedBounds.Height + yOffset;
+            else
+                predictedBounds.Y += yOffset;
+
+            return predictedBounds;
+        }
+
         private DWriteTextLayout CreateTextLayout(string fontName)
+        {
+            DWriteTextLayout layout = CreateTextLayoutCore(_text, fontName);
+            DisposeHelper.SwapDisposeAtomic(ref _textLayout, layout);
+            return layout;
+        }
+
+        private static DWriteTextLayout CreateTextLayoutCore(string text, string fontName)
         {
             DWriteFactory factory = SharedResources.DWriteFactory;
             using DWriteTextFormat format = factory.CreateTextFormat(fontName, UIConstants.DefaultFontSize);
-            DWriteTextLayout layout = GraphicsUtils.CreateCustomTextLayout(_text, format, float.PositiveInfinity);
-            DisposeHelper.SwapDisposeAtomic(ref _textLayout, layout);
+            DWriteTextLayout layout = GraphicsUtils.CreateCustomTextLayout(text, format, float.PositiveInfinity);
             return layout;
+        }
+
+        protected override void DisposeCore(bool disposing)
+        {
+            if (disposing)
+                DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
+            SequenceHelper.Clear(_brushes);
+            base.DisposeCore(disposing);
         }
     }
 }
