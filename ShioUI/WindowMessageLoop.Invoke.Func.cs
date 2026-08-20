@@ -113,8 +113,13 @@ partial class WindowMessageLoop
         uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<Task<TResult>>();
-
-        return InvokeTaskCoreAsync(messageLoopThreadId, func, cancellationToken);
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
+            return Task.FromResult(func.Invoke());
+        }
+        else
+            return InvokeTaskCoreAsync(messageLoopThreadId, func, cancellationToken);
     }
 
     public static Task<TResult> InvokeTaskAsync<TArg, TResult>(Func<TArg, TResult> func,
@@ -124,7 +129,13 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<Task<TResult>>();
 
-        return InvokeTaskCoreAsync(messageLoopThreadId, func, arg, cancellationToken);
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
+            return Task.FromResult(func.Invoke(arg));
+        }
+        else
+            return InvokeTaskCoreAsync(messageLoopThreadId, func, arg, cancellationToken);
     }
 
     public static Task<TResult> InvokeTaskAsync<TArg1, TArg2, TResult>(Func<TArg1, TArg2, TResult> func,
@@ -134,7 +145,13 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<Task<TResult>>();
 
-        return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, cancellationToken);
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
+            return Task.FromResult(func.Invoke(arg1, arg2));
+        }
+        else
+            return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, cancellationToken);
     }
 
     public static Task<TResult> InvokeTaskAsync<TArg1, TArg2, TArg3, TResult>(Func<TArg1, TArg2, TArg3, TResult> func,
@@ -144,7 +161,13 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return InvalidOperationException.Throw<Task<TResult>>();
 
-        return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, arg3, cancellationToken);
+        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
+        {
+            ProcessAllInvoke();
+            return Task.FromResult(func.Invoke(arg1, arg2, arg3));
+        }
+        else
+            return InvokeTaskCoreAsync(messageLoopThreadId, func, arg1, arg2, arg3, cancellationToken);
     }
 
     private static void InvokeCoreAsync<TResult>(uint threadId, Func<TResult> func, CancellationToken cancellationToken = default)

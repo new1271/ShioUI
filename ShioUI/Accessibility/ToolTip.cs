@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
-using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 
 using ShioUI.Internals.Native;
@@ -73,6 +72,21 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
             _elementTooltipTable.Remove(element);
     }
 
+    public void Show(Point point) => ShowCore(_owner.WindowToScreen(point));
+
+    public void Show(PointF point) => ShowCore(_owner.WindowToScreen(point));
+
+    public void Show() => ShowCore(MouseHelper.GetMousePosition());
+
+    public void Close()
+    {
+        lock (_syncLock)
+        {
+            DisposeHelper.SwapDispose(ref _activeWindow);
+            _timer.Change(Timeout.Infinite, Timeout.Infinite);
+        }
+    }
+
     unsafe bool IWindowMessageFilter.TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
     {
         Point point;
@@ -124,8 +138,7 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
         goto Tail;
 
     Skip:
-        DisposeHelper.SwapDispose(ref _activeWindow);
-        _timer.Change(Timeout.Infinite, Timeout.Infinite);
+        Close();
         goto Tail;
 
     Tail:
@@ -135,12 +148,16 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
 
     private async void Timer_Tick()
     {
-        await Task.Yield();
         Point lastPoint = BoundsHelper.AsPoint(Atomics.Read(ref _recordedPoint));
         Point screenPoint = MouseHelper.GetMousePosition();
         if (MathHelper.Abs(lastPoint.X - screenPoint.X) > SystemParameters.MouseHoverWidth ||
             MathHelper.Abs(lastPoint.Y - screenPoint.Y) > SystemParameters.MouseHoverHeight)
             return;
+        ShowCore(screenPoint);
+    }
+
+    private async void ShowCore(Point screenPoint)
+    {
         CoreWindow owner = _owner;
         if (owner.IsDisposed || await WindowMessageLoop.InvokeTaskAsync(static () => User32.GetActiveWindow()) != owner.Handle)
             return;
@@ -153,7 +170,7 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
         {
             Window window = new Window(this, result, 500, screenPoint);
             window.Show();
-            DisposeHelper.SwapDisposeAtomic(ref _activeWindow, window);
+            DisposeHelper.SwapDispose(ref _activeWindow, window);
         }
     }
 
