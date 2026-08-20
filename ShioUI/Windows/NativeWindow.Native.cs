@@ -66,10 +66,10 @@ partial class NativeWindow : IDisposable
     {
         if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
             return;
-        WindowMessageLoop.Invoke(static (_this, disposing) => _this.DisposeCore(disposing), this, disposing);
+        WindowMessageLoop.Invoke(static (_this, disposing) => _this.DisposeSync(disposing), this, disposing);
     }
 
-    protected virtual void DisposeSync(bool disposing)
+    private void DisposeSync(bool disposing)
     {
         try
         {
