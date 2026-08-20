@@ -25,28 +25,6 @@ namespace ShioUI.Windows;
 
 unsafe partial class NativeWindow
 {
-#if NET8_0_OR_GREATER
-    private static readonly FrozenDictionary<uint, nint> _customWindowMessageProcessorDict
-        = CreateCustomWindowMessageProcessorDictionary().ToFrozenDictionary();
-#else
-    private static readonly Dictionary<uint, nint> _customWindowMessageProcessorDict
-        = CreateCustomWindowMessageProcessorDictionary();
-#endif
-
-    private static Dictionary<uint, nint> CreateCustomWindowMessageProcessorDictionary()
-    {
-        Dictionary<uint, nint> result = new Dictionary<uint, nint>(1);
-
-        IL.EnsureLocal(result);
-
-        IL.Push(result);
-        IL.Push(CustomWindowMessages.ShioUI_DestroyWindowAsync);
-        IL.Emit.Ldftn(new MethodRef(typeof(NativeWindow), nameof(HandleShioDestroyWindowAsync)));
-        IL.Emit.Call(new MethodRef(typeof(Dictionary<uint, nint>), nameof(Dictionary<uint, nint>.Add)));
-
-        return result;
-    }
-
     bool IWindowMessageFilter.TryProcessWindowMessage(IntPtr handle, WindowMessage message, nint wParam, nint lParam, out nint result)
         => TryProcessWindowMessage(handle, message, wParam, lParam, out result);
 
@@ -89,24 +67,6 @@ unsafe partial class NativeWindow
     [LocalsInit(false)]
     protected virtual bool TryProcessCustomWindowMessage(IntPtr handle, uint message, nint wParam, nint lParam, out nint result)
     {
-        const string Label = "JumpLabel";
-
-        if (_customWindowMessageProcessorDict.TryGetValue(message, out nint functionPointer))
-        {
-            IL.Emit.Ldarg_0();
-            IL.Emit.Ldarg_2();
-            IL.Emit.Ldarg_3();
-            IL.Emit.Ldarg(4);
-            IL.PushOutRef(out result);
-            IL.Push(functionPointer);
-            IL.Emit.Calli(new StandAloneMethodSig(CallingConventions.HasThis, typeof(bool),
-                typeof(IntPtr), typeof(nint), typeof(nint), TypeRef.Type<nint>().MakeByRefType()));
-
-            IL.Emit.Brfalse(Label);
-            return true;
-        }
-
-        IL.MarkLabel(Label);
         result = 0;
         return false;
     }
@@ -158,6 +118,9 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleDestroyed()
     {
+        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) == default)
+            DisposeCore(disposing: true);
+        
         if (Atomics.Exchange(ref _windowFlags, UnsafeHelper.GetMaxValue<nuint>()) != UnsafeHelper.GetMaxValue<nuint>())
         {
             IntPtr handle = _handleLazy.Value;
@@ -180,14 +143,7 @@ unsafe partial class NativeWindow
                     dialogTokenSource.Dispose();
                 }
             }
-            try
-            {
-                OnDestroyed();
-            }
-            finally
-            {
-                Dispose();
-            }
+            OnDestroyed();
         }
         return true;
     }
@@ -340,13 +296,6 @@ unsafe partial class NativeWindow
     private static bool HandleEraseBackground(out nint result)
     {
         result = 1;
-        return true;
-    }
-
-    private bool HandleShioDestroyWindowAsync(IntPtr hwnd, nint wParam, nint lParam, out nint result)
-    {
-        DestroyHandle();
-        result = 0;
         return true;
     }
 }

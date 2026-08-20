@@ -2,17 +2,19 @@ using System;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
+
+using RiceTea.Core;
+using RiceTea.Core.Helpers;
 
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 
-using RiceTea.Core.Helpers;
-using RiceTea.Core;
-
 namespace ShioUI.Windows;
 
-partial class NativeWindow
+partial class NativeWindow : IDisposable
+#if NET8_0_OR_GREATER
+    , IAsyncDisposable
+#endif
 {
     private unsafe IntPtr CreateWindowHandle(IntPtr parent)
     {
@@ -60,34 +62,47 @@ partial class NativeWindow
     protected bool IsWindowDestroyed()
         => Atomics.Read(ref _windowFlags) == UnsafeHelper.GetMaxValue<nuint>();
 
-    protected virtual void DisposeCore(bool disposing)
-    {
-        IntPtr handle = Handle;
-        if (handle == IntPtr.Zero)
-            return;
-        User32.PostMessageW(handle, CustomWindowMessages.ShioUI_DestroyWindowAsync, 0, 0);
-    }
-
-    private void DestroyHandle()
-    {
-        IntPtr handle = Handle;
-        if (handle == IntPtr.Zero)
-            return;
-        User32.DestroyWindow(handle);
-    }
-
-    private void Dispose(bool disposing)
+    private void DisposeInternal(bool disposing)
     {
         if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
             return;
-        DisposeCore(disposing);
+        WindowMessageLoop.Invoke(static (_this, disposing) => _this.DisposeCore(disposing), this, disposing);
     }
 
-    ~NativeWindow() => Dispose(disposing: false);
+    protected virtual void DisposeSync(bool disposing)
+    {
+        try
+        {
+            DisposeCore(disposing);
+        }
+        finally
+        {
+            User32.DestroyWindow(Handle);
+        }
+    }
+
+    protected virtual void DisposeCore(bool disposing) { }
+
+    ~NativeWindow() => DisposeInternal(disposing: false);
 
     public void Dispose()
     {
-        Dispose(disposing: true);
+        DisposeInternal(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+#if NET8_0_OR_GREATER
+    private System.Threading.Tasks.Task DisposeInternalAsync()
+    {
+        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
+            return System.Threading.Tasks.Task.CompletedTask;
+        return WindowMessageLoop.InvokeTaskAsync(static (_this) => _this.DisposeCore(disposing: true), this);
+    }
+
+    public async System.Threading.Tasks.ValueTask DisposeAsync()
+    {
+        await DisposeInternalAsync();
+        GC.SuppressFinalize(this);
+    }
+#endif
 }
