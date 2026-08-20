@@ -92,6 +92,10 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
         Point point;
         switch (message)
         {
+            case WindowMessage.Activate:
+                if (wParam == default)
+                    goto Skip;
+                break;
             case WindowMessage.NCMouseMove:
                 if (_mouseDownState != default)
                     goto Skip;
