@@ -1,88 +1,88 @@
 using System;
-
-using ShioUI.Windows;
-using ShioUI.Internals.Native;
-using ShioUI.Utils;
+using System.Threading;
 
 using RiceTea.Core;
+using RiceTea.Core.Helpers;
+
+using ShioUI.Internals.Native;
+using ShioUI.Traits;
+using ShioUI.Utils;
+using ShioUI.Windows;
 
 namespace ShioUI.Input;
 
 public sealed class InputMethod : IWindowMessageFilter, ICheckableDisposable
 {
     private readonly CoreWindow _owner;
+    private readonly Lock _syncLock = new();
 
-    private bool _imeStatus;
-    private IntPtr _windowHandle;
     private InputMethodContext? _context;
     private IInputMethodHandler? _attachedControl;
+    private nuint _disposed;
+    private bool _imeStatus;
 
-    private bool _disposed;
+    public bool IsDisposed => MathHelper.ToBoolean(Atomics.Read(ref _disposed));
 
-    public bool IsDisposed => _disposed;
     public InputMethodContext? Context => _context;
 
     public InputMethod(CoreWindow window)
     {
         _owner = window;
-        _windowHandle = window.Handle;
         _owner.AddMessageFilter(this);
         _imeStatus = true;
     }
 
-    public void Attach(IInputMethodHandler control)
+    public void Attach(IInputMethodHandler? control)
     {
-        IInputMethodHandler? oldControl = _attachedControl;
-        if (oldControl == control)
+        IInputMethodHandler? oldControl = Atomics.Exchange(ref _attachedControl, control);
+        if (ReferenceEquals(oldControl, control))
             return;
         if (control is null)
         {
-            DetachCore();
+            lock (_syncLock)
+                User32.DestroyCaret();
             return;
         }
-        InputMethodContext? context = _context;
-        if (oldControl is null)
-            User32.CreateCaret(_windowHandle, IntPtr.Zero, 2, 10);
-        if (context is null)
-        {
-            context = InputMethodContext.Create();
-            InputMethodContext.Associate(_windowHandle, context);
-            context.Status = _imeStatus;
-            _context = context;
-        }
-        _attachedControl = control;
-    }
-
-    public void Detach(IInputMethodHandler control)
-    {
-        if (control is null || _attachedControl != control)
+        IntPtr handle = _owner.Handle;
+        if (handle == IntPtr.Zero)
             return;
-        InputMethodContext? context = _context;
-        if (context != null)
+        lock (_syncLock)
         {
-            _context = null;
-            _imeStatus = context.Status;
-            context.Dispose();
+            InputMethodContext? context = _context;
+            if (oldControl is null)
+                User32.CreateCaret(handle, IntPtr.Zero, 2, 10);
+            if (context is null)
+            {
+                context = InputMethodContext.Create();
+                InputMethodContext.Associate(handle, context);
+                context.Status = _imeStatus;
+                _context = context;
+            }
         }
-        DetachCore();
     }
 
-    private void DetachCore()
+    public void Detach(IInputMethodHandler? control)
     {
-        User32.DestroyCaret();
-        _attachedControl = null;
+        if (control is null || !ReferenceEquals(Atomics.CompareExchange(ref _attachedControl, null, control), control))
+            return;
+        lock (_syncLock)
+        {
+            InputMethodContext? context = _context;
+            if (context is not null)
+            {
+                _context = null;
+                _imeStatus = context.Status;
+                context.Dispose();
+            }
+            User32.DestroyCaret();
+        }
     }
 
-    public VirtualKey GetRealKeyCode()
-    {
-        return _context?.GetRealKeyCode() ?? VirtualKey.None;
-    }
-
-    public bool TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
+    bool IWindowMessageFilter.TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
     {
         result = 0;
 
-        IInputMethodHandler? attachedControl = _attachedControl;
+        IInputMethodHandler? attachedControl = Atomics.Read(ref _attachedControl);
         switch (message)
         {
             case WindowMessage.KillFocus:
@@ -165,13 +165,11 @@ public sealed class InputMethod : IWindowMessageFilter, ICheckableDisposable
 
     private void DisposeCore()
     {
-        if (Cells.Exchange(ref _disposed, true))
+        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
             return;
         _owner.RemoveMessageFilter(this);
         _context?.Dispose();
     }
-
-    ~InputMethod() => DisposeCore();
 
     public void Dispose()
     {

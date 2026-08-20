@@ -22,7 +22,6 @@ using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Threading;
 
-using ShioUI.Controls;
 using ShioUI.Extensions;
 using ShioUI.Graphics;
 using ShioUI.Graphics.Extensions;
@@ -37,6 +36,7 @@ using ShioUI.Internals.Native;
 using ShioUI.Layout;
 using ShioUI.Layout.Internals;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI.Windows;
@@ -125,7 +125,11 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     #endregion
 
     #region Properties
-    public WindowMaterial WindowMaterial => _windowMaterial;
+    public WindowMaterial WindowMaterial
+    {
+        get => _windowMaterial;
+        init => _windowMaterial = value;
+    }
 
     public WindowMaterial ActualWindowMaterial => _actualWindowMaterial;
 
@@ -220,7 +224,6 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
         SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
         SystemEvents.SessionSwitch += SystemEvents_SessionSwitch;
-        MaterialHelper.ApplyWindowMaterial(this, out _fixLagObject);
     }
 
     private bool InitRenderObjectsCore(IntPtr handle, GraphicsDeviceProvider provider, [NotNullWhen(true)] out D2D1DeviceContext? deviceContext)
@@ -237,7 +240,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         SystemVersionLevel versionLevel = SystemConstants.VersionLevel;
         bool useFlipModel = ExtendedStyles.HasFlagFast(WindowExtendedStyles.NoRedirectionBitmap);
         bool useDComp = useFlipModel && provider.IsSupportDComp && provider.IsSupportSwapChain1;
-        host = GraphicsHostHelper.CreateSwapChainGraphicsHost(handle, provider, useFlipModel, useDComp, IsBackgroundOpaque());
+        host = GraphicsHostHelper.CreateSwapChainGraphicsHost(handle, provider, useFlipModel, useDComp, _windowMaterial == WindowMaterial.None);
         Atomics.Write(ref _host, host);
         Atomics.Write(ref _collector, new DirtyAreaCollector(host));
         if (parent is null)
@@ -387,16 +390,9 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     #endregion
 
     #region Override Methods
-    protected override void OnShown()
+    private void OnFirstTimeShow_Delayed()
     {
-        base.OnShown();
-        UpdateFirstTime();
-        WindowMessageLoop.InvokeAsync(OnShown2);
-    }
-
-    private void OnShown2()
-    {
-        PointF point = PointToClient(MouseHelper.GetMousePosition());
+        PointF point = ScreenToWindow(MouseHelper.GetMousePosition());
         OnMouseMove(new HandleableMouseEventArgs(point));
     }
 
@@ -566,7 +562,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     IEnumerable<UIElement?> IElementContainer.GetElements() => GetElements();
 
-    bool IElementContainer.IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque();
+    bool IElementContainer.IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque(element);
 
     IElementContainer IElementContainer.Parent => this;
 
@@ -594,7 +590,9 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     RenderResult IRenderWindow.RenderPage(in RegionalRenderingContext context, in RenderInformation information)
         => NotSupportedException.Throw<RenderResult>();
 
-    private bool IsBackgroundOpaque() => _actualWindowMaterial == WindowMaterial.None;
+    protected virtual bool IsBackgroundOpaque(UIElement element) => IsBackgroundOpaque();
+
+    protected virtual bool IsBackgroundOpaque() => _windowBaseColor.A >= 1.0f;
     #endregion
 
     #region Abstract Methods
@@ -781,7 +779,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 return;
 
             Vector2 pointsPerPixel = _pointsPerPixel;
-            Size activeBorderSize; 
+            Size activeBorderSize;
             int drawingOffsetX, drawingOffsetY;
             if (User32.IsZoomed(handle))
             {
@@ -804,13 +802,13 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             data.ActiveBorderSize = activeBorderSize;
             data.DrawingOffset = new Point(drawingOffsetX, drawingOffsetY);
             int x = windowSize.Width - 1 - drawingOffsetX, y = drawingOffsetY;
-            data.CloseButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y, 
+            data.CloseButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
                 UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
             data.MaximizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
                 UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
-            data.MinimizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y, 
+            data.MinimizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
                 UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
-            Rectangle titleBarBounds =  new Rectangle(drawingOffsetX, y, x - drawingOffsetX, UIConstantsPrivate.TitleBarHeight);
+            Rectangle titleBarBounds = new Rectangle(drawingOffsetX, y, x - drawingOffsetX, UIConstantsPrivate.TitleBarHeight);
             pageBounds = Rectangle.FromLTRB(
                 left: drawingOffsetX + activeBorderSize.Width,
                 top: titleBarBounds.Bottom + 1,
@@ -1388,6 +1386,115 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     #endregion
 
     #region Normal Methods
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetElementFromPoint(Point point, [NotNullWhen(true)] out UIElement? result, out Point localPoint)
+    {
+        UIElement? element = GetOverlayElement();
+        if (element is not null && element.Bounds.Contains(point))
+            return Core(element, point, out result, out localPoint);
+
+        using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+        {
+            ref readonly UIElement? scopeRef = ref scope.GetReferenceOfFirstElement();
+            for (int i = 0, count = scope.Count; i < count; i++)
+            {
+                element = UnsafeHelper.AddTypedOffsetAsReadOnly(in scopeRef, i);
+                if (element is not null && element.Bounds.Contains(point))
+                    return Core(element, point, out result, out localPoint);
+            }
+        }
+        result = null;
+        localPoint = default;
+        return false;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static bool Core(UIElement element, Point point, [NotNullWhen(true)] out UIElement? result, out Point localPoint)
+        {
+        Found:
+            if (element is not IElementContainer container)
+                goto Exit;
+
+            if (element is IRenderWindow window)
+                point = window.PageToInnerPage(point);
+            else
+                point = element.PageToLocal(point);
+
+            using (ArrayPool<UIElement?>.RentScope scope = ArrayPool<UIElement?>.Shared.EnterRentScopeAndCapture(container.GetActiveElements()))
+            {
+                ref readonly UIElement? scopeRef = ref scope.GetReferenceOfFirstElement();
+                for (int i = 0, count = scope.Count; i < count; i++)
+                {
+                    UIElement? child = UnsafeHelper.AddTypedOffsetAsReadOnly(in scopeRef, i);
+                    if (child is null || !child.Bounds.Contains(point))
+                        continue;
+                    element = child;
+                    goto Found;
+                }
+            }
+            goto Exit;
+
+        Exit:
+            result = element;
+            localPoint = point;
+            return true;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetElementFromPoint(PointF point, [NotNullWhen(true)] out UIElement? result, out PointF localPoint)
+    {
+        UIElement? element = GetOverlayElement();
+        if (element is not null && element.Bounds.Contains(point))
+            return Core(element, point, out result, out localPoint);
+
+        using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+        {
+            ref readonly UIElement? scopeRef = ref scope.GetReferenceOfFirstElement();
+            for (int i = 0, count = scope.Count; i < count; i++)
+            {
+                element = UnsafeHelper.AddTypedOffsetAsReadOnly(in scopeRef, i);
+                if (element is not null && element.Bounds.Contains(point))
+                    return Core(element, point, out result, out localPoint);
+            }
+        }
+        result = null;
+        localPoint = default;
+        return false;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static bool Core(UIElement element, PointF point, [NotNullWhen(true)] out UIElement? result, out PointF localPoint)
+        {
+        Found:
+            if (element is not IElementContainer container)
+                goto Exit;
+
+            if (element is IRenderWindow window)
+                point = window.PageToInnerPage(point);
+            else
+                point = element.PageToLocal(point);
+
+            using (ArrayPool<UIElement?>.RentScope scope = ArrayPool<UIElement?>.Shared.EnterRentScopeAndCapture(container.GetActiveElements()))
+            {
+                ref readonly UIElement? scopeRef = ref scope.GetReferenceOfFirstElement();
+                for (int i = 0, count = scope.Count; i < count; i++)
+                {
+                    UIElement? child = UnsafeHelper.AddTypedOffsetAsReadOnly(in scopeRef, i);
+                    if (child is not null && child.Bounds.Contains(point))
+                    {
+                        element = child;
+                        goto Found;
+                    }
+                }
+            }
+            goto Exit;
+
+        Exit:
+            result = element;
+            localPoint = point;
+            return true;
+        }
+    }
+
     public BatchUpdateScope EnterBatchUpdateScope() => EnterBatchUpdateScopeCore(GetRenderingController());
 
     public CriticalUpdateScope EnterCriticalUpdateScope() => EnterCriticalUpdateScopeCore(GetRenderingController());
@@ -1707,7 +1814,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                     recordedElementRef = GCHandle.Alloc(target, GCHandleType.Weak);
             }
         }
-        OnMouseMove(new MouseEventArgs(PointToClient(MouseHelper.GetMousePosition())));
+        OnMouseMove(new MouseEventArgs(ScreenToWindow(MouseHelper.GetMousePosition())));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

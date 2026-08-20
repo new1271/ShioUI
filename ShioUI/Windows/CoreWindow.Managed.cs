@@ -10,12 +10,12 @@ using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
-using ShioUI.Controls;
 using ShioUI.Extensions;
 using ShioUI.Graphics;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI.Windows;

@@ -219,7 +219,13 @@ partial class NativeWindow
             if (handle == IntPtr.Zero)
                 return;
 
-            ShowWindow(handle, value);
+            User32.ShowWindow(handle, value switch
+            {
+                WindowState.Normal => ShowWindowCommands.ShowNormal,
+                WindowState.Minimized => ShowWindowCommands.ShowMinimized,
+                WindowState.Maximized => ShowWindowCommands.ShowMaximized,
+                _ => ArgumentOutOfRangeException.Throw<ShowWindowCommands>(nameof(value))
+            });
         }
     }
 

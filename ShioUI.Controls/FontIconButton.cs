@@ -7,6 +7,7 @@ using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Theme;
 
 using RiceTea.Core.Helpers;
+using ShioUI.Traits;
 
 namespace ShioUI.Controls;
 

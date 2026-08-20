@@ -1,6 +1,6 @@
 using ShioUI.Utils;
 
-namespace ShioUI.Controls;
+namespace ShioUI.Traits;
 
 public interface ICursorStateHandler
 {

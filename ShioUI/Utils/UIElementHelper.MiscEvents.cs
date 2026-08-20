@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-using ShioUI.Controls;
+using ShioUI.Traits;
 
 namespace ShioUI.Utils;
 

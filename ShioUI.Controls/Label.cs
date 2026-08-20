@@ -17,6 +17,7 @@ using ShioUI.Theme;
 using RiceTea.Core.Helpers;
 using System;
 using RiceTea.Core;
+using ShioUI.Traits;
 
 namespace ShioUI.Controls;
 

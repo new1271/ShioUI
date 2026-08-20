@@ -23,6 +23,7 @@ using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Layout;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI.Controls;

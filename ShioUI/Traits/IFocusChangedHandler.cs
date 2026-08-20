@@ -1,4 +1,4 @@
-namespace ShioUI.Controls;
+namespace ShioUI.Traits;
 
 public readonly record struct FocusChangedEventArgs(bool State, UIElement? FocusedElement);
 

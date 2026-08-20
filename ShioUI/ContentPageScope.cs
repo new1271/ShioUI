@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using ShioUI.Layout;
+using ShioUI.Traits;
 
 namespace ShioUI;
 

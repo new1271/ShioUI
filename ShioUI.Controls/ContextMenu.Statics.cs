@@ -16,7 +16,7 @@ partial class ContextMenu
         if (items.Length <= 0)
             return;
 
-        OpenCore(_this, items, GraphicsUtils.AdjustPoint(_this.WindowToPage(_this.PointToClient(MouseHelper.GetMousePosition()))));
+        OpenCore(_this, items, GraphicsUtils.AdjustPoint(_this.WindowToPage(_this.ScreenToWindow(MouseHelper.GetMousePosition()))));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -8,6 +8,7 @@ using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
 
 using ShioUI.Layout;
+using ShioUI.Traits;
 
 namespace ShioUI.Controls;
 

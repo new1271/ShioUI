@@ -7,8 +7,8 @@ using RiceTea.Core.Buffers;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 
-using ShioUI.Controls;
 using ShioUI.Extensions;
+using ShioUI.Traits;
 
 namespace ShioUI.Utils;
 

@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
 
+using ShioUI.Traits;
+
 namespace ShioUI.Controls;
 
 public abstract partial class ButtonBase : UIElement, IMouseInteractHandler, IMouseMoveHandler

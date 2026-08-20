@@ -121,6 +121,8 @@ public abstract class WizardWindow : MultiPageWindow
 
     protected override void RenderPageBackground(in RegionalRenderingContext context, in WindowRenderingData data) => ClearDC(context);
 
+    protected override bool IsBackgroundOpaque() => _wizardBaseColor.A >= 1.0f;
+
     private void GetLayouts(UpdateFlags flags, out DWriteTextLayout? titleLayout, out DWriteTextLayout? titleDescriptionLayout)
     {
         titleLayout = Interlocked.Exchange(ref _titleLayout, null);

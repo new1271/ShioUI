@@ -1,6 +1,7 @@
+using ShioUI.Input;
 using ShioUI.Utils;
 
-namespace ShioUI.Input;
+namespace ShioUI.Traits;
 
 public interface IInputMethodHandler
 {

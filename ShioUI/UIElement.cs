@@ -16,6 +16,7 @@ using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Layout;
 using ShioUI.Layout.Internals;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI;

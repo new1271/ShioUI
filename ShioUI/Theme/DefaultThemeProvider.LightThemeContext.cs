@@ -117,6 +117,14 @@ partial class DefaultThemeProvider
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.menu.itemHovered.back",
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120, 145)));
+
+            // 工具提示
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.tooltip.back",
+                value: queryBrushFunc("app.control.back"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.tooltip.fore",
+                value: queryBrushFunc("app.control.fore"));
         }
     }
 }

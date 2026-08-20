@@ -10,6 +10,8 @@ using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Threading;
 
+using ShioUI.Traits;
+
 namespace ShioUI.Utils;
 
 public sealed class UIElementCollection : ICollection, ICollection<UIElement>, ILockable, IDisposable

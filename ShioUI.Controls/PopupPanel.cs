@@ -4,6 +4,7 @@ using RiceTea.Core;
 
 using ShioUI.Graphics;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 using ShioUI.Windows;
 

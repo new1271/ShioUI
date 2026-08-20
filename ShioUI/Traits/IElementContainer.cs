@@ -6,7 +6,7 @@ using InlineMethod;
 using ShioUI.Graphics;
 using ShioUI.Windows;
 
-namespace ShioUI;
+namespace ShioUI.Traits;
 
 public interface IElementContainer
 {

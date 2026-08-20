@@ -177,9 +177,11 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         else
             handle = handleLazy.Value;
 
-        ShowWindow(handle, WindowState.Normal);
+        ShowCore(handle);
         return handle;
     }
+
+    protected virtual void ShowCore(IntPtr handle) => User32.ShowWindow(handle, ShowWindowCommands.Normal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ShowDialogInternal(NativeWindow window)

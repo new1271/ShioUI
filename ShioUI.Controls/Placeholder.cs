@@ -4,6 +4,7 @@ using RiceTea.Core.Helpers;
 using ShioUI.Graphics;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI.Controls;

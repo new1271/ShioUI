@@ -5,6 +5,8 @@ using ShioUI.Windows;
 using ShioUI.Internals.Native;
 using ShioUI.Internals.NativeHelpers;
 
+using RiceTea.Core.Extensions;
+
 namespace ShioUI.Internals;
 
 internal static class MaterialHelper
@@ -42,7 +44,8 @@ internal static class MaterialHelper
                         }
                         break;
                 }
-                FluentHandler.ApplyWin11Corner(handle);
+                FluentHandler.ApplyWin11Corner(handle, 
+                    window.Styles.HasFlagFast(WindowStyles.Popup) ? DwmWindowCornerPreference.RoundSmall : DwmWindowCornerPreference.Round);
                 FluentHandler.SetDarkThemeInWin11(handle, window.CurrentTheme?.IsDarkTheme ?? false);
                 break;
             case SystemVersionLevel.Windows_11_21H2: // Acrylic-theme
@@ -60,7 +63,8 @@ internal static class MaterialHelper
                     case WindowMaterial.Integrated:
                         break;
                 }
-                FluentHandler.ApplyWin11Corner(handle);
+                FluentHandler.ApplyWin11Corner(handle, 
+                    window.Styles.HasFlagFast(WindowStyles.Popup) ? DwmWindowCornerPreference.RoundSmall : DwmWindowCornerPreference.Round);
                 FluentHandler.SetDarkThemeInWin11(handle, isDarkTheme);
                 break;
             case SystemVersionLevel.Windows_10_19H1: // WindowMaterial-theme-v3

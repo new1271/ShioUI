@@ -1,6 +1,6 @@
 using ShioUI.Layout;
 
-namespace ShioUI.Controls;
+namespace ShioUI.Traits;
 
 public interface IAutoWidthElement
 {

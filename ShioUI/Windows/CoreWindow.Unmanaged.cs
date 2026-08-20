@@ -79,7 +79,7 @@ public unsafe partial class CoreWindow
     private MouseButtons _lastMouseDownButtons;
     private IntPtr _associatedMonitor;
     private nint _beforeHitTest;
-    private bool _isMaximized, _isCreateByDefaultX, _isCreateByDefaultY, _hasMouseCapture, _isSystemPrepareBoosting, _sizeModeState;
+    private bool _isMaximized, _isCreateByDefaultX, _isCreateByDefaultY, _hasMouseCapture, _isSystemPrepareBoosting, _sizeModeState, _isFirstTime;
     #endregion
 
     #region Special Fields
@@ -308,7 +308,7 @@ public unsafe partial class CoreWindow
                     Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
                     (ushort buttons, ushort delta) = wParam.GetWords();
                     HandleableMouseEventArgs args = new HandleableMouseEventArgs(
-                        point: PointToClient(point),
+                        point: ScreenToWindow(point),
                         buttons: (MouseButtons)buttons,
                         delta: UnsafeHelper.As<ushort, short>(delta));
                     OnMouseScroll(ref args);
@@ -373,6 +373,10 @@ public unsafe partial class CoreWindow
                 }
             #endregion
             #region Rendering
+            case WindowMessage.ShowWindow:
+                if (!Cells.Exchange(ref _isFirstTime, true))
+                    WindowMessageLoop.InvokeAsync(static window => window.OnFirstTimeShow_Delayed(), this);
+                goto default;
             case WindowMessage.NCMouseMove:
                 {
                     nint hitTest = wParam;
@@ -414,7 +418,7 @@ public unsafe partial class CoreWindow
                         }
                         Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
                         OnMouseMove(new HandleableMouseEventArgs(
-                            point: PointToClientCore(hwnd, point)));
+                            point: ScreenToWindowCore(hwnd, point)));
                         Refresh();
                     }
                 }
@@ -574,7 +578,7 @@ public unsafe partial class CoreWindow
     #region HitTests
     private HitTestValue DoHitTestForIntergrated(IntPtr lParam)
     {
-        PointF point = PointToClient(UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32());
+        PointF point = ScreenToWindow(UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32());
         return CustomHitTest(point);
     }
 
@@ -843,12 +847,14 @@ public unsafe partial class CoreWindow
 
     protected override void OnHandleCreated(IntPtr handle)
     {
+        MaterialHelper.ApplyWindowMaterial(this, out _fixLagObject);
+        
         base.OnHandleCreated(handle);
 
         if (SystemConstants.VersionLevel >= SystemVersionLevel.Windows_11_21H2)
             DwmApi.DwmSetWindowAttribute(handle, DwmWindowAttribute.CaptionColor, 0xFFFFFFFE);
         User32.SetWindowPos(handle, IntPtr.Zero,
-                        WindowPositionFlags.SwapWithFrameChanged | WindowPositionFlags.SwapWithNoZOrder);
+                        WindowPositionFlags.SwapWithFrameChanged | WindowPositionFlags.SwapWithNoZOrder | WindowPositionFlags.SwapWithNoActivate);
 
         UpdateDpi(handle);
         (float factorX, float factorY) = _pixelsPerPoint;
@@ -875,60 +881,62 @@ public unsafe partial class CoreWindow
         InitRenderObjects(handle);
 
         _associatedMonitor = User32.MonitorFromWindow(handle, MonitorFromWindowFlags.DefaultToNearest);
+        UpdateFirstTime();
     }
 
     #region Thread-Safe Function Overwrite
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PointF PointToClient(Point point)
+    public PointF ScreenToWindow(Point pixel)
     {
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return Point.Empty;
 
-        return GraphicsUtils.ScalingPointAndConvert(PointToClientCore(handle, point), _pointsPerPixel);
+        return GraphicsUtils.ScalingPointAndConvert(ScreenToWindowCore(handle, pixel), _pointsPerPixel);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Point PointToClientRaw(Point point)
+    public Point ScreenToWindowRaw(Point pixel)
     {
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return Point.Empty;
 
-        return PointToClientCore(handle, point);
+        return ScreenToWindowCore(handle, pixel);
     }
 
     [LocalsInit(false)]
-    private static Point PointToClientCore(IntPtr handle, Point point)
+    private static Point ScreenToWindowCore(IntPtr handle, Point pixel)
     {
-        if (!User32.ScreenToClient(handle, &point))
+        if (!User32.ScreenToClient(handle, &pixel))
             return Point.Empty;
 
-        return point;
+        return pixel;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PointF PointToScreen(Point point)
+    public Point WindowToScreen(PointF point)
     {
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return Point.Empty;
 
-        return GraphicsUtils.ScalingPointAndConvert(PointToClientCore(handle, point), _pixelsPerPoint);
+        Point pixel = GraphicsUtils.ScalingPointAndConvert(point, _pixelsPerPoint);
+        return WindowToScreenCore(handle, pixel);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Point PointToScreenRaw(Point point)
+    public Point WindowToScreenRaw(Point pixel)
     {
         IntPtr handle = Handle;
         if (handle == IntPtr.Zero)
             return Point.Empty;
 
-        return PointToScreenCore(handle, point);
+        return WindowToScreenCore(handle, pixel);
     }
 
     [LocalsInit(false)]
-    private static Point PointToScreenCore(IntPtr handle, Point point)
+    private static Point WindowToScreenCore(IntPtr handle, Point point)
     {
         if (!User32.ClientToScreen(handle, &point))
             return Point.Empty;

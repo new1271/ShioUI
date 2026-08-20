@@ -6,7 +6,7 @@ using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Theme;
 using ShioUI.Utils;
 
-namespace ShioUI;
+namespace ShioUI.Traits;
 
 public interface IRenderWindow : IElementContainer
 {

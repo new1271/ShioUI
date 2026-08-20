@@ -2,6 +2,7 @@ using System;
 
 using RiceTea.Core.Buffers;
 
+using ShioUI.Traits;
 using ShioUI.Windows;
 
 namespace ShioUI.Internals;

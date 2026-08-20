@@ -1,5 +1,7 @@
 using RiceTea.Core.Extensions;
 
+using ShioUI.Traits;
+
 namespace ShioUI.Controls;
 
 public abstract class PopupElementBase : UIElement, IGlobalMouseInteractHandler

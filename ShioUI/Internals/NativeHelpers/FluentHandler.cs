@@ -142,15 +142,15 @@ internal static class FluentHandler
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ApplyWin11Corner(IntPtr handle)
-        => DwmApi.DwmSetWindowAttribute(handle, DwmWindowAttribute.WindowCornerPreference, DwmWindowCornerPreference.Round);
+    public static void ApplyWin11Corner(IntPtr handle, DwmWindowCornerPreference preference = DwmWindowCornerPreference.Round)
+        => DwmApi.DwmSetWindowAttribute(handle, DwmWindowAttribute.WindowCornerPreference, preference);
 
     public static object? FixLagForAcrylic(CoreWindow window)
         => new VisualLagFixFilter(window, isAcrylic: true,
             fallBackToGaussian: !window.ExtendedStyles.HasFlagFast(WindowExtendedStyles.NoRedirectionBitmap));
 
     public static object? FixLagForBlur(CoreWindow window)
-        => window.ExtendedStyles.HasFlagFast(WindowExtendedStyles.NoRedirectionBitmap) ? 
+        => window.ExtendedStyles.HasFlagFast(WindowExtendedStyles.NoRedirectionBitmap) ?
         new VisualLagFixFilter(window, isAcrylic: false, fallBackToGaussian: false) : null;
 
     private sealed class VisualLagFixFilter : IWindowMessageFilter, IDisposable
@@ -193,9 +193,10 @@ internal static class FluentHandler
                             break;
                         bool isDarkMode = window.CurrentTheme?.IsDarkTheme ?? false;
                         DisableBlur(hwnd);
-                        User32.SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0, 
-                            WindowPositionFlags.SwapWithNoMove | WindowPositionFlags.SwapWithNoSize | 
-                            WindowPositionFlags.SwapWithNoZOrder | WindowPositionFlags.SwapWithFrameChanged);
+                        User32.SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
+                            WindowPositionFlags.SwapWithNoMove | WindowPositionFlags.SwapWithNoSize |
+                            WindowPositionFlags.SwapWithNoZOrder | WindowPositionFlags.SwapWithFrameChanged |
+                            WindowPositionFlags.SwapWithNoActivate);
                         if (_isAcrylic)
                             EnableAcrylicBlur(hwnd, isDarkMode);
                         else

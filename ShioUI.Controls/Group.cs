@@ -4,9 +4,11 @@ using System.Runtime.CompilerServices;
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
+using ShioUI.Controls.Traits;
 using ShioUI.Graphics;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Theme;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI.Controls;

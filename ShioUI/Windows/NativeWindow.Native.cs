@@ -14,16 +14,6 @@ namespace ShioUI.Windows;
 
 partial class NativeWindow
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ShowWindow(IntPtr handle, WindowState showState)
-        => User32.ShowWindow(handle, showState switch
-        {
-            WindowState.Normal => ShowWindowCommands.ShowNormal,
-            WindowState.Minimized => ShowWindowCommands.ShowMinimized,
-            WindowState.Maximized => ShowWindowCommands.ShowMaximized,
-            _ => ArgumentOutOfRangeException.Throw<ShowWindowCommands>(nameof(showState))
-        });
-
     private unsafe IntPtr CreateWindowHandle(IntPtr parent)
     {
         WindowClassImpl windowClass = WindowClassImpl.Instance;

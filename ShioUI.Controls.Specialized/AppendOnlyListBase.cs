@@ -9,6 +9,7 @@ using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using RiceTea.Core;
+using ShioUI.Traits;
 
 namespace ShioUI.Controls.Specialized;
 

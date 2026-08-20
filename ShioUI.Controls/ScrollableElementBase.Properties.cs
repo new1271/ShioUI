@@ -5,6 +5,7 @@ using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
 using ShioUI.Layout;
+using ShioUI.Traits;
 using ShioUI.Utils;
 
 namespace ShioUI.Controls;

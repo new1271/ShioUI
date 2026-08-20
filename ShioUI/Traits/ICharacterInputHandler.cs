@@ -1,4 +1,4 @@
-namespace ShioUI.Controls;
+namespace ShioUI.Traits;
 
 public interface ICharacterInputHandler
 {

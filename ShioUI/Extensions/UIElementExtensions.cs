@@ -5,8 +5,8 @@ using System.Runtime.CompilerServices;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 
-using ShioUI.Controls;
 using ShioUI.Internals;
+using ShioUI.Traits;
 using ShioUI.Utils;
 using ShioUI.Windows;
 
