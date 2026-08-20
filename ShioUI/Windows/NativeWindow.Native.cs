@@ -96,7 +96,7 @@ partial class NativeWindow : IDisposable
     {
         if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
             return System.Threading.Tasks.Task.CompletedTask;
-        return WindowMessageLoop.InvokeTaskAsync(static (_this) => _this.DisposeCore(disposing: true), this);
+        return WindowMessageLoop.InvokeTaskAsync(static (_this) => _this.DisposeSync(disposing: true), this);
     }
 
     public async System.Threading.Tasks.ValueTask DisposeAsync()
