@@ -161,7 +161,7 @@ partial class ToolTip
         private static DWriteTextLayout CreateTextLayoutCore(string text, string fontName)
         {
             DWriteFactory factory = SharedResources.DWriteFactory;
-            using DWriteTextFormat format = factory.CreateTextFormat(fontName, UIConstants.DefaultFontSize);
+            using DWriteTextFormat format = factory.CreateTextFormat(fontName, UIConstants.ToolTipFontSize);
             DWriteTextLayout layout = GraphicsUtils.CreateCustomTextLayout(text, format, float.PositiveInfinity);
             return layout;
         }
