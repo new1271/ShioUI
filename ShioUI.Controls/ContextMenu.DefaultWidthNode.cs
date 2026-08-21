@@ -14,7 +14,7 @@ partial class ContextMenu
         protected override int ComputeCore(ContextMenu element, in LayoutContext context)
         {
             float itemWidth = element._itemSize.Width;
-            return MathI.Floor(itemWidth + UIConstants.ElementMargin + RenderingHelper.GetDefaultBorderWidth(element.Window.GetPixelsPerPoint().X) * 2);
+            return MathI.Floor(itemWidth + UIConstants.ElementMargin + RenderingHelper.GetDefaultBorderWidth(element.Window.GetDpiScaleFactor().X) * 2);
         }
     }
 }

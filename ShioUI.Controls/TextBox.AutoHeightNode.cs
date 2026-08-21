@@ -23,7 +23,7 @@ partial class TextBox
             {
                 using DWriteTextLayout layout = TextFormatHelper.CreateTextLayout(element._text, fontName, element._alignment, fontSize);
                 element.SetRenderingPropertiesForMultiLine(layout, context.GetComputedValue(element, LayoutProperty.Width) - UIConstants.ElementMargin,
-                    element.Window.GetPixelsPerPoint());
+                    element.Window.GetDpiScaleFactor());
                 result = layout.GetMetrics().Height;
             }
             else

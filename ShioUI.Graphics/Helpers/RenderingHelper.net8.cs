@@ -19,51 +19,51 @@ unsafe static partial class RenderingHelper
     private static readonly Vector128<uint> CopySignMaskVector = Vector128.Create(0x80000000u);
     private static readonly Vector128<float> RoundVector = Vector128.Create(0.49999997f);
 
-    private static partial RectF RoundInPixelCore(in Rect valueInPoints, Vector2 pixelsPerPoint, RoundingMethod method)
+    private static partial RectF RoundInPixelCore(in Rect valueInPoints, Vector2 dpiScaleFactor, RoundingMethod method)
     {
         if (Vector128.IsHardwareAccelerated)
         {
             Vector128<float> vector = ToVector(valueInPoints);
-            if (pixelsPerPoint != Vector2.One)
-                vector = RoundInPixelCore_Dispatch(vector, ToVector(pixelsPerPoint), method);
+            if (dpiScaleFactor != Vector2.One)
+                vector = RoundInPixelCore_Dispatch(vector, ToVector(dpiScaleFactor), method);
             return UnsafeHelper.As<Vector128<float>, RectF>(ref vector);
         }
         else
         {
-            if (pixelsPerPoint == Vector2.One)
+            if (dpiScaleFactor == Vector2.One)
                 return (RectF)valueInPoints;
-            float left = RoundInPixelCore_Dispatch(valueInPoints.Left, pixelsPerPoint.X, method);
-            float top = RoundInPixelCore_Dispatch(valueInPoints.Top, pixelsPerPoint.Y, method);
-            float right = RoundInPixelCore_Dispatch(valueInPoints.Right, pixelsPerPoint.X, method);
-            float bottom = RoundInPixelCore_Dispatch(valueInPoints.Bottom, pixelsPerPoint.Y, method);
+            float left = RoundInPixelCore_Dispatch(valueInPoints.Left, dpiScaleFactor.X, method);
+            float top = RoundInPixelCore_Dispatch(valueInPoints.Top, dpiScaleFactor.Y, method);
+            float right = RoundInPixelCore_Dispatch(valueInPoints.Right, dpiScaleFactor.X, method);
+            float bottom = RoundInPixelCore_Dispatch(valueInPoints.Bottom, dpiScaleFactor.Y, method);
             return new RectF(left, top, right, bottom);
         }
     }
 
-    private static partial RectF RoundInPixelCore(in Rectangle valueInPoints, Vector2 pixelsPerPoint, RoundingMethod method)
-        => RoundInPixelCore((Rect)valueInPoints, pixelsPerPoint, method);
+    private static partial RectF RoundInPixelCore(in Rectangle valueInPoints, Vector2 dpiScaleFactor, RoundingMethod method)
+        => RoundInPixelCore((Rect)valueInPoints, dpiScaleFactor, method);
 
-    private static partial RectF RoundInPixelCore(in RectF valueInPoints, Vector2 pixelsPerPoint, RoundingMethod method)
+    private static partial RectF RoundInPixelCore(in RectF valueInPoints, Vector2 dpiScaleFactor, RoundingMethod method)
     {
         if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<float> scaleVector = ToVector(pixelsPerPoint);
+            Vector128<float> scaleVector = ToVector(dpiScaleFactor);
             Vector128<float> valueVector = ToVector(valueInPoints);
             Vector128<float> vector = RoundInPixelCore_Dispatch(valueVector, scaleVector, method);
             return UnsafeHelper.As<Vector128<float>, RectF>(ref vector);
         }
         else
         {
-            float left = RoundInPixelCore_Dispatch(valueInPoints.Left, pixelsPerPoint.X, method);
-            float top = RoundInPixelCore_Dispatch(valueInPoints.Top, pixelsPerPoint.Y, method);
-            float right = RoundInPixelCore_Dispatch(valueInPoints.Right, pixelsPerPoint.X, method);
-            float bottom = RoundInPixelCore_Dispatch(valueInPoints.Bottom, pixelsPerPoint.Y, method);
+            float left = RoundInPixelCore_Dispatch(valueInPoints.Left, dpiScaleFactor.X, method);
+            float top = RoundInPixelCore_Dispatch(valueInPoints.Top, dpiScaleFactor.Y, method);
+            float right = RoundInPixelCore_Dispatch(valueInPoints.Right, dpiScaleFactor.X, method);
+            float bottom = RoundInPixelCore_Dispatch(valueInPoints.Bottom, dpiScaleFactor.Y, method);
             return new RectF(left, top, right, bottom);
         }
     }
 
-    private static partial RectF RoundInPixelCore(in RectangleF valueInPoints, Vector2 pixelsPerPoint, RoundingMethod method)
-        => RoundInPixelCore((RectF)valueInPoints, pixelsPerPoint, method);
+    private static partial RectF RoundInPixelCore(in RectangleF valueInPoints, Vector2 dpiScaleFactor, RoundingMethod method)
+        => RoundInPixelCore((RectF)valueInPoints, dpiScaleFactor, method);
 
 
     [LocalsInit(false)]

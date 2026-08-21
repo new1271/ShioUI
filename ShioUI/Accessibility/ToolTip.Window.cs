@@ -131,12 +131,12 @@ partial class ToolTip
         private Rectangle GetToolTipBoundsForScreen(in Rect workingArea, DWriteTextLayout layout)
         {
             Point locationOnScreen = _locationOnScreen;
-            Vector2 pointsPerPixel = PointsPerPixel;
-            int xOffset = MathI.Round(10 * pointsPerPixel.X, MidpointRounding.AwayFromZero);
-            int yOffset = MathI.Round(18 * pointsPerPixel.Y, MidpointRounding.AwayFromZero);
+            Vector2 dpiScaleFactorInversed = DpiScaleFactorInversed;
+            int xOffset = MathI.Round(10 * dpiScaleFactorInversed.X, MidpointRounding.AwayFromZero);
+            int yOffset = MathI.Round(18 * dpiScaleFactorInversed.Y, MidpointRounding.AwayFromZero);
             Size sizeOnScreen = GraphicsUtils.ScalingSizeAndConvert(
                 new SizeF(layout.MaxWidth + UIConstants.ElementMarginDouble, layout.MaxHeight + UIConstants.ElementMarginDouble),
-                pointsPerPixel);
+                dpiScaleFactorInversed);
 
             Rectangle predictedBounds = new Rectangle(locationOnScreen, sizeOnScreen);
             if (predictedBounds.Right >= workingArea.Right)

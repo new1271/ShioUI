@@ -15,7 +15,7 @@ partial class ContextMenu
         {
             float itemHeight = element._itemSize.Height;
             int length = element._layouts.Length;
-            return MathI.Floor(itemHeight * length + RenderingHelper.GetDefaultBorderWidth(element.Window.GetPixelsPerPoint().Y) * 2);
+            return MathI.Floor(itemHeight * length + RenderingHelper.GetDefaultBorderWidth(element.Window.GetDpiScaleFactor().Y) * 2);
         }
     }
 }

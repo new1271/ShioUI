@@ -173,7 +173,7 @@ public unsafe partial class CoreWindow
 
                     Rect rect = UnsafeHelper.ReadUnaligned<Rect>((void*)lParam);
                     Size oldSize = rect.Size;
-                    Size newSize = GraphicsUtils.AdjustSize(oldSize, minimumSize, maximumSize, _pixelsPerPoint);
+                    Size newSize = GraphicsUtils.AdjustSize(oldSize, minimumSize, maximumSize, _dpiScaleFactor);
                     if (newSize == oldSize)
                         goto default;
 
@@ -224,7 +224,7 @@ public unsafe partial class CoreWindow
 
                     (ushort width, ushort height) = lParam.GetWords();
                     Size oldSize = new Size(width, height);
-                    Size newSize = GraphicsUtils.AdjustSize(oldSize, minimumSize, maximumSize, _pixelsPerPoint);
+                    Size newSize = GraphicsUtils.AdjustSize(oldSize, minimumSize, maximumSize, _dpiScaleFactor);
 
                     if (oldSize == newSize)
                         goto default;
@@ -298,7 +298,7 @@ public unsafe partial class CoreWindow
                         User32.SetCapture(hwnd);
                     }
                     HandleableMouseEventArgs args = new HandleableMouseEventArgs(
-                        point: GraphicsUtils.ScalingPointAndConvert(point, _pointsPerPixel),
+                        point: GraphicsUtils.ScalingPointAndConvert(point, _dpiScaleFactorInversed),
                         buttons: buttons);
                     OnMouseDown(ref args);
                     if (args.Handled)
@@ -324,7 +324,7 @@ public unsafe partial class CoreWindow
                     if (buttons == MouseButtons.None)
                         goto default;
                     MouseEventArgs args = new MouseEventArgs(
-                        point: GraphicsUtils.ScalingPointAndConvert(point, _pointsPerPixel),
+                        point: GraphicsUtils.ScalingPointAndConvert(point, _dpiScaleFactorInversed),
                         buttons: buttons);
                     OnMouseUp(in args);
                     goto default;
@@ -385,7 +385,7 @@ public unsafe partial class CoreWindow
                 {
                     Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
                     OnMouseMove(new HandleableMouseEventArgs(
-                        point: GraphicsUtils.ScalingPoint(point, _pointsPerPixel)));
+                        point: GraphicsUtils.ScalingPoint(point, _dpiScaleFactorInversed)));
                     if (_beforeHitTest != (nint)HitTestValue.Client)
                     {
                         switch ((HitTestValue)_beforeHitTest)
@@ -459,7 +459,7 @@ public unsafe partial class CoreWindow
                                 Rect clientRect = lpParams->rcNewWindow;
                                 int metrics_paddedBorder = User32.GetSystemMetrics(SystemMetric.SM_CXPADDEDBORDER);
                                 int yBorder = User32.GetSystemMetrics(SystemMetric.SM_CYFRAME) + metrics_paddedBorder;
-                                float factorY = _pixelsPerPoint.Y;
+                                float factorY = _dpiScaleFactor.Y;
                                 clientRect.Bottom -= yBorder + (factorY == 1.0f ? 1 : MathI.Ceiling(1 * factorY));
                                 lpParams->rcNewWindow = clientRect;
                             }
@@ -577,7 +577,7 @@ public unsafe partial class CoreWindow
                 }
             }
         }
-        return CustomHitTest(GraphicsUtils.ScalingPoint(point, _pointsPerPixel));
+        return CustomHitTest(GraphicsUtils.ScalingPoint(point, _dpiScaleFactorInversed));
     }
     #endregion
 
@@ -655,28 +655,28 @@ public unsafe partial class CoreWindow
     {
         dpiX = MathHelper.Min(dpiX, SystemConstants.Float32IntegerLimit);
         dpiY = MathHelper.Min(dpiY, SystemConstants.Float32IntegerLimit);
-        CalculateDpi(dpiX, out float pointsPerPixelX, out float pixelsPerPointX);
-        CalculateDpi(dpiY, out float pointsPerPixelY, out float pixelsPerPointY);
+        CalculateDpi(dpiX, out float dpiScaleFactorInversedX, out float dpiScaleFactorX);
+        CalculateDpi(dpiY, out float dpiScaleFactorInversedY, out float dpiScaleFactorY);
 
-        Vector2 pointsPerPixel = new Vector2(pointsPerPixelX, pointsPerPixelY);
-        Vector2 pixelsPerPoint = new Vector2(pixelsPerPointX, pixelsPerPointY);
+        Vector2 dpiScaleFactorInversed = new Vector2(dpiScaleFactorInversedX, dpiScaleFactorInversedY);
+        Vector2 dpiScaleFactor = new Vector2(dpiScaleFactorX, dpiScaleFactorY);
         PointU dpi = new PointU(dpiX, dpiX);
 
         Size borderSize = BorderSize;
-        borderSize.Width = MathI.Round(borderSize.Width * pixelsPerPointX, MidpointRounding.AwayFromZero);
-        borderSize.Height = MathI.Round(borderSize.Height * pixelsPerPointY, MidpointRounding.AwayFromZero);
+        borderSize.Width = MathI.Round(borderSize.Width * dpiScaleFactorX, MidpointRounding.AwayFromZero);
+        borderSize.Height = MathI.Round(borderSize.Height * dpiScaleFactorY, MidpointRounding.AwayFromZero);
 
         NormalBorderSize = borderSize;
-        _pixelsPerPoint = pixelsPerPoint;
-        _pointsPerPixel = pointsPerPixel;
+        _dpiScaleFactor = dpiScaleFactor;
+        _dpiScaleFactorInversed = dpiScaleFactorInversed;
         _dpi = dpi;
 
-        ChangeDpi_RenderingPart(dpi, pointsPerPixel, pixelsPerPoint);
+        ChangeDpi_RenderingPart(dpi, dpiScaleFactorInversed, dpiScaleFactor);
         OnDpiChanged();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CalculateDpi(uint dpi, out float pointsPerPixel, out float pixelsPerPoint)
+    private void CalculateDpi(uint dpi, out float dpiScaleFactorInversed, out float dpiScaleFactor)
     {
         switch (dpi)
         {
@@ -688,13 +688,13 @@ public unsafe partial class CoreWindow
         }
 
     Normal:
-        pixelsPerPoint = 1.0f;
-        pointsPerPixel = 1.0f;
+        dpiScaleFactor = 1.0f;
+        dpiScaleFactorInversed = 1.0f;
         return;
 
     NeedAmplified:
-        pixelsPerPoint = dpi / 96.0f;
-        pointsPerPixel = 96.0f / dpi;
+        dpiScaleFactor = dpi / 96.0f;
+        dpiScaleFactorInversed = 96.0f / dpi;
         return;
     }
 
@@ -822,7 +822,7 @@ public unsafe partial class CoreWindow
                         WindowPositionFlags.SwapWithFrameChanged | WindowPositionFlags.SwapWithNoZOrder | WindowPositionFlags.SwapWithNoActivate);
 
         UpdateDpi(handle);
-        (float factorX, float factorY) = _pixelsPerPoint;
+        (float factorX, float factorY) = _dpiScaleFactor;
         if (factorX == 1.0f && factorY == 1.0f)
             goto InitRenderObj;
 
@@ -857,7 +857,7 @@ public unsafe partial class CoreWindow
         if (handle == IntPtr.Zero)
             return Point.Empty;
 
-        return GraphicsUtils.ScalingPointAndConvert(ScreenToWindowCore(handle, pixel), _pointsPerPixel);
+        return GraphicsUtils.ScalingPointAndConvert(ScreenToWindowCore(handle, pixel), _dpiScaleFactorInversed);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -886,7 +886,7 @@ public unsafe partial class CoreWindow
         if (handle == IntPtr.Zero)
             return Point.Empty;
 
-        Point pixel = GraphicsUtils.ScalingPointAndConvert(point, _pixelsPerPoint);
+        Point pixel = GraphicsUtils.ScalingPointAndConvert(point, _dpiScaleFactor);
         return WindowToScreenCore(handle, pixel);
     }
 

@@ -95,9 +95,9 @@ partial class DropdownBox
             }
             DisposeHelper.SwapDispose(ref _layouts, layouts);
 
-            Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
-            float borderWidth = RenderingHelper.GetDefaultBorderWidth(pixelsPerPoint.X);
-            itemHeight = RenderingHelper.CeilingInPixel(itemHeight, pixelsPerPoint.Y) + borderWidth * 2;
+            Vector2 dpiScaleFactor = Window.GetDpiScaleFactor();
+            float borderWidth = RenderingHelper.GetDefaultBorderWidth(dpiScaleFactor.X);
+            itemHeight = RenderingHelper.CeilingInPixel(itemHeight, dpiScaleFactor.Y) + borderWidth * 2;
             _itemHeight = itemHeight;
 
             int maxViewCount = MathHelper.Min(parent.DropdownListVisibleCount, count);
@@ -137,13 +137,13 @@ partial class DropdownBox
             int selectedIndex = SelectedIndex;
             ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
             D2D1Brush textBrush;
-            Vector2 pointsPerPixel = context.PixelsPerPoint;
+            Vector2 dpiScaleFactorInversed = context.DpiScaleFactor;
             float borderWidth = context.DefaultBorderWidth;
             float itemLeft = borderWidth,
-                itemTop = RenderingHelper.RoundInPixel(-offsetY, pointsPerPixel.Y),
-                itemRight = RenderingHelper.RoundInPixel(renderSize.Width - borderWidth, pointsPerPixel.X),
-                textLeft = RenderingHelper.RoundInPixel(itemLeft + (UIConstants.ElementMargin - 1), pointsPerPixel.X),
-                textRight = RenderingHelper.RoundInPixel(itemRight - (UIConstants.ElementMargin - 1), pointsPerPixel.X),
+                itemTop = RenderingHelper.RoundInPixel(-offsetY, dpiScaleFactorInversed.Y),
+                itemRight = RenderingHelper.RoundInPixel(renderSize.Width - borderWidth, dpiScaleFactorInversed.X),
+                textLeft = RenderingHelper.RoundInPixel(itemLeft + (UIConstants.ElementMargin - 1), dpiScaleFactorInversed.X),
+                textRight = RenderingHelper.RoundInPixel(itemRight - (UIConstants.ElementMargin - 1), dpiScaleFactorInversed.X),
                 itemWIdth = itemRight - itemLeft,
                 textWidth = textRight - textLeft;
             textBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TextBrush);

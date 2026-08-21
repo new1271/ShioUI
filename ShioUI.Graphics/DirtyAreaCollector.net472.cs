@@ -14,9 +14,9 @@ namespace ShioUI.Graphics
         private static readonly Vector<uint> CopySignMaskVector = new Vector<uint>(0x80000000);
         private static readonly Vector<float> RoundVector = new Vector<float>(0.49999997f);
 
-        private static unsafe partial void VectorizedScaleRects(float* ptr, nuint length, Vector2 pointsPerPixel)
+        private static unsafe partial void VectorizedScaleRects(float* ptr, nuint length, Vector2 dpiScaleFactorInversed)
         {
-            Vector<float> multiplierVector = CreatePointVector(pointsPerPixel.X, pointsPerPixel.Y);
+            Vector<float> multiplierVector = CreatePointVector(dpiScaleFactorInversed.X, dpiScaleFactorInversed.Y);
             Vector<uint> copySignMaskVector = CopySignMaskVector;
             Vector<float> roundVector = RoundVector;
 
@@ -71,7 +71,7 @@ namespace ShioUI.Graphics
             {
                 RectF* ptr2 = (RectF*)ptr;
                 nuint length2 = length / 4;
-                ScalarizedScaleRects(ref ptr2, ref length2, pointsPerPixel);
+                ScalarizedScaleRects(ref ptr2, ref length2, dpiScaleFactorInversed);
             }
 
             [Inline(InlineBehavior.Remove)]

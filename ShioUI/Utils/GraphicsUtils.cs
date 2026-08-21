@@ -150,19 +150,19 @@ public static class GraphicsUtils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Size AdjustSize(Size original, SizeF min, SizeF max, Vector2 pixelsPerPoint)
+    public static Size AdjustSize(Size original, SizeF min, SizeF max, Vector2 dpiScaleFactor)
     {
         if (max == SizeF.Empty)
         {
             if (min == SizeF.Empty)
                 return original;
-            return Max(original, ScalingSize(min, pixelsPerPoint));
+            return Max(original, ScalingSize(min, dpiScaleFactor));
         }
         else
         {
             if (min == SizeF.Empty)
-                return Min(original, ScalingSize(min, pixelsPerPoint));
-            return Clamp(original, ScalingSize(min, pixelsPerPoint), ScalingSize(min, pixelsPerPoint));
+                return Min(original, ScalingSize(min, dpiScaleFactor));
+            return Clamp(original, ScalingSize(min, dpiScaleFactor), ScalingSize(min, dpiScaleFactor));
         }
     }
 

@@ -212,9 +212,9 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
 
     public static RectangleF GetCheckBoxRenderingBounds(in RegionalRenderingContext context, float itemHeight)
     {
-        Vector2 pointsPerPixel = context.PixelsPerPoint;
+        Vector2 dpiScaleFactorInversed = context.DpiScaleFactor;
         float borderWidth = context.DefaultBorderWidth;
-        float buttonWidth = RenderingHelper.RoundInPixel(itemHeight, pointsPerPixel.Y) - borderWidth * 2;
+        float buttonWidth = RenderingHelper.RoundInPixel(itemHeight, dpiScaleFactorInversed.Y) - borderWidth * 2;
         return new RectangleF(borderWidth, borderWidth, buttonWidth, buttonWidth);
     }
 

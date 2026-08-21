@@ -191,14 +191,14 @@ public abstract class TabbedWindow : MultiPageWindow
         D2D1Brush menuSelectBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.MenuSelectBrush);
         D2D1Brush menuHoverBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.MenuHoverBrush);
         D2D1Brush menuHoverForeBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.MenuHoverForeBrush);
-        Vector2 pixelsPerPoint = PixelsPerPoint;
-        float actualBottom = RenderingHelper.RoundInPixel(PageLocation.Y, pixelsPerPoint.Y);
+        Vector2 dpiScaleFactor = DpiScaleFactor;
+        float actualBottom = RenderingHelper.RoundInPixel(PageLocation.Y, dpiScaleFactor.Y);
         if (force)
         {
             Rect firstRect = menuBarButtonRectRef;
             RectF menuBarRect = RenderingHelper.RoundInPixel(
                 new RectF(firstRect.X, firstRect.Top, UnsafeHelper.AddTypedOffset(ref menuBarButtonRectRef, pageCount - 1).Right, firstRect.Bottom),
-                pixelsPerPoint);
+                dpiScaleFactor);
             menuBarRect.Bottom = actualBottom;
             deviceContext.PushAxisAlignedClip(menuBarRect, D2D1AntialiasMode.Aliased);
             if (ActualWindowMaterial != WindowMaterial.Integrated)
@@ -214,7 +214,7 @@ public abstract class TabbedWindow : MultiPageWindow
         {
             RectF rect = RenderingHelper.RoundInPixel(
                 UnsafeHelper.AddTypedOffset(ref menuBarButtonRectRef, i),
-                pixelsPerPoint);
+                dpiScaleFactor);
             rect.Bottom = actualBottom;
             DWriteTextLayout layout = UnsafeHelper.AddTypedOffset(ref menuBarButtonLayoutRef, i);
             bool isSelected = currentPageIndex == i;

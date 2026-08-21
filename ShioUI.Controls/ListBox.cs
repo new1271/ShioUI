@@ -218,20 +218,20 @@ public sealed partial class ListBox : ScrollableElementBase
             format = BuildTextFormat();
         SizeF renderSize = context.Size;
         ListBoxMode mode = Mode;
-        float itemHeight = RenderingHelper.RoundInPixel(_itemHeight, Window.GetPixelsPerPoint().Y);
+        float itemHeight = RenderingHelper.RoundInPixel(_itemHeight, Window.GetDpiScaleFactor().Y);
         int currentTop = ViewportPoint.Y;
         int startIndex = (int)(currentTop / itemHeight);
         int endIndex = MathI.Ceiling((currentTop + renderSize.Height) / itemHeight);
-        Vector2 pointsPerPixel = context.PixelsPerPoint;
+        Vector2 dpiScaleFactorInversed = context.DpiScaleFactor;
         float borderWidth = context.DefaultBorderWidth;
 
         float itemLeftEdge = borderWidth + 2;
         float textLeftEdge = mode == ListBoxMode.None ? itemLeftEdge : itemLeftEdge * 2 + itemHeight;
         float itemTopEdge = startIndex * itemHeight - currentTop + borderWidth + 2;
         float itemRightEdge = renderSize.Width - borderWidth;
-        itemLeftEdge = RenderingHelper.RoundInPixel(itemLeftEdge, pointsPerPixel.X);
-        textLeftEdge = RenderingHelper.RoundInPixel(textLeftEdge, pointsPerPixel.X) - itemLeftEdge;
-        itemTopEdge = RenderingHelper.RoundInPixel(itemTopEdge, pointsPerPixel.Y);
+        itemLeftEdge = RenderingHelper.RoundInPixel(itemLeftEdge, dpiScaleFactorInversed.X);
+        textLeftEdge = RenderingHelper.RoundInPixel(textLeftEdge, dpiScaleFactorInversed.X) - itemLeftEdge;
+        itemTopEdge = RenderingHelper.RoundInPixel(itemTopEdge, dpiScaleFactorInversed.Y);
         float itemWidth = itemRightEdge - itemLeftEdge;
         // itemRightEdge 無須做 round 操作，因為 renderSize.Width 與 borderWidth 均已對齊 pixel
 
@@ -316,10 +316,10 @@ public sealed partial class ListBox : ScrollableElementBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static D2D1Ellipse GetPixelAlignedEllipse(in RegionalRenderingContext context, ref PointF centerPoint, ref float radiusX, ref float radiusY)
         {
-            Vector2 pixelsPerPoint = context.PixelsPerPoint;
+            Vector2 dpiScaleFactor = context.DpiScaleFactor;
             (float centerX, float centerY) = centerPoint;
-            PointF predicatedTopLeft = RenderingHelper.CeilingInPixel(new PointF(centerX - radiusX, centerY - radiusY), pixelsPerPoint);
-            PointF predicatedBottomRight = RenderingHelper.FloorInPixel(new PointF(centerX + radiusX, centerY + radiusY), pixelsPerPoint);
+            PointF predicatedTopLeft = RenderingHelper.CeilingInPixel(new PointF(centerX - radiusX, centerY - radiusY), dpiScaleFactor);
+            PointF predicatedBottomRight = RenderingHelper.FloorInPixel(new PointF(centerX + radiusX, centerY + radiusY), dpiScaleFactor);
 
             radiusX = (predicatedBottomRight.X - predicatedTopLeft.X) * 0.5f;
             radiusY = (predicatedBottomRight.Y - predicatedTopLeft.Y) * 0.5f;

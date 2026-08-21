@@ -18,7 +18,7 @@ partial class DropdownBox
             {
                 DropdownBox owner = element._owner;
                 return owner.LocalPageToGlobalPage(owner.Location).Y + owner.Height -
-                    MathI.Ceiling(RenderingHelper.GetDefaultBorderWidth(element.Window.GetPixelsPerPoint().Y));
+                    MathI.Ceiling(RenderingHelper.GetDefaultBorderWidth(element.Window.GetDpiScaleFactor().Y));
             }
         }
     }

@@ -541,9 +541,9 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     IThemeResourceProvider IRenderWindow.CreateThemeResourceProvider(IThemeContext context)
         => ThemeResourceProvider.CreateResourceProvider(this, context);
 
-    Vector2 IRenderWindow.GetPixelsPerPoint() => _pixelsPerPoint;
+    Vector2 IRenderWindow.GetDpiScaleFactor() => _dpiScaleFactor;
 
-    Vector2 IRenderWindow.GetPointsPerPixel() => _pointsPerPixel;
+    Vector2 IRenderWindow.GetDpiScaleFactorInversed() => _dpiScaleFactorInversed;
 
     Point IRenderWindow.InnerPageToPage(Point point) => PageToWindow(point);
 
@@ -595,13 +595,11 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     public virtual PointF WindowToPage(PointF point) => GraphicsUtils.PointToLocal(PageLocation, point);
 
-    protected virtual Point PointToPixel(Point point) => GraphicsUtils.ScalingPoint(point, _pixelsPerPoint);
+    protected Point LogicalToPhysical(Point point) => GraphicsUtils.ScalingPoint(point, _dpiScaleFactor);
 
-    protected virtual PointF PointToPixel(PointF point) => GraphicsUtils.ScalingPoint(point, _pixelsPerPoint);
+    protected Point LogicalToPhysical(PointF point) => GraphicsUtils.ScalingPointAndConvert(point, _dpiScaleFactor);
 
-    protected virtual Point PixelToPoint(Point point) => GraphicsUtils.ScalingPoint(point, _pointsPerPixel);
-
-    protected virtual PointF PixelToPoint(PointF point) => GraphicsUtils.ScalingPoint(point, _pointsPerPixel);
+    protected PointF PhysicalToLogical(Point point) => GraphicsUtils.ScalingPointAndConvert(point, _dpiScaleFactorInversed);
 
     protected virtual void OnMouseDownForElements(ref HandleableMouseEventArgs args, ref HitTestData data)
     {
@@ -744,7 +742,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             if (handle == IntPtr.Zero)
                 return;
 
-            Vector2 pointsPerPixel = _pointsPerPixel;
+            Vector2 dpiScaleFactorInversed = _dpiScaleFactorInversed;
             Size activeBorderSize;
             int drawingOffsetX, drawingOffsetY;
             if (User32.IsZoomed(handle))
@@ -755,8 +753,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 if (!Screen.TryGetScreenInfoFromHwnd(handle, out ScreenInfo screenInfo))
                     screenInfo = default;
                 Rect workingArea = screenInfo.WorkingArea;
-                drawingOffsetX = MathI.Round((workingArea.Left - windowRect.Left) * pointsPerPixel.X, MidpointRounding.AwayFromZero);
-                drawingOffsetY = MathI.Round((workingArea.Top - windowRect.Top) * pointsPerPixel.Y, MidpointRounding.AwayFromZero);
+                drawingOffsetX = MathI.Round((workingArea.Left - windowRect.Left) * dpiScaleFactorInversed.X, MidpointRounding.AwayFromZero);
+                drawingOffsetY = MathI.Round((workingArea.Top - windowRect.Top) * dpiScaleFactorInversed.Y, MidpointRounding.AwayFromZero);
                 activeBorderSize = Size.Empty;
             }
             else
@@ -900,7 +898,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 ref WindowLayoutData layoutData = ref data.Layout;
                 RecalculateLayout(
                     data: ref layoutData,
-                    windowSize: GraphicsUtils.ScalingSizeAndConvert(clirentSizeInPixel, _pointsPerPixel));
+                    windowSize: GraphicsUtils.ScalingSizeAndConvert(clirentSizeInPixel, _dpiScaleFactorInversed));
                 _minimizeButtonBounds.Value = layoutData.MinimizeButtonBounds;
                 _maximizeButtonBounds.Value = layoutData.MaximizeButtonBounds;
                 _closeButtonBounds.Value = layoutData.CloseButtonBounds;
@@ -935,7 +933,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 Rectangle pageBounds = data.Layout.PageBounds;
                 if (pageBounds.IsValid())
                 {
-                    using RegionalRenderingContext context = RegionalRenderingContext.Create(deviceContext, collector, _pixelsPerPoint,
+                    using RegionalRenderingContext context = RegionalRenderingContext.Create(deviceContext, collector, _dpiScaleFactor,
                         pageBounds, D2D1AntialiasMode.Aliased, IsBackgroundOpaque(), out _);
                     result = RenderPage(context, in data);
                 }
@@ -951,7 +949,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         (bool Presented, RenderResult ResultFlags) Render_Incremental(SimpleGraphicsHost host, D2D1DeviceContext deviceContext, DirtyAreaCollector collector, in WindowRenderingData data)
         {
-            Vector2 pixelsPerPoint = _pixelsPerPoint;
+            Vector2 dpiScaleFactor = _dpiScaleFactor;
             RenderResult result = RenderResult.Successed;
             try
             {
@@ -959,7 +957,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 Rectangle pageBounds = data.Layout.PageBounds;
                 if (pageBounds.IsValid())
                 {
-                    using RegionalRenderingContext context = RegionalRenderingContext.Create(deviceContext, collector, pixelsPerPoint,
+                    using RegionalRenderingContext context = RegionalRenderingContext.Create(deviceContext, collector, dpiScaleFactor,
                         pageBounds, D2D1AntialiasMode.Aliased, IsBackgroundOpaque(), out _);
                     result = RenderPage(context, in data);
                 }
@@ -970,7 +968,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             }
 
             if (result.IsSuccessed())
-                return (Presented: collector.TryPresent(pixelsPerPoint), ResultFlags: RenderResult.Successed);
+                return (Presented: collector.TryPresent(dpiScaleFactor), ResultFlags: RenderResult.Successed);
 
             collector.Clear();
             return (Presented: false, ResultFlags: result);
@@ -1089,7 +1087,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         if (_isIntegratedMaterial)
             return;
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
-        Vector2 pixelsPerPoint = _pixelsPerPoint;
+        Vector2 dpiScaleFactor = _dpiScaleFactor;
 
         BitVector64 TitleBarButtonChangedStatus = _titleBarButtonChangedStatus;
         BitVector64 titleBarStates = _titleBarStates;
@@ -1114,7 +1112,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             if (titleBarStates[0])
             {
                 Point drawingOffset = _drawingOffset;
-                RectF titleBarRect = RenderingHelper.RoundInPixel(data.Layout.TitleBarBounds, pixelsPerPoint);
+                RectF titleBarRect = RenderingHelper.RoundInPixel(data.Layout.TitleBarBounds, dpiScaleFactor);
                 deviceContext.PushAxisAlignedClip(titleBarRect, D2D1AntialiasMode.Aliased);
                 deviceContext.DrawTextLayout(new PointF(drawingOffset.X + 7.5f, drawingOffset.Y + 1.5f),
                     titleLayout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleForeBrush));
@@ -1128,7 +1126,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         {
             if (titleBarStates[1] && (TitleBarButtonChangedStatus[0] || force))
             {
-                RectF minRect = RenderingHelper.RoundInPixel(data.Layout.MinimizeButtonBounds, pixelsPerPoint);
+                RectF minRect = RenderingHelper.RoundInPixel(data.Layout.MinimizeButtonBounds, dpiScaleFactor);
                 deviceContext.PushAxisAlignedClip(minRect, D2D1AntialiasMode.Aliased);
                 if (!force)
                     ClearDCForTitle(deviceContext);
@@ -1140,7 +1138,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             }
             if (titleBarStates[2] && (TitleBarButtonChangedStatus[1] || force))
             {
-                RectF maxRect = RenderingHelper.RoundInPixel(data.Layout.MaximizeButtonBounds, pixelsPerPoint);
+                RectF maxRect = RenderingHelper.RoundInPixel(data.Layout.MaximizeButtonBounds, dpiScaleFactor);
                 deviceContext.PushAxisAlignedClip(maxRect, D2D1AntialiasMode.Aliased);
                 if (!force)
                 {
@@ -1158,7 +1156,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         }
         if (TitleBarButtonChangedStatus[2] || force)
         {
-            RectF closeRect = RenderingHelper.RoundInPixel(data.Layout.CloseButtonBounds, pixelsPerPoint);
+            RectF closeRect = RenderingHelper.RoundInPixel(data.Layout.CloseButtonBounds, dpiScaleFactor);
             deviceContext.PushAxisAlignedClip(closeRect, D2D1AntialiasMode.Aliased);
             if (!force)
             {
@@ -1301,7 +1299,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ChangeDpi_RenderingPart(PointU dpi, Vector2 pointsPerPixel, Vector2 pixelsPerPoint)
+    private void ChangeDpi_RenderingPart(PointU dpi, Vector2 dpiScaleFactorInversed, Vector2 dpiScaleFactor)
     {
         SimpleGraphicsHost? host = Atomics.Read(ref _host);
         if (host is null || host.IsDisposed)
@@ -1314,8 +1312,8 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         {
             host.GetDeviceContext().Dpi = new PointF(dpi.X, dpi.Y);
             WindowMessageLoop.InvokeAsync(
-                static (window, tuple) => window.OnDpiChangedForElements(new DpiChangedEventArgs(tuple.dpi, tuple.pointsPerPixel, tuple.pixelsPerPoint)),
-                this, (dpi, pointsPerPixel, pixelsPerPoint));
+                static (window, tuple) => window.OnDpiChangedForElements(new DpiChangedEventArgs(tuple.dpi, tuple.dpiScaleFactorInversed, tuple.dpiScaleFactor)),
+                this, (dpi, dpiScaleFactorInversed, dpiScaleFactor));
         }
         UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
     }

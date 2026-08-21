@@ -12,9 +12,9 @@ public interface IRenderWindow : IElementContainer
 {
     D2D1DeviceContext GetDeviceContext();
 
-    Vector2 GetPixelsPerPoint();
+    Vector2 GetDpiScaleFactor();
 
-    Vector2 GetPointsPerPixel();
+    Vector2 GetDpiScaleFactorInversed();
 
     IThemeResourceProvider? GetDefaultThemeResourceProvider();
 

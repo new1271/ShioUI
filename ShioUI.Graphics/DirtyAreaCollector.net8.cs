@@ -21,28 +21,28 @@ partial class DirtyAreaCollector
     private static readonly Vector512<float> RoundVector_512 = Vector512.Create(0.49999997f);
     private static readonly Vector256<float> RoundVector_256 = Vector256.Create(0.49999997f);
     private static readonly Vector128<float> RoundVector_128 = Vector128.Create(0.49999997f);
-    private static unsafe partial void VectorizedScaleRects(float* ptr, nuint length, Vector2 pointsPerPixel)
+    private static unsafe partial void VectorizedScaleRects(float* ptr, nuint length, Vector2 dpiScaleFactorInversed)
     {
-        (float pointsPerPixelX, float pointsPerPixelY) = pointsPerPixel;
+        (float dpiScaleFactorInversedX, float dpiScaleFactorInversedY) = dpiScaleFactorInversed;
         if (Limits.UseVector512() && length >= (nuint)Vector512<float>.Count)
-            VectorizedScaleRects_512(ref ptr, ref length, pointsPerPixelX, pointsPerPixelY);
+            VectorizedScaleRects_512(ref ptr, ref length, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         else if (Limits.UseVector256() && length >= (nuint)Vector256<float>.Count)
-            VectorizedScaleRects_256(ref ptr, ref length, pointsPerPixelX, pointsPerPixelY);
+            VectorizedScaleRects_256(ref ptr, ref length, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         else
-            VectorizedScaleRects_128(ref ptr, ref length, pointsPerPixelX, pointsPerPixelY);
+            VectorizedScaleRects_128(ref ptr, ref length, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
 
         if (length > 0)
         {
             RectF* ptr2 = (RectF*)ptr;
             nuint length2 = length / 4;
-            ScalarizedScaleRects(ref ptr2, ref length2, pointsPerPixel);
+            ScalarizedScaleRects(ref ptr2, ref length2, dpiScaleFactorInversed);
         }
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static unsafe void VectorizedScaleRects_512(ref float* ptr, ref nuint length, float pointsPerPixelX, float pointsPerPixelY)
+    private static unsafe void VectorizedScaleRects_512(ref float* ptr, ref nuint length, float dpiScaleFactorInversedX, float dpiScaleFactorInversedY)
     {
-        Vector512<float> multiplierVector = CreatePointVector_512(pointsPerPixelX, pointsPerPixelY);
+        Vector512<float> multiplierVector = CreatePointVector_512(dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         Vector512<uint> copySignMaskVector = CopySignMaskVector_512;
         Vector512<float> roundVector = RoundVector_512;
 
@@ -115,9 +115,9 @@ partial class DirtyAreaCollector
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static unsafe void VectorizedScaleRects_256(ref float* ptr, ref nuint length, float pointsPerPixelX, float pointsPerPixelY)
+    private static unsafe void VectorizedScaleRects_256(ref float* ptr, ref nuint length, float dpiScaleFactorInversedX, float dpiScaleFactorInversedY)
     {
-        Vector256<float> multiplierVector = CreatePointVector_256(pointsPerPixelX, pointsPerPixelY);
+        Vector256<float> multiplierVector = CreatePointVector_256(dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         Vector256<uint> copySignMaskVector = CopySignMaskVector_256;
         Vector256<float> roundVector = RoundVector_256;
 
@@ -190,9 +190,9 @@ partial class DirtyAreaCollector
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static unsafe void VectorizedScaleRects_128(ref float* ptr, ref nuint length, float pointsPerPixelX, float pointsPerPixelY)
+    private static unsafe void VectorizedScaleRects_128(ref float* ptr, ref nuint length, float dpiScaleFactorInversedX, float dpiScaleFactorInversedY)
     {
-        Vector128<float> multiplierVector = CreatePointVector_128(pointsPerPixelX, pointsPerPixelY);
+        Vector128<float> multiplierVector = CreatePointVector_128(dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         Vector128<uint> copySignMaskVector = CopySignMaskVector_128;
         Vector128<float> roundVector = RoundVector_128;
 

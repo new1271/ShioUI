@@ -33,8 +33,8 @@ partial class CoreWindow
     private readonly SyncList<GCHandle, UnwrappableList<GCHandle>> _childrenReferenceList = new(new());
     private readonly CoreWindow? _parent;
     private PointU _dpi = SystemConstants.DefaultDpi;
-    private Vector2 _pixelsPerPoint = Vector2.One; // 螢幕DPI / 96
-    private Vector2 _pointsPerPixel = Vector2.One; //  96 / 螢幕DPI
+    private Vector2 _dpiScaleFactor = Vector2.One; // 螢幕DPI / 96
+    private Vector2 _dpiScaleFactorInversed = Vector2.One; //  96 / 螢幕DPI
     private BitVector64 _titleBarStates = ulong.MaxValue;
     private bool _isIntegratedMaterial = false;
     #endregion
@@ -156,18 +156,18 @@ partial class CoreWindow
     public CoreWindow? Parent => _parent;
     public IThemeContext? CurrentTheme => _resourceProvider?.ThemeContext;
     public PointU Dpi => _dpi;
-    public Vector2 PixelsPerPoint => _pixelsPerPoint;
-    public Vector2 PointsPerPixel => _pointsPerPixel;
+    public Vector2 DpiScaleFactor => _dpiScaleFactor;
+    public Vector2 DpiScaleFactorInversed => _dpiScaleFactorInversed;
 
     public new Rectangle Bounds
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (Rectangle)GraphicsUtils.ScalingRect(base.Bounds, _pointsPerPixel);
+        get => (Rectangle)GraphicsUtils.ScalingRect(base.Bounds, _dpiScaleFactorInversed);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => base.Bounds = (Rectangle)GraphicsUtils.ScalingRect(value, _pixelsPerPoint);
+        set => base.Bounds = (Rectangle)GraphicsUtils.ScalingRect(value, _dpiScaleFactor);
     }
 
-    public new Rectangle ClientBounds => (Rectangle)GraphicsUtils.ScalingRect(base.ClientBounds, _pointsPerPixel);
+    public new Rectangle ClientBounds => (Rectangle)GraphicsUtils.ScalingRect(base.ClientBounds, _dpiScaleFactorInversed);
     public new Point Location => Bounds.Location;
     public new Size Size => Bounds.Size;
     public new Size ClientSize => ClientBounds.Size;

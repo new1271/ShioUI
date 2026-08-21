@@ -58,7 +58,7 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
 
         Item[] items = MenuItems;
         float itemHeight = 0f, itemWidth = 0f;
-        Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
+        Vector2 dpiScaleFactor = Window.GetDpiScaleFactor();
         int count = items.Length;
         DWriteTextLayout?[] layouts = _layouts;
         using DWriteTextFormat format = factory.CreateTextFormat(provider.FontName, UIConstants.BoxFontSize);
@@ -75,8 +75,8 @@ public sealed partial class ContextMenu : PopupElementBase, ICheckableDisposable
             itemHeight = MathHelper.Max(itemHeight, metrics.Height);
             DisposeHelper.SwapDispose(ref UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i), layout);
         }
-        itemWidth = RenderingHelper.CeilingInPixel(itemWidth, pixelsPerPoint.X);
-        itemHeight = RenderingHelper.CeilingInPixel(itemHeight + UIConstants.ElementMarginHalf, pixelsPerPoint.Y);
+        itemWidth = RenderingHelper.CeilingInPixel(itemWidth, dpiScaleFactor.X);
+        itemHeight = RenderingHelper.CeilingInPixel(itemHeight + UIConstants.ElementMarginHalf, dpiScaleFactor.Y);
         for (int i = 0; i < count; i++)
         {
             DWriteTextLayout? layout = UnsafeHelper.AddTypedOffset(ref layoutArrayRef, i);

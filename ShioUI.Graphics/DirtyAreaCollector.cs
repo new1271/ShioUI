@@ -59,7 +59,7 @@ public sealed partial class DirtyAreaCollector
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UsePresentAllModeOnce() => _presentAllMode = true;
 
-    public unsafe void Present(Vector2 pointsPerPixel)
+    public unsafe void Present(Vector2 dpiScaleFactorInversed)
     {
         SimpleGraphicsHost? host = _host;
         if (host is null)
@@ -83,7 +83,7 @@ public sealed partial class DirtyAreaCollector
         fixed (RectF* ptr = array)
         {
             uint length = unchecked((uint)count);
-            ScaleRects(ptr, length, pointsPerPixel);
+            ScaleRects(ptr, length, dpiScaleFactorInversed);
             CleanInvalidRect((Rect*)ptr, length);
             try
             {
@@ -96,7 +96,7 @@ public sealed partial class DirtyAreaCollector
         }
     }
 
-    public unsafe bool TryPresent(Vector2 pointsPerPixel)
+    public unsafe bool TryPresent(Vector2 dpiScaleFactorInversed)
     {
         SimpleGraphicsHost? host = _host;
         if (host is null)
@@ -117,7 +117,7 @@ public sealed partial class DirtyAreaCollector
         fixed (RectF* ptr = array)
         {
             uint length = unchecked((uint)count);
-            ScaleRects(ptr, length, pointsPerPixel);
+            ScaleRects(ptr, length, dpiScaleFactorInversed);
             CleanInvalidRect((Rect*)ptr, length);
             result = host1.TryPresent(new DXGIPresentParameters(length, (Rect*)ptr));
         }
@@ -156,7 +156,7 @@ public sealed partial class DirtyAreaCollector
             *ptr = default;
     }
 
-    private static unsafe void ScaleRects(RectF* ptr, nuint length, Vector2 pointsPerPixel)
+    private static unsafe void ScaleRects(RectF* ptr, nuint length, Vector2 dpiScaleFactorInversed)
     {
         DebugHelper.ThrowIf(sizeof(Rect) != sizeof(RectF));
 
@@ -165,54 +165,54 @@ public sealed partial class DirtyAreaCollector
             nuint limit = Limits.GetLimitForVectorizing<float>();
             if (limit >= UnsafeHelper.SizeOf<RectF>() - 1)
             {
-                VectorizedScaleRects(ptr, length, pointsPerPixel);
+                VectorizedScaleRects(ptr, length, dpiScaleFactorInversed);
                 return;
             }
         }
-        ScalarizedScaleRects(ref ptr, ref length, pointsPerPixel);
+        ScalarizedScaleRects(ref ptr, ref length, dpiScaleFactorInversed);
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static unsafe void VectorizedScaleRects(RectF* ptr, nuint length, Vector2 pointsPerPixel)
-        => VectorizedScaleRects((float*)ptr, length * 4, pointsPerPixel);
+    private static unsafe void VectorizedScaleRects(RectF* ptr, nuint length, Vector2 dpiScaleFactorInversed)
+        => VectorizedScaleRects((float*)ptr, length * 4, dpiScaleFactorInversed);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static unsafe partial void VectorizedScaleRects(float* ptr, nuint length, Vector2 pointsPerPixel);
+    private static unsafe partial void VectorizedScaleRects(float* ptr, nuint length, Vector2 dpiScaleFactorInversed);
 
     [Inline(InlineBehavior.Remove)]
-    private static unsafe void ScalarizedScaleRects(ref RectF* ptr, ref nuint length, Vector2 pointsPerPixel)
+    private static unsafe void ScalarizedScaleRects(ref RectF* ptr, ref nuint length, Vector2 dpiScaleFactorInversed)
     {
-        (float pointsPerPixelX, float pointsPerPixelY) = pointsPerPixel;
+        (float dpiScaleFactorInversedX, float dpiScaleFactorInversedY) = dpiScaleFactorInversed;
         for (; length >= 4; length -= 4, ptr += 4)
         {
-            ScaleRectAndStore(ptr, pointsPerPixelX, pointsPerPixelY);
-            ScaleRectAndStore(ptr + 1, pointsPerPixelX, pointsPerPixelY);
-            ScaleRectAndStore(ptr + 2, pointsPerPixelX, pointsPerPixelY);
-            ScaleRectAndStore(ptr + 3, pointsPerPixelX, pointsPerPixelY);
+            ScaleRectAndStore(ptr, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
+            ScaleRectAndStore(ptr + 1, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
+            ScaleRectAndStore(ptr + 2, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
+            ScaleRectAndStore(ptr + 3, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         }
         RectF* ptrEnd = ptr + length;
         if (ptr >= ptrEnd)
             return;
-        ScaleRectAndStore(ptr, pointsPerPixelX, pointsPerPixelY);
+        ScaleRectAndStore(ptr, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         ptr++;
         if (ptr >= ptrEnd)
             return;
-        ScaleRectAndStore(ptr, pointsPerPixelX, pointsPerPixelY);
+        ScaleRectAndStore(ptr, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
         ptr++;
         if (ptr >= ptrEnd)
             return;
-        ScaleRectAndStore(ptr, pointsPerPixelX, pointsPerPixelY);
+        ScaleRectAndStore(ptr, dpiScaleFactorInversedX, dpiScaleFactorInversedY);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void ScaleRectAndStore(RectF* ptr, float pointsPerPixelX, float pointsPerPixelY)
+        static void ScaleRectAndStore(RectF* ptr, float dpiScaleFactorInversedX, float dpiScaleFactorInversedY)
         {
-            ScaleAndStore((float*)ptr, pointsPerPixelX);
-            ScaleAndStore(((float*)ptr) + 1, pointsPerPixelY);
-            ScaleAndStore(((float*)ptr) + 2, pointsPerPixelX);
-            ScaleAndStore(((float*)ptr) + 3, pointsPerPixelY);
+            ScaleAndStore((float*)ptr, dpiScaleFactorInversedX);
+            ScaleAndStore(((float*)ptr) + 1, dpiScaleFactorInversedY);
+            ScaleAndStore(((float*)ptr) + 2, dpiScaleFactorInversedX);
+            ScaleAndStore(((float*)ptr) + 3, dpiScaleFactorInversedY);
         }
 
         [Inline(InlineBehavior.Remove)]
-        static void ScaleAndStore(float* ptr, float pointsPerPixel) => *(int*)ptr = MathI.Round(*ptr * pointsPerPixel, MidpointRounding.AwayFromZero);
+        static void ScaleAndStore(float* ptr, float dpiScaleFactorInversed) => *(int*)ptr = MathI.Round(*ptr * dpiScaleFactorInversed, MidpointRounding.AwayFromZero);
     }
 }

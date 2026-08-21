@@ -23,7 +23,7 @@ public ref struct RegionalRenderingContext : IRenderingContext
     private readonly RenderingClipScope _clipScope;
     private readonly Matrix3x2 _originalTransform;
     private readonly PointF _offsetPoint;
-    private readonly Vector2 _pixelsPerPoint;
+    private readonly Vector2 _dpiScaleFactor;
     private readonly bool _isPixelAligned, _isOpaque;
 
     private bool _disposed;
@@ -41,10 +41,10 @@ public ref struct RegionalRenderingContext : IRenderingContext
     public readonly float DefaultBorderWidth
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RenderingHelper.GetDefaultBorderWidth(_pixelsPerPoint.X);
+        get => RenderingHelper.GetDefaultBorderWidth(_dpiScaleFactor.X);
     }
 
-    public readonly Vector2 PixelsPerPoint => _pixelsPerPoint;
+    public readonly Vector2 DpiScaleFactor => _dpiScaleFactor;
 
     public readonly bool HasDirtyCollector => !_collector.IsEmptyInstance;
 
@@ -60,7 +60,7 @@ public ref struct RegionalRenderingContext : IRenderingContext
         _collector = collector;
         _clipScope = original._clipScope;
         _offsetPoint = original._offsetPoint;
-        _pixelsPerPoint = original._pixelsPerPoint;
+        _dpiScaleFactor = original._dpiScaleFactor;
         _isPixelAligned = original._isPixelAligned;
         _originalTransform = original._originalTransform;
         _isOpaque = original._isOpaque;
@@ -68,12 +68,12 @@ public ref struct RegionalRenderingContext : IRenderingContext
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private RegionalRenderingContext(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 pixelsPerPoint,
+    private RegionalRenderingContext(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 dpiScaleFactor,
         scoped in RectF clipRect, D2D1AntialiasMode antialiasMode, bool isPixelAligned, bool isOpaque)
     {
         _context = context;
         _collector = collector;
-        _pixelsPerPoint = pixelsPerPoint;
+        _dpiScaleFactor = dpiScaleFactor;
 
         Matrix3x2 transformMatrix = context.Transform;
         _originalTransform = transformMatrix;
@@ -88,32 +88,32 @@ public ref struct RegionalRenderingContext : IRenderingContext
         _disposed = false;
     }
 
-    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 pixelsPerPoint,
+    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 dpiScaleFactor,
         in Rectangle clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque, out RectF actualClipRect)
     {
-        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, pixelsPerPoint);
-        return new RegionalRenderingContext(context, collector, pixelsPerPoint, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
+        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, dpiScaleFactor);
+        return new RegionalRenderingContext(context, collector, dpiScaleFactor, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
     }
 
-    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 pixelsPerPoint,
+    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 dpiScaleFactor,
         in Rect clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque, out RectF actualClipRect)
     {
-        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, pixelsPerPoint);
-        return new RegionalRenderingContext(context, collector, pixelsPerPoint, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
+        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, dpiScaleFactor);
+        return new RegionalRenderingContext(context, collector, dpiScaleFactor, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
     }
 
-    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 pixelsPerPoint,
+    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 dpiScaleFactor,
         in RectangleF clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque, out RectF actualClipRect)
     {
-        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, pixelsPerPoint);
-        return new RegionalRenderingContext(context, collector, pixelsPerPoint, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
+        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, dpiScaleFactor);
+        return new RegionalRenderingContext(context, collector, dpiScaleFactor, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
     }
 
-    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 pixelsPerPoint,
+    public static RegionalRenderingContext Create(D2D1DeviceContext context, DirtyAreaCollector collector, Vector2 dpiScaleFactor,
         in RectF clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque, out RectF actualClipRect)
     {
-        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, pixelsPerPoint);
-        return new RegionalRenderingContext(context, collector, pixelsPerPoint, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
+        actualClipRect = RenderingHelper.RoundInPixel(in clipRect, dpiScaleFactor);
+        return new RegionalRenderingContext(context, collector, dpiScaleFactor, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -353,7 +353,7 @@ public ref struct RegionalRenderingContext : IRenderingContext
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly RegionalRenderingContext WithAxisAlignedClip(in RectF clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque)
-        => new RegionalRenderingContext(_context, _collector, _pixelsPerPoint, in clipRect, antialiasMode, isPixelAligned: false, isOpaque);
+        => new RegionalRenderingContext(_context, _collector, _dpiScaleFactor, in clipRect, antialiasMode, isPixelAligned: false, isOpaque);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly RegionalRenderingContext WithPixelAlignedClip(ref RectF clipRect, D2D1AntialiasMode antialiasMode)
@@ -371,7 +371,7 @@ public ref struct RegionalRenderingContext : IRenderingContext
     public readonly RegionalRenderingContext WithPixelAlignedClip(in RectF clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque, out RectF actualClipRect)
     {
         actualClipRect = GetPixelAlignedRect(clipRect);
-        return new RegionalRenderingContext(_context, _collector, _pixelsPerPoint, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
+        return new RegionalRenderingContext(_context, _collector, _dpiScaleFactor, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -380,7 +380,7 @@ public ref struct RegionalRenderingContext : IRenderingContext
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly RegionalRenderingContext WithAxisAlignedClip(in Rect clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque)
-        => new RegionalRenderingContext(_context, _collector, _pixelsPerPoint, (RectF)clipRect, antialiasMode, isPixelAligned: false, isOpaque);
+        => new RegionalRenderingContext(_context, _collector, _dpiScaleFactor, (RectF)clipRect, antialiasMode, isPixelAligned: false, isOpaque);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly RegionalRenderingContext WithPixelAlignedClip(in Rect clipRect, D2D1AntialiasMode antialiasMode, out RectF actualClipRect)
@@ -390,7 +390,7 @@ public ref struct RegionalRenderingContext : IRenderingContext
     public readonly RegionalRenderingContext WithPixelAlignedClip(in Rect clipRect, D2D1AntialiasMode antialiasMode, bool isOpaque, out RectF actualClipRect)
     {
         actualClipRect = GetPixelAlignedRect((RectF)clipRect);
-        return new RegionalRenderingContext(_context, _collector, _pixelsPerPoint, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
+        return new RegionalRenderingContext(_context, _collector, _dpiScaleFactor, in actualClipRect, antialiasMode, isPixelAligned: true, isOpaque);
     }
 
     public readonly RectF GetPixelAlignedRect(in RectF rect)
@@ -403,16 +403,16 @@ public ref struct RegionalRenderingContext : IRenderingContext
         if (!adjustedRect.IsValid)
             return default;
         if (_isPixelAligned)
-            return RenderingHelper.RoundInPixel(adjustedRect, _pixelsPerPoint);
+            return RenderingHelper.RoundInPixel(adjustedRect, _dpiScaleFactor);
         return TranslateAreaToLocal(
-            RenderingHelper.RoundInPixel(TranslateAreaToGlobal(adjustedRect), _pixelsPerPoint));
+            RenderingHelper.RoundInPixel(TranslateAreaToGlobal(adjustedRect), _dpiScaleFactor));
     }
 
     public readonly RectF GetBorderRect(out float strokeWidth)
     {
         if (_isPixelAligned)
         {
-            strokeWidth = RenderingHelper.GetDefaultBorderWidth(_pixelsPerPoint.X);
+            strokeWidth = RenderingHelper.GetDefaultBorderWidth(_dpiScaleFactor.X);
             return GetBorderRectCore(RectF.FromXYWH(PointF.Empty, Size), strokeWidth);
         }
         return GetBorderRect(RectF.FromXYWH(PointF.Empty, Size), out strokeWidth);
@@ -420,12 +420,12 @@ public ref struct RegionalRenderingContext : IRenderingContext
 
     public readonly RectF GetBorderRect(in RectF rect, out float strokeWidth)
     {
-        Vector2 pointsPerPixel = _pixelsPerPoint;
-        strokeWidth = RenderingHelper.GetDefaultBorderWidth(pointsPerPixel.X);
+        Vector2 dpiScaleFactorInversed = _dpiScaleFactor;
+        strokeWidth = RenderingHelper.GetDefaultBorderWidth(dpiScaleFactorInversed.X);
         if (_isPixelAligned)
-            return GetBorderRectCore(RenderingHelper.RoundInPixel(in rect, pointsPerPixel), strokeWidth);
+            return GetBorderRectCore(RenderingHelper.RoundInPixel(in rect, dpiScaleFactorInversed), strokeWidth);
         return TranslateAreaToLocal(GetBorderRectCore(
-            RenderingHelper.RoundInPixel(TranslateAreaToGlobal(in rect), pointsPerPixel), strokeWidth));
+            RenderingHelper.RoundInPixel(TranslateAreaToGlobal(in rect), dpiScaleFactorInversed), strokeWidth));
     }
 
     private static RectF GetBorderRectCore(in RectF rect, float strokeWidth)

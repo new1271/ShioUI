@@ -208,11 +208,11 @@ public abstract partial class ScrollableElementBase : UIElement,
 
             if (scrollBarBounds.IsValid && scrollButtonBounds.IsValid && upButtonBounds.IsValid && downButtonBounds.IsValid)
             {
-                Vector2 pointsPerPixel = context.PixelsPerPoint;
-                scrollBarBounds = RenderingHelper.RoundInPixel(scrollBarBounds, pointsPerPixel);
-                scrollButtonBounds = RenderingHelper.RoundInPixel(scrollButtonBounds, pointsPerPixel);
-                upButtonBounds = RenderingHelper.RoundInPixel(upButtonBounds, pointsPerPixel);
-                downButtonBounds = RenderingHelper.RoundInPixel(downButtonBounds, pointsPerPixel);
+                Vector2 dpiScaleFactorInversed = context.DpiScaleFactor;
+                scrollBarBounds = RenderingHelper.RoundInPixel(scrollBarBounds, dpiScaleFactorInversed);
+                scrollButtonBounds = RenderingHelper.RoundInPixel(scrollButtonBounds, dpiScaleFactorInversed);
+                upButtonBounds = RenderingHelper.RoundInPixel(upButtonBounds, dpiScaleFactorInversed);
+                downButtonBounds = RenderingHelper.RoundInPixel(downButtonBounds, dpiScaleFactorInversed);
 
                 using RenderingClipScope scope = context.PushAxisAlignedClip(scrollBarBounds, D2D1AntialiasMode.Aliased);
                 RenderBackground(context, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.ScrollBarBackBrush));
@@ -221,7 +221,7 @@ public abstract partial class ScrollableElementBase : UIElement,
                 (D2D1AntialiasMode antialiasModeBefore, deviceContext.AntialiasMode) = (deviceContext.AntialiasMode, D2D1AntialiasMode.PerPrimitive);
                 try
                 {
-                    float gap = RenderingHelper.CeilingInPixel((UIConstantsPrivate.ScrollBarWidth - UIConstantsPrivate.ScrollBarScrollButtonWidth) * 0.5f, pointsPerPixel.X);
+                    float gap = RenderingHelper.CeilingInPixel((UIConstantsPrivate.ScrollBarWidth - UIConstantsPrivate.ScrollBarScrollButtonWidth) * 0.5f, dpiScaleFactorInversed.X);
                     context.FillRoundedRectangle(new D2D1RoundedRectangle()
                     {
                         RadiusX = 3,

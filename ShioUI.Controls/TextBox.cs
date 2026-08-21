@@ -301,30 +301,30 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     }
 
     private void SetRenderingProperties(DWriteTextLayout layout)
-        => SetRenderingProperties(layout, ContentSize, Window.GetPixelsPerPoint(), _multiLine);
+        => SetRenderingProperties(layout, ContentSize, Window.GetDpiScaleFactor(), _multiLine);
 
     [Inline(InlineBehavior.Remove)]
-    private void SetRenderingProperties(DWriteTextLayout layout, SizeF size, Vector2 pointsPerPixel, bool multiLine)
+    private void SetRenderingProperties(DWriteTextLayout layout, SizeF size, Vector2 dpiScaleFactorInversed, bool multiLine)
     {
         if (multiLine)
-            SetRenderingPropertiesForMultiLine(layout, size.Width, pointsPerPixel);
+            SetRenderingPropertiesForMultiLine(layout, size.Width, dpiScaleFactorInversed);
         else
-            SetRenderingPropertiesForSingleLine(layout, size.Height, pointsPerPixel);
+            SetRenderingPropertiesForSingleLine(layout, size.Height, dpiScaleFactorInversed);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetRenderingPropertiesForMultiLine(DWriteTextLayout layout, float maxWidth, Vector2 pointsPerPixel)
+    private void SetRenderingPropertiesForMultiLine(DWriteTextLayout layout, float maxWidth, Vector2 dpiScaleFactorInversed)
     {
-        layout.MaxWidth = RenderingHelper.CeilingInPixel(MathHelper.Max(maxWidth, 0.0f), pointsPerPixel.X);
+        layout.MaxWidth = RenderingHelper.CeilingInPixel(MathHelper.Max(maxWidth, 0.0f), dpiScaleFactorInversed.X);
         layout.MaxHeight = float.PositiveInfinity;
         layout.WordWrapping = DWriteWordWrapping.EmergencyBreak;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetRenderingPropertiesForSingleLine(DWriteTextLayout layout, float maxHeight, Vector2 pointsPerPixel)
+    private void SetRenderingPropertiesForSingleLine(DWriteTextLayout layout, float maxHeight, Vector2 dpiScaleFactorInversed)
     {
         layout.MaxWidth = float.PositiveInfinity;
-        layout.MaxHeight = RenderingHelper.CeilingInPixel(MathHelper.Max(maxHeight, 0.0f), pointsPerPixel.Y);
+        layout.MaxHeight = RenderingHelper.CeilingInPixel(MathHelper.Max(maxHeight, 0.0f), dpiScaleFactorInversed.Y);
         layout.WordWrapping = DWriteWordWrapping.EmergencyBreak;
     }
 
@@ -386,7 +386,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             if (watermarkLayout is null)
                 return true;
-            SetRenderingProperties(watermarkLayout, renderSize, context.PixelsPerPoint, _multiLine);
+            SetRenderingProperties(watermarkLayout, renderSize, context.DpiScaleFactor, _multiLine);
             //文字為空，繪製浮水印
             RenderLayoutCore(context,
                 UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.ForeInactiveBrush),
@@ -396,7 +396,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             return true;
         }
 
-        SetRenderingProperties(layout, renderSize, context.PixelsPerPoint, _multiLine);
+        SetRenderingProperties(layout, renderSize, context.DpiScaleFactor, _multiLine);
         RenderLayout(context, focused, layout, RectF.FromXYWH(PointF.Empty, renderSize));
 
         return true;
@@ -427,13 +427,13 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             int length = metricsArray is null ? 0 : metricsArray.Length;
             if (length > 0)
             {
-                Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
+                Vector2 dpiScaleFactor = Window.GetDpiScaleFactor();
                 for (int i = 0; i < length; i++)
                 {
                     DWriteHitTestMetrics rangeMetrics = metricsArray![i];
                     RectF selectionBounds = RenderingHelper.RoundInPixel(RectF.FromXYWH(
                         layoutPoint.X + rangeMetrics.Left, layoutPoint.Y + rangeMetrics.Top, rangeMetrics.Width, rangeMetrics.Height),
-                        pixelsPerPoint);
+                        dpiScaleFactor);
                     context.FillRectangle(selectionBounds, selectionBackBrush);
                 }
             }
@@ -478,10 +478,10 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             return;
         if (returnCount < 1)
             return;
-        Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
+        Vector2 dpiScaleFactor = Window.GetDpiScaleFactor();
         RectF selectionBounds = RenderingHelper.RoundInPixel(RectF.FromXYWH(
             layoutPoint.X + rangeMetrics.Left, layoutPoint.Y + rangeMetrics.Top, 1.0f, rangeMetrics.Height),
-            pixelsPerPoint);
+            dpiScaleFactor);
         context.FillRectangle(selectionBounds, _brushes[(int)Brush.ForeBrush]);
     }
 
@@ -639,11 +639,11 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     #region IME Support
     void IInputMethodHandler.StartIMEComposition(InputMethod ime, InputMethodContext context)
     {
-        (PointF caretPoint, Vector2 pointsPerPixel) = UpdateIMECaret(context, _caretIndex);
+        (PointF caretPoint, Vector2 dpiScaleFactorInversed) = UpdateIMECaret(context, _caretIndex);
         context.SetCompositionWindow(new IMECompositionForm()
         {
             dwStyle = IMECompositionStyle.PositionedAtPoint,
-            ptCurrentPos = GraphicsUtils.ScalingPointAndConvert(caretPoint, pointsPerPixel)
+            ptCurrentPos = GraphicsUtils.ScalingPointAndConvert(caretPoint, dpiScaleFactorInversed)
         });
     }
 
@@ -741,15 +741,15 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         UpdateCaretIndex(_caretIndex + MathHelper.MakeSigned(length));
     }
 
-    private (PointF caretPoint, Vector2 pointsPerPixel) UpdateIMECaret(InputMethodContext context, int caretIndex)
+    private (PointF caretPoint, Vector2 dpiScaleFactorInversed) UpdateIMECaret(InputMethodContext context, int caretIndex)
     {
-        Vector2 pixelsPerPoint = Window.GetPixelsPerPoint();
+        Vector2 dpiScaleFactor = Window.GetDpiScaleFactor();
 
         PointF caretPoint = GetPointFromCaretIndex(caretIndex - 1, isTrailingHit: false, out DWriteHitTestMetrics metrics);
         PointF bottomRightPoint = new PointF(caretPoint.X + metrics.Width, caretPoint.Y + metrics.Height);
 
-        caretPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(caretPoint), pixelsPerPoint);
-        bottomRightPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(bottomRightPoint), pixelsPerPoint);
+        caretPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(caretPoint), dpiScaleFactor);
+        bottomRightPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(bottomRightPoint), dpiScaleFactor);
 
         context.SetCandidateWindow(new IMECandidateForm()
         {
@@ -763,7 +763,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 )
         });
 
-        return (caretPoint, pixelsPerPoint);
+        return (caretPoint, dpiScaleFactor);
     }
 
     [LocalsInit(false)]

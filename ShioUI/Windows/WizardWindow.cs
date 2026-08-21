@@ -168,8 +168,8 @@ public abstract class WizardWindow : MultiPageWindow
             rect = new Rect(0, 0, ClientSize.Width, rect.Top);
         else
             rect = new Rect(rect.Left, data.Layout.TitleBarBounds.Bottom, rect.Right, rect.Top);
-        Vector2 pixelsPerPoint = PixelsPerPoint;
-        using (RenderingClipScope scope = RenderingClipScope.Enter(deviceContext, RenderingHelper.RoundInPixel(rect, pixelsPerPoint)))
+        Vector2 dpiScaleFactor = DpiScaleFactor;
+        using (RenderingClipScope scope = RenderingClipScope.Enter(deviceContext, RenderingHelper.RoundInPixel(rect, dpiScaleFactor)))
         {
             ClearDC(deviceContext);
             if (titleLayout is not null)
@@ -189,7 +189,7 @@ public abstract class WizardWindow : MultiPageWindow
 
         if (force)
         {
-            using RenderingClipScope scope = RenderingClipScope.Enter(deviceContext, RenderingHelper.RoundInPixel(_widePageBounds, pixelsPerPoint), D2D1AntialiasMode.Aliased);
+            using RenderingClipScope scope = RenderingClipScope.Enter(deviceContext, RenderingHelper.RoundInPixel(_widePageBounds, dpiScaleFactor), D2D1AntialiasMode.Aliased);
             ClearDC(deviceContext);
         }
     }
