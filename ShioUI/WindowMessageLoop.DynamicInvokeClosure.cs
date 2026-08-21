@@ -6,11 +6,11 @@ namespace ShioUI;
 
 partial class WindowMessageLoop
 {
-    private sealed class InvokeClosure : InvokeClosureBase<Delegate, object?>
+    private sealed class DynamicInvokeClosure : InvokeClosureBase<Delegate, object?>
     {
         private readonly object?[]? _args;
 
-        public InvokeClosure(Delegate @delegate, object?[]? args,
+        public DynamicInvokeClosure(Delegate @delegate, object?[]? args,
             TaskCompletionSource<object?>? completionSource, CancellationToken cancellationToken)
             : base(@delegate, completionSource, cancellationToken)
         {

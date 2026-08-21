@@ -12,108 +12,10 @@ using RiceTea.Core.Native;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 
-using static System.Collections.Specialized.BitVector32;
-
 namespace ShioUI;
 
 partial class WindowMessageLoop
 {
-    public static object? Invoke(Delegate @delegate)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke(); 
-            return @delegate.DynamicInvoke(null);
-        }
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None).Result;
-    }
-
-    public static object? Invoke(Delegate @delegate, params object?[]? args)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke();
-            return @delegate.DynamicInvoke(args);
-        }
-        return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, CancellationToken.None).Result;
-    }
-
-    public static void InvokeAsync(Delegate @delegate)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        InvokeCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-    }
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void InvokeAsync(Delegate @delegate, params object?[]? args)
-        => InvokeAsync(@delegate, args, CancellationToken.None);
-
-    public static void InvokeAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        InvokeCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-    }
-
-    public static Task<object?> InvokeTaskAsync(Delegate @delegate)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke();
-            return Task.FromResult(@delegate.DynamicInvoke(null))!;
-        }
-        else
-            return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-    }
-
-    [Inline(InlineBehavior.Keep, export: true)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<object?> InvokeTaskAsync(Delegate @delegate, params object?[]? args)
-        => InvokeTaskAsync(@delegate, args, CancellationToken.None);
-
-    public static Task<object?> InvokeTaskAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke();
-            return Task.FromResult(@delegate.DynamicInvoke(args))!;
-        }
-        else
-            return InvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-    }
-
-    private static void InvokeCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default) 
-        => PostInvokeClosure(threadId, new InvokeClosure(@delegate, args, null, cancellationToken));
-
-    private static Task<object?> InvokeTaskCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        TaskCompletionSource<object?> completionSource = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        PostInvokeClosure(threadId, new InvokeClosure(@delegate, args, completionSource, cancellationToken));
-        return completionSource.Task;
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PostInvokeClosure(uint threadId, IInvokeClosure closure)
     {
