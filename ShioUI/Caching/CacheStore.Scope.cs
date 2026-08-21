@@ -43,7 +43,7 @@ partial class CacheStore<T>
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Scope(object node) => _node = (Node)node;
+        internal Scope(object node) => _node = UnsafeHelper.As<Node>(node);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void CopyTo(T[] destination)
