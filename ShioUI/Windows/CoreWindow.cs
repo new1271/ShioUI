@@ -24,9 +24,7 @@ public abstract partial class CoreWindow : NativeWindow
 
         _graphicsDeviceProvider = deviceProvider;
         _windowMaterial = ShioSettings.WindowMaterial;
-        UnwrappableList<GCHandle> windowList = _rootWindowList;
-        lock (windowList)
-            windowList.Add(GCHandle.Alloc(this, GCHandleType.Weak));
+        _rootWindowList.Add(GCHandle.Alloc(this, GCHandleType.Weak));
         InitUnmanagedPart();
     }
 
@@ -37,7 +35,7 @@ public abstract partial class CoreWindow : NativeWindow
         _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
         _windowMessageFilterStore = new(this, &CreateSnapshotForWindowMessageFilter, &DropSnapshot);
 
-        UnwrappableList<GCHandle> windowList;
+        SyncList<GCHandle, UnwrappableList<GCHandle>> windowList;
         if (parent is null)
         {
             _graphicsDeviceProvider = null;
@@ -50,8 +48,7 @@ public abstract partial class CoreWindow : NativeWindow
             _windowMaterial = parent.WindowMaterial;
             windowList = parent._childrenReferenceList;
         }
-        lock (windowList)
-            windowList.Add(GCHandle.Alloc(this, GCHandleType.Weak));
+        windowList.Add(GCHandle.Alloc(this, GCHandleType.Weak));
         InitUnmanagedPart();
     }
 

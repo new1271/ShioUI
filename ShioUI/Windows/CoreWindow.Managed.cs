@@ -26,11 +26,11 @@ public delegate void OverlayElementChangedEventHandler(object? sender, in Overla
 partial class CoreWindow
 {
     #region Static Fields
-    private static readonly UnwrappableList<GCHandle> _rootWindowList = new UnwrappableList<GCHandle>();
+    private static readonly SyncList<GCHandle, UnwrappableList<GCHandle>> _rootWindowList = new(new());
     #endregion
 
     #region Fields
-    private readonly UnwrappableList<GCHandle> _childrenReferenceList = new UnwrappableList<GCHandle>();
+    private readonly SyncList<GCHandle, UnwrappableList<GCHandle>> _childrenReferenceList = new(new());
     private readonly CoreWindow? _parent;
     private PointU _dpi = SystemConstants.DefaultDpi;
     private Vector2 _pixelsPerPoint = Vector2.One; // 螢幕DPI / 96

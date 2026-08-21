@@ -1864,24 +1864,23 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         }
     }
 
-    private static unsafe bool TryGetWindowListSnapshot(UnwrappableList<GCHandle> windowList,
+    private static unsafe bool TryGetWindowListSnapshot(SyncList<GCHandle, UnwrappableList<GCHandle>> windowList,
         [NotNullWhen(true)] out NativeMemoryPool? pool, [NotNullWhen(true)] out TypedNativeMemoryBlock<GCHandle> handles, out int count)
     {
-        lock (windowList)
+        using (var scope = windowList.EnterLockScope())
         {
-            count = windowList.Count;
+            UnwrappableList<GCHandle> unwrappedList = windowList.Items;
+            count = unwrappedList.Count;
             if (count <= 0)
                 goto Failed;
             pool = NativeMemoryPool.Shared;
-            count -= ClearInvalidHandles(pool, windowList, count);
+            count -= ClearInvalidHandles(pool, unwrappedList, count);
             if (count <= 0)
                 goto Failed;
             handles = pool.Rent<GCHandle>(count);
-            fixed (GCHandle* source = windowList.Unwrap())
-            {
-                GCHandle* destination = handles.NativePointer;
-                UnsafeHelper.CopyBlockUnaligned(destination, source, (uint)(count * sizeof(GCHandle)));
-            }
+            ref readonly GCHandle arrayRef = ref UnsafeHelper.GetArrayDataReference(unwrappedList.Unwrap());
+            UnsafeHelper.CopyBlockUnaligned(ref UnsafeHelper.AsRef((byte*)handles.NativePointer), 
+                in UnsafeHelper.As<GCHandle, byte>(ref UnsafeHelper.AsRefIn(in arrayRef)), (uint)(count * sizeof(GCHandle)));
             return true;
         }
 
