@@ -101,6 +101,7 @@ public abstract partial class CoreWindow : NativeWindow
 
             _activeElementsCacheStore.Dispose();
             _elementsCacheStore.Dispose();
+            _windowMessageFilterStore.Dispose();
         }
         _overlayElement = null;
 
