@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -9,12 +11,14 @@ using InlineMethod;
 using LocalsInit;
 
 using RiceTea.Core;
+using RiceTea.Core.Buffers;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.Structures;
 
+using ShioUI.Caching;
 using ShioUI.Graphics;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
@@ -27,57 +31,11 @@ public unsafe partial class CoreWindow
     #region Fields
     private static readonly Size BorderSize = GetBorderSize();
 
-    private static Size GetBorderSize()
-    {
-        const int DefaultBorderWidth = 1;
-
-        int baseBorderX, baseBorderY;
-
-        if (User32.TryGetSystemMetricsForDpi(SystemMetric.SM_CXBORDER, dpi: 96, out baseBorderX) &&
-            User32.TryGetSystemMetricsForDpi(SystemMetric.SM_CYBORDER, dpi: 96, out baseBorderY))
-        {
-            baseBorderX += User32.GetSystemMetricsForDpi(SystemMetric.SM_CXSIZEFRAME, dpi: 96);
-            baseBorderY += User32.GetSystemMetricsForDpi(SystemMetric.SM_CYSIZEFRAME, dpi: 96);
-            goto Return;
-        }
-
-        if (User32.TryGetSystemMetrics(SystemMetric.SM_CXBORDER, out baseBorderX) &&
-           User32.TryGetSystemMetrics(SystemMetric.SM_CYBORDER, out baseBorderY))
-        {
-            baseBorderX += User32.GetSystemMetrics(SystemMetric.SM_CXSIZEFRAME);
-            baseBorderY += User32.GetSystemMetrics(SystemMetric.SM_CYSIZEFRAME);
-
-            IntPtr systemHdc = User32.GetDC(default);
-            if (systemHdc == IntPtr.Zero)
-                goto Failed;
-            try
-            {
-                const int LOGPIXELSX = 88;
-                const int LOGPIXELSY = 90;
-
-                baseBorderX = baseBorderX * 96 / Gdi32.GetDeviceCaps(systemHdc, LOGPIXELSX);
-                baseBorderY = baseBorderY * 96 / Gdi32.GetDeviceCaps(systemHdc, LOGPIXELSY);
-            }
-            finally
-            {
-                User32.ReleaseDC(default, systemHdc);
-            }
-            goto Return;
-        }
-
-        goto Failed;
-
-    Return:
-        return new Size(baseBorderX, baseBorderY);
-
-    Failed:
-        return new Size(DefaultBorderWidth, DefaultBorderWidth);
-    }
-
-    private readonly UnwrappableList<IWindowMessageFilter> _filterList = new UnwrappableList<IWindowMessageFilter>(1);
+    private readonly SyncList<IWindowMessageFilter, List<IWindowMessageFilter>> _windowMessageFilters = new(new());
     private SizeF _minimumSize, _maximumSize;
     private MouseButtons _lastMouseDownButtons;
     private IntPtr _associatedMonitor;
+    private ulong __windowMessageFiltersUpdateCounter;
     private nint _beforeHitTest;
     private bool _isMaximized, _isCreateByDefaultX, _isCreateByDefaultY, _hasMouseCapture, _isSystemPrepareBoosting, _sizeModeState, _isFirstTime;
     #endregion
@@ -166,15 +124,17 @@ public unsafe partial class CoreWindow
 
     protected override bool TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
     {
-        UnwrappableList<IWindowMessageFilter> filterList = _filterList;
-        int count = filterList.Count;
-        if (count <= 0)
-            goto Default;
-        ref IWindowMessageFilter filterRef = ref UnsafeHelper.GetArrayDataReference(filterList.Unwrap());
-        for (nuint i = 0, limit = unchecked((nuint)count); i < limit; i++)
+        using (CacheStore<IWindowMessageFilter>.Scope scope = EnterWindowMessageFilterCacheScope())
         {
-            if (UnsafeHelper.AddTypedOffset(ref filterRef, i).TryProcessWindowMessage(hwnd, message, wParam, lParam, out result))
-                return true;
+            int count = scope.Count;
+            if (count <= 0)
+                goto Default;
+            ref readonly IWindowMessageFilter filterRef = ref scope.GetReferenceOfFirstElement();
+            for (nuint i = 0, limit = unchecked((nuint)count); i < limit; i++)
+            {
+                if (UnsafeHelper.AddTypedOffsetAsReadOnly(in filterRef, i).TryProcessWindowMessage(hwnd, message, wParam, lParam, out result))
+                    return true;
+            }
         }
 
     Default:
@@ -743,13 +703,20 @@ public unsafe partial class CoreWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddMessageFilter(IWindowMessageFilter filter)
     {
-        _filterList.Add(filter);
+        SyncList<IWindowMessageFilter, List<IWindowMessageFilter>> filters = _windowMessageFilters;
+
+        using Lock.Scope scope = filters.EnterLockScope();
+        filters.Remove(filter);
+        filters.Add(filter);
+
+        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref __windowMessageFiltersUpdateCounter));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveMessageFilter(IWindowMessageFilter filter)
     {
-        _filterList.Remove(filter);
+        _windowMessageFilters.Remove(filter);
+        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref __windowMessageFiltersUpdateCounter));
     }
     #endregion
 
@@ -848,7 +815,7 @@ public unsafe partial class CoreWindow
     protected override void OnHandleCreated(IntPtr handle)
     {
         MaterialHelper.ApplyWindowMaterial(this, out _fixLagObject);
-        
+
         base.OnHandleCreated(handle);
 
         if (SystemConstants.VersionLevel >= SystemVersionLevel.Windows_11_21H2)
@@ -944,6 +911,50 @@ public unsafe partial class CoreWindow
         return point;
     }
 
+    private static Size GetBorderSize()
+    {
+        const int DefaultBorderWidth = 1;
+
+        if (User32.TryGetSystemMetricsForDpi(SystemMetric.SM_CXBORDER, dpi: 96, out int baseBorderX) &&
+            User32.TryGetSystemMetricsForDpi(SystemMetric.SM_CYBORDER, dpi: 96, out int baseBorderY))
+        {
+            baseBorderX += User32.GetSystemMetricsForDpi(SystemMetric.SM_CXSIZEFRAME, dpi: 96);
+            baseBorderY += User32.GetSystemMetricsForDpi(SystemMetric.SM_CYSIZEFRAME, dpi: 96);
+            goto Return;
+        }
+
+        if (User32.TryGetSystemMetrics(SystemMetric.SM_CXBORDER, out baseBorderX) &&
+           User32.TryGetSystemMetrics(SystemMetric.SM_CYBORDER, out baseBorderY))
+        {
+            baseBorderX += User32.GetSystemMetrics(SystemMetric.SM_CXSIZEFRAME);
+            baseBorderY += User32.GetSystemMetrics(SystemMetric.SM_CYSIZEFRAME);
+
+            IntPtr systemHdc = User32.GetDC(default);
+            if (systemHdc == IntPtr.Zero)
+                goto Failed;
+            try
+            {
+                const int LOGPIXELSX = 88;
+                const int LOGPIXELSY = 90;
+
+                baseBorderX = baseBorderX * 96 / Gdi32.GetDeviceCaps(systemHdc, LOGPIXELSX);
+                baseBorderY = baseBorderY * 96 / Gdi32.GetDeviceCaps(systemHdc, LOGPIXELSY);
+            }
+            finally
+            {
+                User32.ReleaseDC(default, systemHdc);
+            }
+            goto Return;
+        }
+
+        goto Failed;
+
+    Return:
+        return new Size(baseBorderX, baseBorderY);
+
+    Failed:
+        return new Size(DefaultBorderWidth, DefaultBorderWidth);
+    }
     #endregion
     #endregion
 }

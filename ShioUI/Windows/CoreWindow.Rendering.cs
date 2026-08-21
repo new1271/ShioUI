@@ -22,6 +22,7 @@ using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Threading;
 
+using ShioUI.Caching;
 using ShioUI.Extensions;
 using ShioUI.Graphics;
 using ShioUI.Graphics.Extensions;
@@ -62,7 +63,6 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     #endregion
 
     #region Static Fields    
-    private static readonly ArrayPool<UIElement?> _elementArrayPool = ArrayPool<UIElement?>.Shared;
     private static readonly string[] _brushNames = new string[(int)Brush._Last]
     {
         "back",
@@ -78,7 +78,6 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     #region Fields
     private readonly GCHandle[] _recordedMouseDownHitElementRefs = new GCHandle[7]; // MouseButtons._Mask == 0x7F, The count of available bit fields always be 7;
     private readonly Lock _syncLock = new Lock(), _activeElementsCacheViewLock = new Lock(), _elementsCacheViewLock = new Lock();
-    private readonly CacheStore<UIElement?> _activeElementsCacheStore, _elementsCacheStore;
     private readonly WindowMaterial _windowMaterial;
 
     private LimitedImmutableArrayView<UIElement?>?
@@ -455,12 +454,6 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     public RenderingController? GetRenderingController() => Atomics.Read(ref _controller);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected ElementsCacheScope EnterActiveElementsCacheScope() => new ElementsCacheScope(_activeElementsCacheStore.GetLastSnapshot());
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected ElementsCacheScope EnterElementsCacheScope() => new ElementsCacheScope(_elementsCacheStore.GetLastSnapshot());
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public LimitedImmutableArrayView<UIElement?> GetActiveElements()
     {
         lock (_activeElementsCacheViewLock)
@@ -472,7 +465,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 if (result is not null)
                     return result;
             }
-            using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+            using (CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope())
             {
                 result = new LimitedImmutableArrayView<UIElement?>(scope.ToArray(), scope.Count);
                 _activeElementsCacheTimestamp = scope.Timestamp;
@@ -494,7 +487,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 if (result is not null)
                     return result;
             }
-            using (ElementsCacheScope scope = EnterElementsCacheScope())
+            using (CacheStore<UIElement?>.Scope scope = EnterElementsCacheScope())
             {
                 result = new LimitedImmutableArrayView<UIElement?>(scope.ToArray(), scope.Count);
                 _elementsCacheTimestamp = scope.Timestamp;
@@ -502,33 +495,6 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             _elementsCacheView = result;
             return result;
         }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void CreateSnapshotForActiveElements(object owner, CacheStore<UIElement?>.CacheNode node)
-    {
-        CoreWindow _this = (CoreWindow)owner;
-        ArrayPool<UIElement?> pool = _elementArrayPool;
-        (UIElement?[] elements, int count) = pool.EnterRentScopeAndCapture(_this.EnumerateActiveElements());
-        node.Array = elements;
-        node.Count = count;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void CreateSnapshotForElements(object owner, CacheStore<UIElement?>.CacheNode node)
-    {
-        CoreWindow _this = (CoreWindow)owner;
-        ArrayPool<UIElement?> pool = _elementArrayPool;
-        (UIElement?[] elements, int count) = pool.EnterRentScopeAndCapture(_this.EnumerateElements());
-        node.Array = elements;
-        node.Count = count;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void DropSnapshot(object owner, CacheStore<UIElement?>.CacheNode node)
-    {
-        ArrayPool<UIElement?> pool = _elementArrayPool;
-        pool.Return(node.Array!);
     }
 
     public virtual void RenderBackground(UIElement element, in RegionalRenderingContext context)
@@ -617,7 +583,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
 
     protected virtual void ApplyThemeToElements(IThemeResourceProvider provider)
     {
-        using ElementsCacheScope scope = EnterElementsCacheScope();
+        using CacheStore<UIElement?>.Scope scope = EnterElementsCacheScope();
         UIElementHelper.ApplyThemeToElementsUnsafe(provider, in scope.GetReferenceOfFirstElement(), scope.Count);
     }
 
@@ -647,7 +613,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 UIElementHelper.OnGlobalMouseDownForElement(overlayElement, in readonlyArgs);
             else
             {
-                using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+                using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
                 UIElementHelper.OnGlobalMouseDownForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in readonlyArgs);
             }
         }
@@ -657,7 +623,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 UIElementHelper.OnMouseDownForElement(overlayElement, ref args, ref data);
             else
             {
-                using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+                using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
                 UIElementHelper.OnMouseDownForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, ref args, ref data);
             }
         }
@@ -670,7 +636,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             UIElementHelper.OnMouseMoveForElement(overlayElement, args, ref data);
         else
         {
-            using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+            using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
             UIElementHelper.OnMouseMoveForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, args, ref data);
         }
     }
@@ -682,7 +648,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             UIElementHelper.OnGlobalMouseUpForElement(overlayElement, in args);
         else
         {
-            using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+            using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
             UIElementHelper.OnGlobalMouseUpForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in args);
         }
     }
@@ -697,7 +663,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 UIElementHelper.OnGlobalMouseScrollForElement(overlayElement, in readonlyArgs);
             else
             {
-                using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+                using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
                 UIElementHelper.OnGlobalMouseScrollForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in readonlyArgs);
             }
         }
@@ -707,7 +673,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 UIElementHelper.OnMouseScrollForElement(overlayElement, ref args, ref data);
             else
             {
-                using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+                using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
                 UIElementHelper.OnMouseScrollForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, ref args, ref data);
             }
         }
@@ -722,7 +688,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             UIElementHelper.OnKeyDownForElement(overlayElement, ref args);
         else
         {
-            using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+            using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
             UIElementHelper.OnKeyDownForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, ref args);
         }
     }
@@ -736,7 +702,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             UIElementHelper.OnKeyUpForElement(overlayElement, ref args);
         else
         {
-            using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+            using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
             UIElementHelper.OnKeyUpForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, ref args);
         }
     }
@@ -750,7 +716,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             UIElementHelper.OnCharacterInputForElement(overlayElement, ref args);
         else
         {
-            using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+            using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
             UIElementHelper.OnCharacterInputForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, ref args);
         }
     }
@@ -759,7 +725,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     {
         UIElementHelper.OnDpiChangedForElement(GetOverlayElement(), in args);
 
-        using ElementsCacheScope scope = EnterActiveElementsCacheScope();
+        using CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope();
         UIElementHelper.OnDpiChangedForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count, in args);
     }
 
@@ -824,7 +790,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
     protected virtual void RecalculatePageLayout(Size pageSize, in RecalculateLayoutInformation information)
     {
         using LayoutEngineRentScope engine = LayoutEngine.Rent();
-        using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+        using (CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope())
             engine.RecalculateLayoutUnsafe(pageSize, in scope.GetReferenceOfFirstElement(), scope.Count, information);
         engine.RecalculateLayout(pageSize, GetOverlayElement(), information);
         Thread.MemoryBarrier();
@@ -1099,7 +1065,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
             RenderPageBackground(context, in data);
 
         RenderResult result;
-        using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+        using (CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope())
             result = UIElementHelper.RenderElementsUnsafe(context,
                 in scope.GetReferenceOfFirstElement(), scope.Count,
                 data.CreateRenderInformation(force));
@@ -1393,7 +1359,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         if (element is not null && element.Bounds.Contains(point))
             return Core(element, point, out result, out localPoint);
 
-        using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+        using (CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope())
         {
             ref readonly UIElement? scopeRef = ref scope.GetReferenceOfFirstElement();
             for (int i = 0, count = scope.Count; i < count; i++)
@@ -1447,7 +1413,7 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
         if (element is not null && element.Bounds.Contains(point))
             return Core(element, point, out result, out localPoint);
 
-        using (ElementsCacheScope scope = EnterActiveElementsCacheScope())
+        using (CacheStore<UIElement?>.Scope scope = EnterActiveElementsCacheScope())
         {
             ref readonly UIElement? scopeRef = ref scope.GetReferenceOfFirstElement();
             for (int i = 0, count = scope.Count; i < count; i++)
@@ -1956,65 +1922,6 @@ public abstract partial class CoreWindow : IRenderable, IRenderWindow
                 pool.Return(removeIndicesBuffer);
             }
         }
-    }
-    #endregion
-
-    #region Disposing
-    protected virtual void DisposeAllElements()
-    {
-        using ElementsCacheScope scope = EnterElementsCacheScope();
-        UIElementHelper.DisposeForElementsUnsafe(in scope.GetReferenceOfFirstElement(), scope.Count);
-    }
-
-    private static void SafeDispose(GCHandle[] handleArray)
-    {
-        int length = handleArray.Length;
-        if (length <= 0)
-            return;
-        ref GCHandle handleRef = ref UnsafeHelper.GetArrayDataReference(handleArray);
-        int i = 0;
-        do
-        {
-            SafeDispose(ref UnsafeHelper.AddTypedOffset(ref handleRef, i));
-        } while (++i < length);
-    }
-
-    private static void SafeDispose(ref GCHandle handle)
-    {
-        if (handle.IsAllocated)
-            handle.Free();
-    }
-
-    protected override void DisposeCore(bool disposing)
-    {
-        if (disposing)
-        {
-            DisposeHelper.SwapDisposeAtomicWeak(ref _resourceProvider);
-            DisposeHelper.SwapDisposeAtomic(ref _controller);
-            DisposeHelper.SwapDisposeAtomic(ref _host);
-            DisposeHelper.SwapDisposeAtomic(ref _titleLayout);
-            DisposeHelper.DisposeAllUnsafe(in UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush._Last);
-            GetOverlayElement()?.Dispose();
-            DisposeAllElements();
-
-            if (Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0)
-                SpinWait.SpinUntil(() => Atomics.Read(ref _recreateGraphicsDeviceProviderBarrier) != 0);
-            if (Atomics.Read(ref _ownedGDP) != 0)
-                DisposeHelper.SwapDisposeAtomic(ref _graphicsDeviceProvider);
-            else
-                Atomics.Write(ref _graphicsDeviceProvider, null);
-
-            _activeElementsCacheStore.Dispose();
-            _elementsCacheStore.Dispose();
-        }
-        _overlayElement = null;
-
-        SafeDispose(_recordedMouseDownHitElementRefs);
-        SafeDispose(ref _recordedLastMouseMoveHitElementRef);
-        SafeDispose(ref _lastMouseMoveHitElementRef);
-        SafeDispose(ref _focusElementRef);
-        SequenceHelper.Clear(_brushes);
-        base.DisposeCore(disposing);
     }
     #endregion
 }

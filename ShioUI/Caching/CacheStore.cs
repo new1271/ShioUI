@@ -7,24 +7,25 @@ using RiceTea.Core;
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Helpers;
 
-namespace ShioUI.Internals;
+namespace ShioUI.Caching;
 
-internal sealed unsafe partial class CacheStore<T> : IDisposable
+public sealed unsafe partial class CacheStore<T> : IDisposable
 {
-    private static readonly Pool<CacheNode> _snapshotPool = new(initialLength: 32);
+    private static readonly Pool<Node> _snapshotPool = new(initialLength: 32);
 
-    private readonly Dictionary<ulong, CacheNode> _snapshotDict = new();
+    private readonly Dictionary<ulong, Node> _snapshotDict = new();
     private readonly Lock _syncLock = new();
     private readonly object _owner;
-    private readonly delegate* managed<object, CacheNode, void> _createSnapshotFunc, _removeSnapshotFunc;
+    private readonly delegate* managed<object, Body> _createSnapshotFunc;
+    private readonly delegate* managed<object, in Body, void> _removeSnapshotFunc;
 
-    private CacheNode? _lastSnapshot;
+    private Node? _lastSnapshot;
     private ulong _lastTimestamp;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CacheStore(object owner,
-        delegate* managed<object, CacheNode, void> createSnapshotFunc,
-        delegate* managed<object, CacheNode, void> removeSnapshotFunc)
+        delegate* managed<object, Body> createSnapshotFunc,
+        delegate* managed<object, in Body, void> removeSnapshotFunc)
     {
         _owner = owner;
         _createSnapshotFunc = createSnapshotFunc;
@@ -38,16 +39,16 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
         {
             if (Cells.Exchange(ref _lastTimestamp, timestamp) == timestamp)
                 return;
-            CacheNode? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
+            Node? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
             if (lastSnapshot is not null)
                 Dereference(lastSnapshot);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CacheNode GetLastSnapshot()
+    public Scope GetLastSnapshot()
     {
-        CacheNode? snapshot = Atomics.Read(ref _lastSnapshot);
+        Node? snapshot = Atomics.Read(ref _lastSnapshot);
         if (snapshot is not null)
         {
             snapshot.EnterBarrier();
@@ -61,27 +62,28 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
             {
                 snapshot.ExitBarrier();
             }
+            return new Scope(snapshot);
         }
 
     Slow:
-        return GetSnapshotSlow();
+        return new Scope(GetSnapshotSlow());
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private CacheNode GetSnapshotSlow()
+    private Node GetSnapshotSlow()
     {
         lock (_syncLock)
         {
-            CacheNode snapshot = Core();
+            Node snapshot = Core();
             snapshot.AddRef();
             _lastSnapshot = snapshot;
             return snapshot;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        CacheNode Core()
+        Node Core()
         {
-            CacheNode? snapshot = _lastSnapshot;
+            Node? snapshot = _lastSnapshot;
             if (snapshot is not null)
             {
                 snapshot.EnterBarrier();
@@ -102,7 +104,7 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
             snapshot = _snapshotPool.Rent();
 
             ulong timestamp = Atomics.Read(ref _lastTimestamp);
-            _createSnapshotFunc(_owner, snapshot);
+            snapshot.Body = _createSnapshotFunc(_owner);
 
             snapshot.AddRef();
             snapshot.Timestamp = timestamp;
@@ -113,25 +115,25 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dereference(CacheNode snapshot)
+    private void Dereference(Node node)
     {
-        snapshot.EnterBarrier();
+        node.EnterBarrier();
         try
         {
-            if (!ReferenceEquals(this, snapshot.Owner) || snapshot.RemoveRef())
+            if (!ReferenceEquals(this, node.Owner) || node.RemoveRef())
                 return;
             lock (_syncLock)
             {
-                DebugHelper.ThrowIf(ReferenceEquals(Atomics.Read(ref _lastSnapshot), snapshot));
-                ((ICollection<KeyValuePair<ulong, CacheNode>>)_snapshotDict).Remove(KeyValuePair.Create(snapshot.Timestamp, snapshot));
+                DebugHelper.ThrowIf(ReferenceEquals(Atomics.Read(ref _lastSnapshot), node));
+                ((ICollection<KeyValuePair<ulong, Node>>)_snapshotDict).Remove(KeyValuePair.Create(node.Timestamp, node));
             }
-            _removeSnapshotFunc(_owner, snapshot);
-            snapshot.CleanUp();
-            _snapshotPool.Return(snapshot);
+            _removeSnapshotFunc(_owner, node.Body);
+            node.CleanUp();
+            _snapshotPool.Return(node);
         }
         finally
         {
-            snapshot.ExitBarrier();
+            node.ExitBarrier();
         }
     }
 
@@ -139,7 +141,7 @@ internal sealed unsafe partial class CacheStore<T> : IDisposable
     {
         lock (_syncLock)
         {
-            CacheNode? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
+            Node? lastSnapshot = Cells.Exchange(ref _lastSnapshot, null);
             if (lastSnapshot is not null)
             {
                 try

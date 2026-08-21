@@ -7,17 +7,14 @@ using System.Runtime.InteropServices;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 
-using ShioUI.Internals;
-using ShioUI.Utils;
+namespace ShioUI.Caching;
 
-namespace ShioUI.Windows;
-
-partial class CoreWindow
+partial class CacheStore<T>
 {
     [StructLayout(LayoutKind.Auto)]
-    public ref struct ElementsCacheScope : IDisposable
+    public ref struct Scope : IDisposable
     {
-        private CacheStore<UIElement?>.CacheNode? _node;
+        private Node? _node;
 
         public readonly int Count
         {
@@ -31,63 +28,63 @@ partial class CoreWindow
             get => _node!.Timestamp; // throws NRE here if disposed
         }
 
-        public readonly UIElement? this[int index]
+        public readonly T this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                CacheStore<UIElement?>.CacheNode? node = _node;
+                Node? node = _node;
                 if (index < 0 || index >= node!.Count) // throws NRE here if disposed
                     IndexOutOfRangeException.Throw();
-                UIElement?[]? array = node.Array;
+                T[]? array = node.Array;
                 DebugHelper.ThrowIf(array is null);
                 return array.AsUnsafeRef()[index];
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ElementsCacheScope(CacheStore<UIElement?>.CacheNode node) => _node = node;
+        public Scope(object node) => _node = (Node)node;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly void CopyTo(UIElement?[] destination)
+        public readonly void CopyTo(T[] destination)
         {
-            CacheStore<UIElement?>.CacheNode? node = _node;
-            UIElement?[]? array = node!.Array; // throws NRE here if disposed
+            Node? node = _node;
+            T[]? array = node!.Array; // throws NRE here if disposed
             DebugHelper.ThrowIf(array is null);
             Array.Copy(array, destination, node.Count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly void CopyTo(UIElement?[] destination, int startIndex)
+        public readonly void CopyTo(T[] destination, int startIndex)
         {
-            CacheStore<UIElement?>.CacheNode? node = _node;
-            UIElement?[]? array = node!.Array; // throws NRE here if disposed
+            Node? node = _node;
+            T[]? array = node!.Array; // throws NRE here if disposed
             DebugHelper.ThrowIf(array is null);
             Array.Copy(array, 0, destination, startIndex, node.Count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly ref readonly UIElement? GetReferenceOfFirstElement()
+        public readonly ref readonly T GetReferenceOfFirstElement()
         {
-            UIElement?[]? array = _node!.Array; // throws NRE here if disposed
+            T[]? array = _node!.Array; // throws NRE here if disposed
             DebugHelper.ThrowIf(array is null);
             return ref UnsafeHelper.GetArrayDataReference(array);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly UIElement?[] ToArray()
+        public readonly T[] ToArray()
         {
-            CacheStore<UIElement?>.CacheNode? node = _node;
-            UIElement?[]? array = node!.Array; // throws NRE here if disposed
+            Node? node = _node;
+            T[]? array = node!.Array; // throws NRE here if disposed
             DebugHelper.ThrowIf(array is null);
-            return UIElementHelper.CopyElementsToArrayUnsafe(ref UnsafeHelper.GetArrayDataReference(array), node.Count);
+            return ArrayHelper.CopyItemsToArrayUnsafe(ref UnsafeHelper.GetArrayDataReference(array), node.Count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly Enumerator GetEnumerator()
         {
-            CacheStore<UIElement?>.CacheNode? node = _node;
-            UIElement?[]? array = node!.Array; // throws NRE here if disposed
+            Node? node = _node;
+            T[]? array = node!.Array; // throws NRE here if disposed
             DebugHelper.ThrowIf(array is null);
             return new Enumerator(array, node.Count);
         }
@@ -95,7 +92,7 @@ partial class CoreWindow
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
-            CacheStore<UIElement?>.CacheNode? node = _node;
+            Node? node = _node;
             if (node is null)
                 return;
             _node = node;
@@ -103,27 +100,27 @@ partial class CoreWindow
         }
 
         [StructLayout(LayoutKind.Auto)]
-        public ref struct Enumerator : IEnumerator<UIElement?>
+        public ref struct Enumerator : IEnumerator<T>
         {
-            private UIElement?[]? _array;
+            private T[]? _array;
             private int _count, _index;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            internal Enumerator(UIElement?[] array, int count)
+            internal Enumerator(T[] array, int count)
             {
                 _array = array;
                 _count = count;
                 _index = -1;
             }
 
-            public readonly UIElement? Current
+            public readonly T Current
             {
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get
                 {
                     int index = _index;
                     if (index < 0 || index >= _count)
-                        return InvalidOperationException.Throw<UIElement?>();
+                        return InvalidOperationException.Throw<T>();
                     return _array!.AsUnsafeRef()[index];
                 }
             }
@@ -154,4 +151,5 @@ partial class CoreWindow
             public void Reset() => _index = -1;
         }
     }
+
 }

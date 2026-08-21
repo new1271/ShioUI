@@ -3,19 +3,21 @@ using System.Threading;
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
 
-namespace ShioUI.Internals;
+namespace ShioUI.Caching;
 
 partial class CacheStore<T>
 {
-    public sealed class CacheNode
+    private sealed class Node
     {
         public CacheStore<T>? Owner;
-        public T[]? Array;
-        public int Count;
+        public Body Body;
         public ulong Timestamp;
 
         private nuint _refCount;
         private nuint _barrier;
+
+        public T[]? Array => Body.Array;
+        public int Count => Body.Count;
 
         public void AddRef() => _refCount = MathHelper.Min(_refCount + 1, UnsafeHelper.GetMaxValue<nuint>());
 
@@ -44,8 +46,7 @@ partial class CacheStore<T>
         public void CleanUp()
         {
             Owner = null;
-            Array = null;
-            Count = 0;
+            Body = default;
             Timestamp = 0;
         }
     }

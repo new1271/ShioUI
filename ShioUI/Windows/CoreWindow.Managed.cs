@@ -11,7 +11,6 @@ using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
 using ShioUI.Extensions;
-using ShioUI.Graphics;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Theme;
@@ -22,9 +21,9 @@ namespace ShioUI.Windows;
 
 public readonly record struct OverlayElementChangedEventArgs(UIElement? oldElement, UIElement? newElement);
 
-public delegate void OverlayElementChangedEventHandler(object? sender,in OverlayElementChangedEventArgs args);
+public delegate void OverlayElementChangedEventHandler(object? sender, in OverlayElementChangedEventArgs args);
 
-public abstract partial class CoreWindow : NativeWindow
+partial class CoreWindow
 {
     #region Static Fields
     private static readonly UnwrappableList<GCHandle> _rootWindowList = new UnwrappableList<GCHandle>();
@@ -334,50 +333,6 @@ public abstract partial class CoreWindow : NativeWindow
         }
     }
     #endregion
-    protected unsafe CoreWindow() : this(deviceProvider: null)
-    {
-        _parent = null;
-        _activeElementsCacheStore = new(this, &CreateSnapshotForActiveElements, &DropSnapshot);
-        _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
-    }
-
-    protected unsafe CoreWindow(GraphicsDeviceProvider? deviceProvider) : base(null)
-    {
-        _parent = null;
-        _activeElementsCacheStore = new(this, &CreateSnapshotForActiveElements, &DropSnapshot);
-        _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
-
-        _graphicsDeviceProvider = deviceProvider;
-        _windowMaterial = ShioSettings.WindowMaterial;
-        UnwrappableList<GCHandle> windowList = _rootWindowList;
-        lock (windowList)
-            windowList.Add(GCHandle.Alloc(this, GCHandleType.Weak));
-        InitUnmanagedPart();
-    }
-
-    protected unsafe CoreWindow(CoreWindow? parent, bool passParentToUnderlyingWindow = false) : base(passParentToUnderlyingWindow ? parent : null)
-    {
-        _parent = parent;
-        _activeElementsCacheStore = new(this, &CreateSnapshotForActiveElements, &DropSnapshot);
-        _elementsCacheStore = new(this, &CreateSnapshotForElements, &DropSnapshot);
-
-        UnwrappableList<GCHandle> windowList;
-        if (parent is null)
-        {
-            _graphicsDeviceProvider = null;
-            _windowMaterial = ShioSettings.WindowMaterial;
-            windowList = _rootWindowList;
-        }
-        else
-        {
-            _graphicsDeviceProvider = parent.GetGraphicsDeviceProvider();
-            _windowMaterial = parent.WindowMaterial;
-            windowList = parent._childrenReferenceList;
-        }
-        lock (windowList)
-            windowList.Add(GCHandle.Alloc(this, GCHandleType.Weak));
-        InitUnmanagedPart();
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsIntegratedMaterial(WindowMaterial material)
