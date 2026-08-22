@@ -9,7 +9,6 @@ using ShioUI.Graphics.Native.DirectWrite;
 
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
-using RiceTea.Core.Structures;
 
 namespace ShioUI.Utils;
 

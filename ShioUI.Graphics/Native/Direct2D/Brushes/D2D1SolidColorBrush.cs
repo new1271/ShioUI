@@ -1,6 +1,6 @@
-using InlineMethod;
+using System.Runtime.CompilerServices;
 
-using LocalsInit;
+using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -35,7 +35,7 @@ public unsafe sealed class D2D1SolidColorBrush : D2D1Brush
         ((delegate* unmanaged[Stdcall]<void*, D2D1ColorF*, void>)functionPointer)(nativePointer, UnsafeHelper.AsPointerIn(in color));
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private D2D1ColorF GetColor()
     {

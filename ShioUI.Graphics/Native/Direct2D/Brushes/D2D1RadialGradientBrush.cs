@@ -1,8 +1,7 @@
 using System.Drawing;
+using System.Runtime.CompilerServices;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Native;
 
@@ -94,7 +93,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         ((delegate* unmanaged[Stdcall]<void*, float, void>)functionPointer)(nativePointer, radiusY);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private PointF GetCenter()
     {
@@ -105,7 +104,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         return result;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private PointF GetGradientOriginOffset()
     {

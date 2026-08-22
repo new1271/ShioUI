@@ -5,11 +5,8 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
-using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
 
 
@@ -332,7 +329,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// Size of the character array in character count not including the terminated NULL character.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public uint GetFontFamilyNameLength(uint currentPosition, DWriteTextRange* textRange)
     {
         uint nameLength;
@@ -415,7 +412,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// The current font weight.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteFontWeight GetFontWeight(uint currentPosition, DWriteTextRange* textRange)
     {
         DWriteFontWeight fontWeight;
@@ -446,7 +443,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// The current font style.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteFontStyle GetFontStyle(uint currentPosition, DWriteTextRange* textRange)
     {
         DWriteFontStyle fontStyle;
@@ -477,7 +474,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// The current font stretch.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteFontStretch GetFontStretch(uint currentPosition, DWriteTextRange* textRange)
     {
         DWriteFontStretch fontStretch;
@@ -508,7 +505,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// The current font em height.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public float GetFontSize(uint currentPosition, DWriteTextRange* textRange)
     {
         float fontSize;
@@ -539,7 +536,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// The <see cref="bool"/> flag indicates whether text is underlined.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool GetUnderline(uint currentPosition, DWriteTextRange* textRange)
     {
         bool hasUnderline;
@@ -570,7 +567,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// The <see cref="bool"/> flag indicates whether text has strikethrough.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool GetStrikethrough(uint currentPosition, DWriteTextRange* textRange)
     {
         bool hasStrikethrough;
@@ -653,7 +650,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <returns>
     /// Size of the character array in character count not including the terminated NULL character.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public uint GetLocaleNameLength(uint currentPosition, DWriteTextRange* textRange)
     {
         uint nameLength;
@@ -794,7 +791,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// Additionally, visible swashes and other graphic
     /// adornments may extend outside the returned width and height.
     /// </remarks>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteTextMetrics GetMetrics()
     {
         DWriteTextMetrics textMetrics;
@@ -816,7 +813,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// Any underline and strikethrough do not contribute to the black box determination, <br/>
     /// since these are actually drawn by the renderer, which is allowed to draw them in any variety of styles.
     /// </remarks>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteOverhangMetrics GetOverhangMetrics()
     {
         DWriteOverhangMetrics result;
@@ -899,7 +896,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// Geometry fully enclosing the hit-test location. When the output *<paramref name="isInside"/> value
     ///  is set to false, this structure represents the geometry enclosing the edge closest to the hit-test location.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteHitTestMetrics HitTestPoint(float pointX, float pointY, bool* isTrailingHit, bool* isInside)
     {
         DWriteHitTestMetrics hitTestMetrics;
@@ -940,7 +937,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// This happens for complex scripts when multiple characters form a single cluster,
     /// when diacritics join their base character, or when you test a surrogate pair.
     /// </remarks>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteHitTestMetrics HitTestTextPosition(uint textPosition, bool isTrailingHit, float* pointX, float* pointY)
     {
         DWriteHitTestMetrics hitTestMetrics;

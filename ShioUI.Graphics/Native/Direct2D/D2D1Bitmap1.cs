@@ -2,12 +2,11 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using ShioUI.Graphics.Native.DXGI;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using System.Runtime.CompilerServices;
 
 namespace ShioUI.Graphics.Native.Direct2D;
 
@@ -69,7 +68,7 @@ public unsafe sealed class D2D1Bitmap1 : D2D1Bitmap
     /// <see cref="D2D1BitmapOptions.CpuRead"/> flag.
     /// </summary>
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public D2D1MappedRect Map(D2D1MapOptions options)
     {
         D2D1MappedRect mappedRect;

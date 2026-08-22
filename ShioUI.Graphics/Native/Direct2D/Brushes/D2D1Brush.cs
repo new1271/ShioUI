@@ -1,8 +1,7 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Native;
 
@@ -69,7 +68,7 @@ public unsafe class D2D1Brush : D2D1Resource
         return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private Matrix3x2 GetTransform()
     {

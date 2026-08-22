@@ -4,8 +4,6 @@ using System.Runtime.CompilerServices;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
@@ -52,7 +50,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <summary>
     /// Retrieve the bounds of the geometry, with an optional applied transform.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public RectF GetBounds(Matrix3x2* worldTransform)
     {
         RectF result;
@@ -78,7 +76,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// Get the bounds of the corresponding geometry after it has been widened or have
     /// an optional pen style applied.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public RectF GetWidenedBounds(float strokeWidth, D2D1StrokeStyle strokeStyle, Matrix3x2* worldTransform, float flatteningTolerance)
     {
         RectF result;
@@ -105,7 +103,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// Checks to see whether the corresponding penned and widened geometry contains the
     /// given point.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, Matrix3x2* worldTransform, float flatteningTolerance)
     {
         bool result;
@@ -131,7 +129,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <summary>
     /// Test whether the given fill of this geometry would contain this point.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool FillContainsPoint(PointF point, Matrix3x2* worldTransform, float flatteningTolerance)
     {
         bool result;
@@ -156,7 +154,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <summary>
     /// Compare how one geometry intersects or contains another geometry.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public D2D1GeometryRelation CompareWithGeometry(D2D1Geometry geometry, Matrix3x2* inputGeometryTransform, float flatteningTolerance)
     {
         D2D1GeometryRelation result;
@@ -283,7 +281,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <summary>
     /// Computes the area of the geometry.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public float ComputeArea(Matrix3x2* worldTransform, float flatteningTolerance)
     {
         float result;
@@ -309,7 +307,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <summary>
     /// Computes the length of the geometry.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public float ComputeLength(Matrix3x2* worldTransform, float flatteningTolerance)
     {
         float result;
@@ -335,7 +333,7 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <summary>
     /// Computes the point and tangent a given distance along the path.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ComputePointAtLength(float length, Matrix3x2* worldTransform, float flatteningTolerance, PointF* point, PointF* unitTangentVector)
     {

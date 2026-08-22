@@ -3,8 +3,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
@@ -180,7 +178,7 @@ public unsafe class D2D1Properties : ComObject
     }
 
     /// <inheritdoc cref="GetValueByName(char*, D2D1PropertyType, byte*, uint)"/>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T GetValueByName<T>(char* name) where T : unmanaged
@@ -203,7 +201,7 @@ public unsafe class D2D1Properties : ComObject
     }
 
     /// <inheritdoc cref="GetValue(uint, D2D1PropertyType, byte*, uint)"/>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public T GetValue<T>(uint index) where T : unmanaged
     {
         T result;

@@ -1,7 +1,5 @@
 using InlineMethod;
 
-using LocalsInit;
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,6 +8,7 @@ using System.Security;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
+using System.Runtime.CompilerServices;
 
 namespace ShioUI.Graphics.Native.DirectWrite;
 
@@ -42,7 +41,7 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
     /// <inheritdoc cref="this[uint]"/>
     public DWriteFont this[int index]
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => index < 0 ?
             ArgumentOutOfRangeException.Throw<DWriteFont>(nameof(index)) :
             GetFont(unchecked((uint)index));
@@ -57,7 +56,7 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
     /// </returns>
     public DWriteFont this[uint index]
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetFont(index);
     }
 

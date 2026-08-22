@@ -4,8 +4,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using ShioUI.Graphics.Native.Direct3D;
 using ShioUI.Graphics.Native.DXGI;
 
@@ -37,7 +35,7 @@ public unsafe sealed class D3D11Device : ComObject
             return Create(adapter, driverType, software, createDeviceFlags, ptr, unchecked((uint)featureLevels.Length));
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public static D3D11Device? Create(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software,
         D3D11CreateDeviceFlags createDeviceFlags, D3DFeatureLevel* featureLevels, uint featureLevelCount)
     {

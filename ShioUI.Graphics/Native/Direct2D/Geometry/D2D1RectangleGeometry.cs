@@ -2,8 +2,6 @@ using System.Runtime.CompilerServices;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 
@@ -28,7 +26,7 @@ public sealed unsafe class D2D1RectangleGeometry : D2D1Geometry
         get => GetRect();
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private RectF GetRect()
     {

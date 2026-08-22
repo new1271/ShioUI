@@ -1,13 +1,10 @@
 #if NET472_OR_GREATER
 using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
@@ -68,62 +65,62 @@ namespace ShioUI.Graphics.Helpers
         private static partial RectF RoundInPixelCore(in RectangleF valueInPoints, Vector2 dpiScaleFactor, RoundingMethod method)
             => RoundInPixelCore((RectF)valueInPoints, dpiScaleFactor, method);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF FloorInPixelCore_Vectorized(in Rect valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Vectorized(valueInPoints, dpiScaleFactor, RoundingMethod.Floor);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF FloorInPixelCore_Vectorized(in RectF valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Vectorized(valueInPoints, dpiScaleFactor, RoundingMethod.Floor);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF CeilingInPixelCore_Vectorized(in Rect valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Vectorized(valueInPoints, dpiScaleFactor, RoundingMethod.Ceiling);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF CeilingInPixelCore_Vectorized(in RectF valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Vectorized(valueInPoints, dpiScaleFactor, RoundingMethod.Ceiling);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF RoundInPixelCore_Vectorized(in Rect valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Vectorized(valueInPoints, dpiScaleFactor, RoundingMethod.Round);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF RoundInPixelCore_Vectorized(in RectF valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Vectorized(valueInPoints, dpiScaleFactor, RoundingMethod.Round);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF FloorInPixelCore_Scalarized(in Rect valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Scalarized(valueInPoints, dpiScaleFactor, RoundingMethod.Floor);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF FloorInPixelCore_Scalarized(in RectF valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Scalarized(valueInPoints, dpiScaleFactor, RoundingMethod.Floor);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF CeilingInPixelCore_Scalarized(in Rect valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Scalarized(valueInPoints, dpiScaleFactor, RoundingMethod.Ceiling);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF CeilingInPixelCore_Scalarized(in RectF valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Scalarized(valueInPoints, dpiScaleFactor, RoundingMethod.Ceiling);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF RoundInPixelCore_Scalarized(in Rect valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Scalarized(valueInPoints, dpiScaleFactor, RoundingMethod.Round);
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static RectF RoundInPixelCore_Scalarized(in RectF valueInPoints, Vector2 dpiScaleFactor)
             => RoundInPixelCore_Scalarized(valueInPoints, dpiScaleFactor, RoundingMethod.Round);
@@ -170,7 +167,7 @@ namespace ShioUI.Graphics.Helpers
             return new RectF(left, top, right, bottom);
         }
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsValidVectorSize() => sizeof(Vector<float>) switch
         {
@@ -178,7 +175,7 @@ namespace ShioUI.Graphics.Helpers
             _ => false
         };
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector(Vector2 vector)
                 => sizeof(Vector<float>) switch
@@ -188,7 +185,7 @@ namespace ShioUI.Graphics.Helpers
                     _ => Throw()
                 };
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector(in Rect rect)
                 => sizeof(Vector<float>) switch
@@ -198,7 +195,7 @@ namespace ShioUI.Graphics.Helpers
                     _ => Throw()
                 };
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector(in RectF rect)
                 => sizeof(Vector<float>) switch
@@ -208,7 +205,7 @@ namespace ShioUI.Graphics.Helpers
                     _ => Throw()
                 };
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector128(Vector2 vector)
         {
@@ -219,17 +216,17 @@ namespace ShioUI.Graphics.Helpers
             return result;
         }
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector128(in Rect rect)
             => Vector.ConvertToSingle(UnsafeHelper.As<Rect, Vector<int>>(ref UnsafeHelper.AsRefIn(in rect)));
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static ref readonly Vector<float> ToVector128(in RectF rect)
             => ref UnsafeHelper.As<RectF, Vector<float>>(ref UnsafeHelper.AsRefIn(in rect));
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector256(Vector2 vector)
         {
@@ -240,7 +237,7 @@ namespace ShioUI.Graphics.Helpers
             return result;
         }
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector256(in Rect rect)
         {
@@ -250,7 +247,7 @@ namespace ShioUI.Graphics.Helpers
             return Vector.ConvertToSingle(result);
         }
 
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector<float> ToVector256(in RectF rect)
         {

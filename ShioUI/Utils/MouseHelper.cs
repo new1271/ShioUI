@@ -1,6 +1,5 @@
 using System.Drawing;
-
-using LocalsInit;
+using System.Runtime.CompilerServices;
 
 using ShioUI.Internals.Native;
 
@@ -8,7 +7,7 @@ namespace ShioUI.Utils;
 
 public static class MouseHelper
 {
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public static unsafe Point GetMousePosition()
     {
         Point point;

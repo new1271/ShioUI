@@ -1,9 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -32,7 +31,7 @@ public unsafe class DXGIDevice : DXGIObject
 
     public int GPUThreadPriority
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetGPUThreadPriority();
         set => SetGPUThreadPriority(value);
     }
@@ -55,7 +54,7 @@ public unsafe class DXGIDevice : DXGIObject
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private int GetGPUThreadPriority()
     {

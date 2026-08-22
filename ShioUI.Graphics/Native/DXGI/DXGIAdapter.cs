@@ -1,9 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -30,12 +29,12 @@ public unsafe class DXGIAdapter : DXGIObject
 
     public DXGIAdapterDescription Description
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetDesc();
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private DXGIAdapterDescription GetDesc()
     {
         DXGIAdapterDescription desc;

@@ -1,11 +1,8 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -52,7 +49,7 @@ public unsafe sealed class DWriteFactory : ComObject
 
     public DWriteFactory(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public static DWriteFactory Create(DWriteFactoryType factoryType = DWriteFactoryType.Shared)
     {
         void* nativePointer;

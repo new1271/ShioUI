@@ -2,8 +2,6 @@ using System.Runtime.CompilerServices;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Native;
 
 namespace ShioUI.Graphics.Native.Direct2D.Geometry;
@@ -27,7 +25,7 @@ public sealed unsafe class D2D1EllipseGeometry : D2D1Geometry
         get => GetEllipse();
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private D2D1Ellipse GetEllipse()
     {

@@ -6,8 +6,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
@@ -44,7 +42,7 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
     /// <inheritdoc cref="this[uint]"/>
     public DWriteFontFamily this[int index]
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => index < 0 ?
             ArgumentOutOfRangeException.Throw<DWriteFontFamily>(nameof(index)) :
             GetFontFamily(unchecked((uint)index));
@@ -59,7 +57,7 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
     /// </returns>
     public DWriteFontFamily this[uint index]
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetFontFamily(index);
     }
 
@@ -106,7 +104,7 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
     /// <returns>
     /// <see langword="true"/> if the family name exists or <see langword="false"/> otherwise.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool FindFamilyName(char* familyName, uint* index)
     {
         bool exists;

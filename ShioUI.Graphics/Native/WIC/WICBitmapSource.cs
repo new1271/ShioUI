@@ -1,9 +1,8 @@
 using System;
 using System.Drawing;
+using System.Runtime.CompilerServices;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -33,7 +32,7 @@ public unsafe class WICBitmapSource : ComObject
     public PointD Resolution => GetResolution();
 
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private Size GetSize()
     {
@@ -45,7 +44,7 @@ public unsafe class WICBitmapSource : ComObject
         return result;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private Guid GetPixelFormat()
     {
@@ -57,7 +56,7 @@ public unsafe class WICBitmapSource : ComObject
         return result;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private PointD GetResolution()
     {

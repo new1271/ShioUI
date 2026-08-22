@@ -5,8 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-using LocalsInit;
-
 using ShioUI.Internals.Native;
 using ShioUI.Utils;
 
@@ -70,7 +68,7 @@ partial class NativeWindow
 
     public unsafe Rectangle ClientBounds
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
@@ -86,7 +84,7 @@ partial class NativeWindow
 
     public unsafe Size ClientSize
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
@@ -196,7 +194,7 @@ partial class NativeWindow
 
     public unsafe WindowState WindowState
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {

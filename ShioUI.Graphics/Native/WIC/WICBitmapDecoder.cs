@@ -1,8 +1,7 @@
 using System;
+using System.Runtime.CompilerServices;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -49,7 +48,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         return QueryCapacityCore(adapter.GetWin32Handle());
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private WICBitmapDecoderCapabilities QueryCapacityCore(void* pStream)
     {
         WICBitmapDecoderCapabilities result;
@@ -79,7 +78,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public Guid GetContainerFormat()
     {
         Guid result;
@@ -108,7 +107,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         return nativePointer == null ? null : new WICBitmapSource(nativePointer, ReferenceType.Owned);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private uint GetFrameCount()
     {
@@ -120,7 +119,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         return result;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private WICBitmapFrameDecode? GetFrame(uint index)
     {

@@ -4,8 +4,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
@@ -37,7 +35,7 @@ public unsafe class DXGISwapChain : DXGIDeviceSubObject
 
     public DXGISwapChainDescription Description
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetDesc();
     }
 
@@ -79,7 +77,7 @@ public unsafe class DXGISwapChain : DXGIDeviceSubObject
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private DXGISwapChainDescription GetDesc()
     {
         DXGISwapChainDescription desc;

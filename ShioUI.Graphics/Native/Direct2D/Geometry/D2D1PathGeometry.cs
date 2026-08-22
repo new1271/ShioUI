@@ -1,6 +1,6 @@
-using InlineMethod;
+using System.Runtime.CompilerServices;
 
-using LocalsInit;
+using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -26,20 +26,20 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
 
     public uint SegmentCount
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetSegmentCount();
     }
 
     public uint FigureCount
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetFigureCount();
     }
 
     /// <summary>
     /// Opens a geometry sink that will be used to create this path geometry.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public D2D1GeometrySink Open()
     {
         void* nativePointer = NativePointer;
@@ -60,7 +60,7 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private uint GetSegmentCount()
     {
@@ -72,7 +72,7 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
         return result;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private uint GetFigureCount()
     {

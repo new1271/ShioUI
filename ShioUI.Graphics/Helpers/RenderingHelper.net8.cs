@@ -7,8 +7,6 @@ using System.Runtime.Intrinsics;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Structures;
 
@@ -66,17 +64,17 @@ unsafe static partial class RenderingHelper
         => RoundInPixelCore((RectF)valueInPoints, dpiScaleFactor, method);
 
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<float> ToVector(Vector2 vector)
         => Vector128.Create([vector.X, vector.Y, vector.X, vector.Y]);
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<float> ToVector(in Rect rect)
         => Vector128.ConvertToSingle(UnsafeHelper.As<Rect, Vector128<int>>(ref UnsafeHelper.AsRefIn(in rect)));
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref readonly Vector128<float> ToVector(in RectF rect)
         => ref UnsafeHelper.As<RectF, Vector128<float>>(ref UnsafeHelper.AsRefIn(in rect));

@@ -7,8 +7,6 @@ using System.Threading;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Extensions;
@@ -597,7 +595,7 @@ public unsafe partial class CoreWindow
             controller.SetFramesPerSecond(GetWindowFps(handle));
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Rational GetWindowFps(IntPtr handle)
     {
@@ -870,7 +868,7 @@ public unsafe partial class CoreWindow
         return ScreenToWindowCore(handle, pixel);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private static Point ScreenToWindowCore(IntPtr handle, Point pixel)
     {
         if (!User32.ScreenToClient(handle, &pixel))
@@ -900,7 +898,7 @@ public unsafe partial class CoreWindow
         return WindowToScreenCore(handle, pixel);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private static Point WindowToScreenCore(IntPtr handle, Point point)
     {
         if (!User32.ClientToScreen(handle, &point))

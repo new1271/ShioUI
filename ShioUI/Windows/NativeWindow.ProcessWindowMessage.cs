@@ -1,12 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
-
-using InlineIL;
-
-using LocalsInit;
 
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
@@ -64,14 +58,14 @@ unsafe partial class NativeWindow
         };
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     protected virtual bool TryProcessCustomWindowMessage(IntPtr handle, uint message, nint wParam, nint lParam, out nint result)
     {
         result = 0;
         return false;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     protected virtual bool TryProcessOtherWindowMessage(IntPtr handle, uint message, nint wParam, nint lParam, out nint result)
     {
         result = 0;

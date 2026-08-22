@@ -1,9 +1,8 @@
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Native;
 
@@ -31,7 +30,7 @@ public sealed unsafe class D2D1Layer : D2D1Resource
     /// </summary>
     public SizeF Size
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetSize();
     }
 

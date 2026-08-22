@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 
 using RiceTea.Core;
 using RiceTea.Core.Extensions;

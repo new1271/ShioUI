@@ -5,8 +5,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.Direct2D.Geometry;
 using ShioUI.Graphics.Native.DirectWrite;
@@ -94,7 +92,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     public Matrix3x2 Transform
     {
         get => GetTransform();
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         set => SetTransform(value);
     }
 
@@ -120,13 +118,13 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     public PointF Dpi
     {
         get => GetDpi();
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         set => SetDpi(value);
     }
 
     public D2D1PixelFormat PixelFormat
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetPixelFormat();
     }
 
@@ -135,7 +133,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// </summary>
     public SizeF Size
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetSize();
     }
 
@@ -144,7 +142,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// </summary>
     public SizeU PixelSize
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetPixelSize();
     }
 
@@ -617,7 +615,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private Matrix3x2 GetTransform()
     {
         Matrix3x2 matrix;
@@ -899,7 +897,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private PointF GetDpi()
     {
         PointF result;

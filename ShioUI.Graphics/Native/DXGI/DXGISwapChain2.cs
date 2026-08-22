@@ -1,10 +1,9 @@
 using System;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -36,21 +35,21 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
 
     public SizeU SourceSize
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetSourceSize();
         set => SetSourceSize(value);
     }
 
     public uint MaximumFrameLatency
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetMaximumFrameLatency();
         set => SetMaximumFrameLatency(value);
     }
 
     public Matrix3x2 MatrixTransform
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetMatrixTransform();
         set => SetMatrixTransform(value);
     }
@@ -65,7 +64,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private SizeU GetSourceSize()
     {
         SizeU size;
@@ -86,7 +85,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private uint GetMaximumFrameLatency()
     {
         uint result;
@@ -114,7 +113,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private Matrix3x2 GetMatrixTransform()
     {
         Matrix3x2 result;

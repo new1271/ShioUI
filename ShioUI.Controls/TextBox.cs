@@ -7,8 +7,6 @@ using System.Threading;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
@@ -647,7 +645,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         });
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     unsafe void IInputMethodHandler.OnIMEComposition(InputMethod ime, InputMethodContext context, string str, IMECompositionFlags flags, int cursorPosition)
     {
         string text = _text;
@@ -693,7 +691,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         UpdateTextAndCaretIndex(text, caretIndex);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     unsafe void IInputMethodHandler.OnIMECompositionResult(InputMethod ime, InputMethodContext context, string str, IMECompositionFlags flags)
     {
         string text = _text;
@@ -766,7 +764,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         return (caretPoint, dpiScaleFactor);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     unsafe void ICharacterInputHandler.OnCharacterInput(ref CharacterEventArgs args)
     {
         if (!_focused || !Enabled)

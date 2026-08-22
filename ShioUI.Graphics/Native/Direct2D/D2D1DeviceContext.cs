@@ -6,8 +6,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using ShioUI.Graphics.Native.Direct2D.Effects;
 using ShioUI.Graphics.Native.DXGI;
 using ShioUI.Graphics.Native.WIC;
@@ -76,7 +74,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     /// </summary>
     public D2D1Image? Target
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetTarget();
         set => SetTarget(value);
     }

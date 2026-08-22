@@ -2,7 +2,6 @@ using System;
 
 using RiceTea.Core.Helpers;
 
-using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Layout;
 using ShioUI.Utils;
 

@@ -4,8 +4,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
@@ -50,7 +48,7 @@ public unsafe class DXGIFactory2 : DXGIFactory1
     public static DXGIFactory2? Create(DXGICreateFactoryFlags flags, in Guid riid, bool throwException = true)
         => Create(flags, UnsafeHelper.AsPointerIn(in riid), throwException);
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public static DXGIFactory2? Create(DXGICreateFactoryFlags flags, Guid* riid, bool throwException = true)
     {
         void* factory;

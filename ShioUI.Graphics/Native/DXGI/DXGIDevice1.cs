@@ -1,9 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -29,7 +28,7 @@ public unsafe sealed class DXGIDevice1 : DXGIDevice
 
     public uint MaximumFrameLatency
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetMaximumFrameLatency();
         set => SetMaximumFrameLatency(value);
     }
@@ -43,7 +42,7 @@ public unsafe sealed class DXGIDevice1 : DXGIDevice
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private uint GetMaximumFrameLatency()
     {

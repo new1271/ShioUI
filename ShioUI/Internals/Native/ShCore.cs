@@ -1,12 +1,11 @@
 using System;
 using System.Security;
 
-using LocalsInit;
-
 using ShioUI.Graphics;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using System.Runtime.CompilerServices;
 
 namespace ShioUI.Internals.Native;
 
@@ -17,7 +16,7 @@ internal static unsafe class ShCore
     private static readonly void*[] _pointers = NativeMethods.GetImportedMethodPointers(LibraryName,
         nameof(GetDpiForMonitor));
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public static int GetDpiForMonitor(IntPtr hMonitor, MonitorDpiType dpiType, out uint dpiX, out uint dpiY)
     {
         UnsafeHelper.SkipInit(out dpiX);

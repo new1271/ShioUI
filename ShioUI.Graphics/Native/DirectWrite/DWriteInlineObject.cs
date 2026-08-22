@@ -1,6 +1,5 @@
+using System.Runtime.CompilerServices;
 using System.Security;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -32,7 +31,7 @@ public unsafe sealed class DWriteInlineObject : ComObject
     /// <summary>
     /// TextLayout calls this callback function to get the measurement of the inline object.
     /// </summary>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteInlineObjectMetrics GetMetrics()
     {
         DWriteInlineObjectMetrics metrics;
@@ -57,7 +56,7 @@ public unsafe sealed class DWriteInlineObject : ComObject
     /// If you have an image that is actually 100x100 DIPs, but you want it slightly inset (perhaps it has a glow) by 20 DIPs on each side, <br/>
     /// you would return a width/height of 60x60 and four overhangs of 20 DIPs.
     /// </remarks>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DWriteOverhangMetrics GetOverhangMetrics()
     {
         DWriteOverhangMetrics metrics;
@@ -77,7 +76,7 @@ public unsafe sealed class DWriteInlineObject : ComObject
     /// Before is for the content immediately preceding it. <br/>
     /// After is for the content immediately following it. <br/>
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public (DWriteBreakCondition Before, DWriteBreakCondition After) GetBreakConditions()
     {
         DWriteBreakCondition before, after;

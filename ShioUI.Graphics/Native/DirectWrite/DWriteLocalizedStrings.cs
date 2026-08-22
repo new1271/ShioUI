@@ -3,8 +3,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
@@ -67,7 +65,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
     /// <returns>
     /// <see langword="true"/> if the locale name exists or <see langword="false"/> if not.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool FindLocaleName(char* localeName, uint* index)
     {
         bool exists;
@@ -85,7 +83,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
     /// <returns>
     /// The length in characters, not including the null terminator.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public uint GetLocaleNameLength(uint index)
     {
         uint length;
@@ -138,7 +136,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
     /// <returns>
     /// The length in characters, not including the null terminator.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public uint GetStringLength(uint index)
     {
         uint length;

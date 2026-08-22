@@ -4,8 +4,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
@@ -37,7 +35,7 @@ public unsafe class D2D1Bitmap : D2D1Image
     /// </summary>
     public SizeF Size
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetSize();
     }
 
@@ -46,7 +44,7 @@ public unsafe class D2D1Bitmap : D2D1Image
     /// </summary>
     public SizeU PixelSize
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetPixelSize();
     }
 
@@ -55,7 +53,7 @@ public unsafe class D2D1Bitmap : D2D1Image
     /// </summary>
     public D2D1PixelFormat PixelFormat
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetPixelFormat();
     }
 
@@ -64,12 +62,12 @@ public unsafe class D2D1Bitmap : D2D1Image
     /// </summary>
     public PointF Dpi
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetDpi();
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private SizeF GetSize()
     {
         SizeF result;
@@ -80,7 +78,7 @@ public unsafe class D2D1Bitmap : D2D1Image
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private SizeU GetPixelSize()
     {
         SizeU result;
@@ -91,7 +89,7 @@ public unsafe class D2D1Bitmap : D2D1Image
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private D2D1PixelFormat GetPixelFormat()
     {
         D2D1PixelFormat result;
@@ -102,7 +100,7 @@ public unsafe class D2D1Bitmap : D2D1Image
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private PointF GetDpi()
     {
         PointF result;

@@ -4,8 +4,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 
@@ -37,18 +35,18 @@ public unsafe class DXGISwapChain1 : DXGISwapChain
 
     public DXGISwapChainDescription1 Description1
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetDesc1();
     }
 
     public DXGISwapChainFullscreenDescription FullscreenDescription
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetFullscreenDesc();
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private DXGISwapChainDescription1 GetDesc1()
     {
         DXGISwapChainDescription1 desc;
@@ -60,7 +58,7 @@ public unsafe class DXGISwapChain1 : DXGISwapChain
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private DXGISwapChainFullscreenDescription GetFullscreenDesc()
     {
         DXGISwapChainFullscreenDescription fullscreenDesc;

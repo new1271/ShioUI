@@ -3,8 +3,6 @@ using System.Security;
 
 using InlineMethod;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Windows.ObjectModels;
@@ -169,7 +167,7 @@ public unsafe sealed class DWriteFont : ComObject
     /// <returns>
     /// <see langword="true"/> if the font supports the specified character or <see langword="false"/> if not.
     /// </returns>
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public bool HasCharacter(uint unicodeValue)
     {
         bool exists;

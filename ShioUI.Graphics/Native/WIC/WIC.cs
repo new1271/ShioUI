@@ -2,8 +2,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using LocalsInit;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 
@@ -19,7 +17,7 @@ public static unsafe class WIC
     [DllImport(WINDOWS_CODEC_DLL)]
     public static extern int WICConvertBitmapSource(Guid* dstFormat, void* pISrc, void** ppIDst);
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static WICBitmapSource? WICConvertBitmapSource(WICBitmapSource src, in Guid dstFormat)
     {

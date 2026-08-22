@@ -1,9 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
-
-using LocalsInit;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
@@ -30,12 +29,12 @@ public unsafe sealed class DXGISurface : DXGIDeviceSubObject
 
     public DXGISurfaceDescription Description
     {
-        [LocalsInit(false)]
+        [SkipLocalsInit]
         get => GetDesc();
     }
 
     [Inline(InlineBehavior.Remove)]
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     private DXGISurfaceDescription GetDesc()
     {
         DXGISurfaceDescription desc;
@@ -46,7 +45,7 @@ public unsafe sealed class DXGISurface : DXGIDeviceSubObject
         return desc;
     }
 
-    [LocalsInit(false)]
+    [SkipLocalsInit]
     public DXGIMappedRect Map(DXGIMapFlags flags)
     {
         DXGIMappedRect lockedRect;

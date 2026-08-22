@@ -1,7 +1,5 @@
 using System;
 
-using RiceTea.Core.Helpers;
-
 using ShioUI.Layout;
 using ShioUI.Utils;
 
