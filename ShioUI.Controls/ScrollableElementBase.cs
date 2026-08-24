@@ -40,7 +40,7 @@ public abstract partial class ScrollableElementBase : UIElement,
     private readonly Timer _repeatingTimer;
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly ScrollBarType _scrollBarType;
-    private readonly bool _drawWhenDisabled;
+    private readonly bool _drawWhenDisabled, _stickBottom;
 
     private LayoutNode? _autoHeightLayoutNode;
     private string _scrollBarThemePrefix;
@@ -54,7 +54,7 @@ public abstract partial class ScrollableElementBase : UIElement,
     private ulong _updateFlagsRaw, _viewportPointRaw, _surfaceSizeRaw;
     private float _pinY;
     private uint _enabled;
-    private bool _hasScrollBar, _stickBottom;
+    private bool _hasScrollBar;
 
     protected ScrollableElementBase(IElementContainer parent, string themePrefix) : this(parent, themePrefix, DefaultPrefixForScrollBar) { }
 

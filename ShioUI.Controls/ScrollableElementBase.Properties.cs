@@ -12,6 +12,37 @@ namespace ShioUI.Controls;
 
 partial class ScrollableElementBase : IAutoHeightElement
 {
+    protected bool DrawWhenDisabled
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _drawWhenDisabled;
+        init => _drawWhenDisabled = value;
+    }
+
+    protected ScrollBarType ScrollBarType
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _scrollBarType;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        init => _scrollBarType = value;
+    }
+
+    protected bool StickBottom
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _stickBottom;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        init => _stickBottom = value;
+    }
+
+    public string ScrollBarThemePrefix
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _scrollBarThemePrefix;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        init => _scrollBarThemePrefix = value;
+    }
+
     public LayoutNode AutoHeightDefinition
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -31,21 +62,6 @@ partial class ScrollableElementBase : IAutoHeightElement
             OnEnableChanged(value);
             Update(ScrollableElementUpdateFlags.RecalcLayout);
         }
-    }
-
-    protected bool DrawWhenDisabled
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _drawWhenDisabled;
-        init => _drawWhenDisabled = value;
-    }
-
-    protected ScrollBarType ScrollBarType
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _scrollBarType;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        init => _scrollBarType = value;
     }
 
     public Size SurfaceSize
@@ -92,21 +108,5 @@ partial class ScrollableElementBase : IAutoHeightElement
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => BoundsHelper.FastGetSize(in _contentBounds);
-    }
-
-    protected bool StickBottom
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _stickBottom;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => _stickBottom = value;
-    }
-
-    public string ScrollBarThemePrefix
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _scrollBarThemePrefix;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        init => _scrollBarThemePrefix = value;
     }
 }
