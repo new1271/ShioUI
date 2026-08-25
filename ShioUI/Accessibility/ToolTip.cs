@@ -159,10 +159,10 @@ public sealed partial class ToolTip : IWindowMessageFilter, ICheckableDisposable
         ShowCore(screenPoint);
     }
 
-    private async void ShowCore(Point screenPoint)
+    private void ShowCore(Point screenPoint)
     {
         CoreWindow owner = _owner;
-        if (owner.IsDisposed || await WindowMessageLoop.InvokeTaskAsync(static () => User32.GetActiveWindow()) != owner.Handle)
+        if (owner.IsDisposed || !owner.Focused)
             return;
         PointF point = owner.ScreenToWindow(screenPoint);
         if ((!owner.TryGetElementFromPoint(owner.WindowToPage(point), out UIElement? element, out PointF localPoint) || !TryGetToolTipTextForElement(element, localPoint, out string? result)) &&
