@@ -11,6 +11,9 @@ using ShioUI.Internals.Native;
 using GdiColor = System.Drawing.Color;
 using GdiGraphics = System.Drawing.Graphics;
 
+using RiceTea.Core.Extensions;
+
+
 #if NET8_0_OR_GREATER
 using System.Collections.Frozen;
 #endif
@@ -75,16 +78,27 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected bool HandleActivate(nint wParam)
     {
+        const int WA_INACTIVE = 0;
+        const int WA_ACTIVE = 1;
+        const int WA_CLICKACTIVE = 2;
+
+        WindowRuntimeFlags runtimeFlags = GetRuntimeFlagsDirectly();
         switch (wParam)
         {
-            case 0: // WA_INACTIVE
-                if ((Atomics.And(ref _windowFlags, ~(nuint)0b100) & 0b100) == 0b100)
+            case WA_INACTIVE:
+                if (runtimeFlags.HasFlagFast(WindowRuntimeFlags.Focused))
+                {
+                    RuntimeFlags = runtimeFlags & ~WindowRuntimeFlags.Focused;
                     OnFocusedChanged();
+                }
                 break;
-            case 1: // WA_ACTIVE
-            case 2: // WA_CLICKACTIVE
-                if ((Atomics.Or(ref _windowFlags, 0b100) & 0b100) != 0b100)
+            case WA_ACTIVE:
+            case WA_CLICKACTIVE:
+                if (!runtimeFlags.HasFlagFast(WindowRuntimeFlags.Focused))
+                {
+                    RuntimeFlags = runtimeFlags | WindowRuntimeFlags.Focused;
                     OnFocusedChanged();
+                }
                 break;
         }
         return false;
@@ -112,29 +126,34 @@ unsafe partial class NativeWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool HandleDestroyed()
     {
-        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) == default)
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) == 0)
             DisposeCore(disposing: true);
-        
-        if (Atomics.Exchange(ref _windowFlags, UnsafeHelper.GetMaxValue<nuint>()) != UnsafeHelper.GetMaxValue<nuint>())
+
+        WindowRuntimeFlags runtimeFlags = GetRuntimeFlagsDirectly();
+        if (runtimeFlags != WindowRuntimeFlags.Destroyed)
         {
-            IntPtr handle = _handleLazy.Value;
-            if (handle == IntPtr.Zero)
-                return true;
-            if (!WindowClassImpl.Instance.TryUnregisterWindowUnsafe(handle, this))
-                DebugHelper.Throw();
-            CancellationTokenSource? dialogTokenSource = Atomics.Exchange(ref _dialogTokenSource, null);
-            if (dialogTokenSource is not null)
+            RuntimeFlags = WindowRuntimeFlags.Destroyed;
+
+            IntPtr handle = _handle;
+            if (handle != IntPtr.Zero)
             {
-                try
+                Atomics.Write(ref _handle, IntPtr.Zero);
+                if (!WindowClassImpl.Instance.TryUnregisterWindowUnsafe(handle, this))
+                    DebugHelper.Throw();
+                CancellationTokenSource? dialogTokenSource = Atomics.Exchange(ref _dialogTokenSource, null);
+                if (dialogTokenSource is not null)
                 {
-                    dialogTokenSource.Cancel(throwOnFirstException: false);
-                }
-                catch (Exception)
-                {
-                }
-                finally
-                {
-                    dialogTokenSource.Dispose();
+                    try
+                    {
+                        dialogTokenSource.Cancel(throwOnFirstException: false);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                    finally
+                    {
+                        dialogTokenSource.Dispose();
+                    }
                 }
             }
             OnDestroyed();
@@ -262,8 +281,15 @@ unsafe partial class NativeWindow
 
     private bool HandleShowWindow(nint wParam, nint lParam)
     {
-        if (wParam != 0 && lParam == 0 && (Atomics.Or(ref _windowFlags, 0b10) & 0b10) != 0b10)
-            WindowMessageLoop.InvokeAsync(OnShown);
+        if (wParam != 0 && lParam == 0)
+        {
+            WindowRuntimeFlags runtimeFlags = GetRuntimeFlagsDirectly();
+            if (!runtimeFlags.HasFlagFast(WindowRuntimeFlags.Shown))
+            {
+                RuntimeFlags = runtimeFlags | WindowRuntimeFlags.Shown;
+                WindowMessageLoop.InvokeAsync(static _this => _this.OnShown(), this);
+            }
+        }
         return false;
     }
 

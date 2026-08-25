@@ -2,6 +2,19 @@ using System;
 
 namespace ShioUI.Windows;
 
+partial class NativeWindow
+{
+    [Flags]
+    private enum WindowRuntimeFlags : uint
+    {
+        None = 0b000,
+        Initialized = 0b001,
+        Shown = 0b010,
+        Focused = 0b100,
+        Destroyed = unchecked((uint)-1),
+    }
+}
+
 public enum CloseReason : uint
 {
     Unknown = 0,

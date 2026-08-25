@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RiceTea.Core;
@@ -58,13 +57,9 @@ partial class NativeWindow : IDisposable
         SetIconCore(handle, iconHandle);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected bool IsWindowDestroyed()
-        => Atomics.Read(ref _windowFlags) == UnsafeHelper.GetMaxValue<nuint>();
-
     private void DisposeInternal(bool disposing)
     {
-        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0)
             return;
         WindowMessageLoop.Invoke(static (_this, disposing) => _this.DisposeSync(disposing), this, disposing);
     }
@@ -77,7 +72,13 @@ partial class NativeWindow : IDisposable
         }
         finally
         {
-            User32.DestroyWindow(Handle);
+            IntPtr handle = _handle;
+            if (handle != IntPtr.Zero)
+            {
+                Atomics.Write(ref _handle, IntPtr.Zero);
+                User32.DestroyWindow(handle);
+            }
+            RuntimeFlags = WindowRuntimeFlags.Destroyed;
         }
     }
 
@@ -93,11 +94,7 @@ partial class NativeWindow : IDisposable
 
 #if NET8_0_OR_GREATER
     private System.Threading.Tasks.Task DisposeInternalAsync()
-    {
-        if (Atomics.Exchange(ref _disposed, Booleans.TrueNativeUnsigned) != default)
-            return System.Threading.Tasks.Task.CompletedTask;
-        return WindowMessageLoop.InvokeTaskAsync(static (_this) => _this.DisposeSync(disposing: true), this);
-    }
+        => WindowMessageLoop.InvokeTaskAsync(static (_this) => _this.DisposeSync(disposing: true), this);
 
     public async System.Threading.Tasks.ValueTask DisposeAsync()
     {

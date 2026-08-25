@@ -12,11 +12,23 @@ using RiceTea.Core;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
+using RiceTea.Core.Extensions;
 
 namespace ShioUI.Windows;
 
 partial class NativeWindow
 {
+    private WindowRuntimeFlags RuntimeFlags
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (WindowRuntimeFlags)Atomics.Read(ref _runtimeFlags);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        set => Atomics.Write(ref _runtimeFlags, (uint)value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private WindowRuntimeFlags GetRuntimeFlagsDirectly() => (WindowRuntimeFlags)_runtimeFlags;
+
     public DialogResult DialogResult
     {
         get => (DialogResult)Atomics.Read(ref _dialogResult);
@@ -101,21 +113,13 @@ partial class NativeWindow
     public bool IsDisposed
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => MathHelper.ToBoolean(Atomics.Read(ref _disposed));
+        get => Atomics.Read(ref _disposed) != 0;
     }
 
     public IntPtr Handle
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (IsWindowDestroyed())
-                return IntPtr.Zero;
-            Lazy<IntPtr> handleLazy = _handleLazy;
-            if (!handleLazy.IsValueCreated)
-                return IntPtr.Zero;
-            return handleLazy.Value;
-        }
+        get => Atomics.Read(ref _handle);
     }
 
     public Icon? Icon
@@ -229,7 +233,8 @@ partial class NativeWindow
 
     public bool Focused
     {
-        get => (Atomics.Read(ref _windowFlags) & 0b100) == 0b100;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => RuntimeFlags.HasFlagFast(WindowRuntimeFlags.Focused);
     }
 
     public WindowStyles Styles
