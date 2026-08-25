@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -5,7 +6,6 @@ using System.Threading;
 using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
-using RiceTea.Core.Native;
 
 using ShioUI.Caching;
 using ShioUI.Graphics;
@@ -74,25 +74,40 @@ public abstract partial class CoreWindow : NativeWindow
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void DisposeAllWindows() => DisposeAllWindows(_rootWindowList);
+    internal static void DisposeAndClearAllWindows() => DisposeAndClearAllWindows(_rootWindowList);
 
-    private static unsafe void DisposeAllWindows(SyncList<GCHandle, UnwrappableList<GCHandle>> windowList)
+    private static unsafe void DisposeAndClearAllWindows(SyncList<GCHandle, UnwrappableList<GCHandle>> windowList)
     {
-        if (!TryGetWindowListSnapshot(windowList, out NativeMemoryPool? pool, out TypedNativeMemoryBlock<GCHandle> handles, out int count))
+        using Lock.Scope lockScope = windowList.EnterLockScope();
+        UnwrappableList<GCHandle> unwrappedList = windowList.Items;
+        int count = unwrappedList.Count;
+        if (count <= 0)
             return;
-        try
+        ref GCHandle reference = ref UnsafeHelper.GetArrayDataReference(unwrappedList.Unwrap());
+        int i = 0;
+        do
         {
-            GCHandle* ptr = handles.NativePointer;
-            for (int i = 0; i < count; i++)
+            ref GCHandle handle = ref UnsafeHelper.AddTypedOffset(ref reference, i);
+            if (!handle.IsAllocated)
+                continue;
+            try
             {
-                if (ptr[i].Target is CoreWindow window)
+                if (handle.Target is CoreWindow window)
                     window.Dispose();
             }
-        }
-        finally
-        {
-            pool.Return(handles);
-        }
+            finally
+            {
+                try
+                {
+                    handle.Free();
+                }
+                catch (Exception)
+                {
+                }
+            }
+        } while (++i < count);
+
+        unwrappedList.Clear();
     }
 
     private static void SafeDispose(ref GCHandle handle)
@@ -103,6 +118,8 @@ public abstract partial class CoreWindow : NativeWindow
 
     protected override void DisposeCore(bool disposing)
     {
+        DisposeAndClearAllWindows(_childrenReferenceList);
+
         if (disposing)
         {
             DisposeHelper.SwapDisposeAtomicWeak(ref _resourceProvider);

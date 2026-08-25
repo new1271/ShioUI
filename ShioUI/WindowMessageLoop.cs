@@ -25,7 +25,7 @@ public static unsafe partial class WindowMessageLoop
     private static readonly Action<NativeWindow> _windowShowAction = static window => window.ShowCore();
     private static readonly Action<int> _stopAction = static exitCode =>
     {
-        CoreWindow.DisposeAllWindows();
+        CoreWindow.DisposeAndClearAllWindows();
         User32.PostQuitMessage(exitCode);
     };
     private static readonly ArrayPool<IWindowMessageFilter> _windowMessageFilterPool = ArrayPool<IWindowMessageFilter>.Shared;

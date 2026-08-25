@@ -217,9 +217,6 @@ unsafe partial class CoreWindow
             case WindowMessage.ExitSizeMove:
                 Volatile.Write(ref _sizeModeState, false);
                 goto default;
-            case WindowMessage.Destroy:
-                DisposeAllWindows(_childrenReferenceList);
-                goto default;
             #region Normal input events
             case WindowMessage.Char:
                 {

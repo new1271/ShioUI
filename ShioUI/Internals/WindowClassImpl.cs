@@ -23,7 +23,7 @@ internal sealed unsafe class WindowClassImpl
     private static readonly WndProcDelegate? _wndProcDelegate;
 #endif
 
-    private readonly Dictionary<IntPtr, GCHandle> _hwndOwnerDict = new();
+    private readonly Dictionary<IntPtr, IHwndOwner> _hwndOwnerDict = new();
     private readonly IntPtr _hInstance;
     private readonly ushort _atom;
 
@@ -118,21 +118,20 @@ internal sealed unsafe class WindowClassImpl
         if (handle == IntPtr.Zero)
             return false;
 
-        Dictionary<IntPtr, GCHandle> dict = _hwndOwnerDict;
+        Dictionary<IntPtr, IHwndOwner> dict = _hwndOwnerDict;
         EnterBarrier();
         try
         {
-            if (!dict.TryGetValue(handle, out GCHandle weakRef))
+            if (!dict.TryGetValue(handle, out IHwndOwner? target))
             {
-                dict.Add(handle, GCHandle.Alloc(owner, GCHandleType.Weak));
+                dict.Add(handle, owner);
                 return true;
             }
-            object? target = weakRef.Target;
             if (ReferenceEquals(target, owner))
                 return true;
-            if (target is null || (target is IHwndOwner otherOwner && otherOwner.Handle == owner.Handle))
+            if (target is null || target.Handle == owner.Handle)
             {
-                weakRef.Target = owner;
+                dict[handle] = owner;
                 return true;
             }
             return false;
@@ -151,24 +150,19 @@ internal sealed unsafe class WindowClassImpl
         if (handle == IntPtr.Zero)
             return false;
 
-        Dictionary<IntPtr, GCHandle> dict = _hwndOwnerDict;
+        Dictionary<IntPtr, IHwndOwner> dict = _hwndOwnerDict;
         EnterBarrier();
         try
         {
-            if (!dict.TryGetValue(handle, out GCHandle weakRef))
+            if (!dict.TryGetValue(handle, out IHwndOwner? target))
                 return false;
-            object? target = weakRef.Target;
             if (ReferenceEquals(target, owner))
             {
                 dict.Remove(handle);
-                weakRef.Free();
                 return true;
             }
-            if (target is null || (target is IHwndOwner otherOwner && otherOwner.Handle == owner.Handle))
-            {
+            if (target is null || target.Handle == owner.Handle)
                 dict.Remove(handle);
-                weakRef.Free();
-            }
             return false;
         }
         finally
@@ -184,7 +178,7 @@ internal sealed unsafe class WindowClassImpl
         EnterBarrier();
         try
         {
-            if (!_hwndOwnerDict.TryGetValue(hwnd, out GCHandle weakRef) || (owner = weakRef.Target as IHwndOwner) is null)
+            if (!_hwndOwnerDict.TryGetValue(hwnd, out owner))
                 goto Failed;
         }
         finally
