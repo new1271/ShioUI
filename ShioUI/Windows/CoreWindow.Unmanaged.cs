@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 using InlineMethod;
@@ -11,6 +12,7 @@ using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.Structures;
 
@@ -22,7 +24,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
-public unsafe partial class CoreWindow
+unsafe partial class CoreWindow
 {
     #region Fields
     private static readonly Size BorderSize = GetBorderSize();
@@ -233,6 +235,9 @@ public unsafe partial class CoreWindow
                 }
             case WindowMessage.ExitSizeMove:
                 Volatile.Write(ref _sizeModeState, false);
+                goto default;
+            case WindowMessage.Destroy:
+                DisposeAllWindows(_childrenReferenceList);
                 goto default;
             #region Normal input events
             case WindowMessage.Char:

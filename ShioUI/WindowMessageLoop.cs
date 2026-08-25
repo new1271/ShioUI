@@ -96,10 +96,16 @@ public static partial class WindowMessageLoop
         }
 
         ChangeMainWindowCore(mainWindow, isMessageLoopThread: true);
-        int result = DoMessageLoop();
-        Atomics.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
-
-        ChangeMainWindowCore(null, isMessageLoopThread: false);
+        int result;
+        try
+        {
+            result = DoMessageLoop();
+        }
+        finally
+        {
+            Atomics.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
+            ChangeMainWindowCore(null, isMessageLoopThread: false);
+        }
         return result;
     }
 
@@ -246,7 +252,11 @@ public static partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Stop(int exitCode = 0) => User32.PostQuitMessage(exitCode);
+    public static void Stop(int exitCode = 0)
+    {
+        CoreWindow.DisposeAllWindows();
+        User32.PostQuitMessage(exitCode);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddMessageFilter(IWindowMessageFilter messageFilter) => _filters.Add(messageFilter);

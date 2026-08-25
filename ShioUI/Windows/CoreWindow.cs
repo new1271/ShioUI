@@ -1,9 +1,11 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
 using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
 
 using ShioUI.Caching;
 using ShioUI.Graphics;
@@ -69,6 +71,28 @@ public abstract partial class CoreWindow : NativeWindow
         {
             SafeDispose(ref UnsafeHelper.AddTypedOffset(ref handleRef, i));
         } while (++i < length);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void DisposeAllWindows() => DisposeAllWindows(_rootWindowList);
+
+    private static unsafe void DisposeAllWindows(SyncList<GCHandle, UnwrappableList<GCHandle>> windowList)
+    {
+        if (!TryGetWindowListSnapshot(windowList, out NativeMemoryPool? pool, out TypedNativeMemoryBlock<GCHandle> handles, out int count))
+            return;
+        try
+        {
+            GCHandle* ptr = handles.NativePointer;
+            for (int i = 0; i < count; i++)
+            {
+                if (ptr[i].Target is CoreWindow window)
+                    window.Dispose();
+            }
+        }
+        finally
+        {
+            pool.Return(handles);
+        }
     }
 
     private static void SafeDispose(ref GCHandle handle)

@@ -42,7 +42,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
-public abstract partial class CoreWindow : IRenderable, IRenderWindow
+partial class CoreWindow : IRenderable, IRenderWindow
 {
     #region Enums
     [Flags]
