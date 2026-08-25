@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 
 using RiceTea.Core.Buffers;
 using RiceTea.Core.Extensions;
+using RiceTea.Core.Helpers;
 
 using ShioUI.Caching;
 
@@ -21,45 +22,45 @@ partial class CoreWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected CacheStore<UIElement?>.Scope EnterElementsCacheScope() => _elementsCacheStore.GetLastSnapshot();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected CacheStore<IWindowMessageFilter>.Scope EnterWindowMessageFilterCacheScope() => _windowMessageFilterStore.GetLastSnapshot();
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static CacheStore<UIElement?>.Body CreateSnapshotForActiveElements(object owner)
+    private static CacheStore<UIElement?>.Body CreateSnapshotForActiveElements(object? owner)
     {
-        CoreWindow _this = (CoreWindow)owner;
+        DebugHelper.ThrowIf(owner is not CoreWindow);
+        CoreWindow _this = UnsafeHelper.As<CoreWindow>(owner);
         ArrayPool<UIElement?> pool = _elementArrayPool;
         (UIElement?[] elements, int count) = pool.EnterRentScopeAndCapture(_this.EnumerateActiveElements());
         return new(elements, count);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static CacheStore<UIElement?>.Body CreateSnapshotForElements(object owner)
+    private static CacheStore<UIElement?>.Body CreateSnapshotForElements(object? owner)
     {
-        CoreWindow _this = (CoreWindow)owner;
+        DebugHelper.ThrowIf(owner is not CoreWindow);
+        CoreWindow _this = UnsafeHelper.As<CoreWindow>(owner);
         ArrayPool<UIElement?> pool = _elementArrayPool;
         (UIElement?[] elements, int count) = pool.EnterRentScopeAndCapture(_this.EnumerateElements());
         return new(elements, count);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static CacheStore<IWindowMessageFilter>.Body CreateSnapshotForWindowMessageFilter(object owner)
+    private static CacheStore<IWindowMessageFilter>.Body CreateSnapshotForWindowMessageFilter(object? owner)
     {
-        CoreWindow _this = (CoreWindow)owner;
+        DebugHelper.ThrowIf(owner is not CoreWindow);
+        CoreWindow _this = UnsafeHelper.As<CoreWindow>(owner);
         ArrayPool<IWindowMessageFilter> pool = _windowMessageFilterPool;
         (IWindowMessageFilter[] elements, int count) = pool.EnterRentScopeAndCapture(_this._windowMessageFilters);
         return new(elements, count);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void DropSnapshot(object owner, in CacheStore<UIElement?>.Body body)
+    private static void DropSnapshot(object? owner, in CacheStore<UIElement?>.Body body)
     {
         ArrayPool<UIElement?> pool = _elementArrayPool;
         pool.Return(body.Array);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void DropSnapshot(object owner, in CacheStore<IWindowMessageFilter>.Body body)
+    private static void DropSnapshot(object? owner, in CacheStore<IWindowMessageFilter>.Body body)
     {
         ArrayPool<IWindowMessageFilter> pool = _windowMessageFilterPool;
         pool.Return(body.Array);

@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 
 using InlineMethod;
@@ -12,11 +10,9 @@ using RiceTea.Core;
 using RiceTea.Core.Collections;
 using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
-using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.Structures;
 
-using ShioUI.Caching;
 using ShioUI.Graphics;
 using ShioUI.Internals;
 using ShioUI.Internals.Native;
@@ -29,11 +25,11 @@ unsafe partial class CoreWindow
     #region Fields
     private static readonly Size BorderSize = GetBorderSize();
 
-    private readonly SyncList<IWindowMessageFilter, List<IWindowMessageFilter>> _windowMessageFilters = new(new());
+    private readonly SyncList<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _windowMessageFilters = new(new());
     private SizeF _minimumSize, _maximumSize;
     private MouseButtons _lastMouseDownButtons;
     private IntPtr _associatedMonitor;
-    private ulong __windowMessageFiltersUpdateCounter;
+    private ulong _windowMessageFiltersUpdateCounter;
     private nint _beforeHitTest;
     private bool _isMaximized, _isCreateByDefaultX, _isCreateByDefaultY, _hasMouseCapture, _isSystemPrepareBoosting, _sizeModeState, _isFirstTime;
     #endregion
@@ -121,23 +117,8 @@ unsafe partial class CoreWindow
     }
 
     protected override bool TryProcessWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
-    {
-        using (CacheStore<IWindowMessageFilter>.Scope scope = EnterWindowMessageFilterCacheScope())
-        {
-            int count = scope.Count;
-            if (count <= 0)
-                goto Default;
-            ref readonly IWindowMessageFilter filterRef = ref scope.GetReferenceOfFirstElement();
-            for (nuint i = 0, limit = unchecked((nuint)count); i < limit; i++)
-            {
-                if (UnsafeHelper.AddTypedOffsetAsReadOnly(in filterRef, i).TryProcessWindowMessage(hwnd, message, wParam, lParam, out result))
-                    return true;
-            }
-        }
-
-    Default:
-        return base.TryProcessWindowMessage(hwnd, message, wParam, lParam, out result);
-    }
+        => WindowMessageFilterHelper.TryFilterMessage(hwnd, message, wParam, lParam, _windowMessageFilterStore, out result) ||
+            base.TryProcessWindowMessage(hwnd, message, wParam, lParam, out result);
 
     protected override bool TryProcessSystemWindowMessage(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
     {
@@ -704,20 +685,20 @@ unsafe partial class CoreWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddMessageFilter(IWindowMessageFilter filter)
     {
-        SyncList<IWindowMessageFilter, List<IWindowMessageFilter>> filters = _windowMessageFilters;
+        SyncList<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> filters = _windowMessageFilters;
 
         using Lock.Scope scope = filters.EnterLockScope();
         filters.Remove(filter);
         filters.Add(filter);
 
-        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref __windowMessageFiltersUpdateCounter));
+        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref _windowMessageFiltersUpdateCounter));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RemoveMessageFilter(IWindowMessageFilter filter)
     {
         _windowMessageFilters.Remove(filter);
-        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref __windowMessageFiltersUpdateCounter));
+        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref _windowMessageFiltersUpdateCounter));
     }
     #endregion
 

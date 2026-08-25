@@ -77,12 +77,18 @@ internal unsafe struct WindowClassEx
 [StructLayout(LayoutKind.Sequential)]
 internal struct PumpingMessage
 {
+    public PumpingMessageBody body;
+    public uint time;
+    public Point pt;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct PumpingMessageBody
+{
     public IntPtr hwnd;
     public WindowMessage message;
     public nint wParam;
     public nint lParam;
-    public uint time;
-    public Point pt;
 }
 
 [StructLayout(LayoutKind.Sequential)]

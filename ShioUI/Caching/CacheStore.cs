@@ -15,17 +15,17 @@ public sealed unsafe partial class CacheStore<T> : IDisposable
 
     private readonly Dictionary<ulong, Node> _snapshotDict = new();
     private readonly Lock _syncLock = new();
-    private readonly object _owner;
-    private readonly delegate* managed<object, Body> _createSnapshotFunc;
-    private readonly delegate* managed<object, in Body, void> _removeSnapshotFunc;
+    private readonly object? _owner;
+    private readonly delegate* managed<object?, Body> _createSnapshotFunc;
+    private readonly delegate* managed<object?, in Body, void> _removeSnapshotFunc;
 
     private Node? _lastSnapshot;
     private ulong _lastTimestamp;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CacheStore(object owner,
-        delegate* managed<object, Body> createSnapshotFunc,
-        delegate* managed<object, in Body, void> removeSnapshotFunc)
+    public CacheStore(object? owner,
+        delegate* managed<object?, Body> createSnapshotFunc,
+        delegate* managed<object?, in Body, void> removeSnapshotFunc)
     {
         _owner = owner;
         _createSnapshotFunc = createSnapshotFunc;

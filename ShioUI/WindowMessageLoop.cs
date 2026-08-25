@@ -3,21 +3,23 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-using InlineMethod;
-
 using RiceTea.Core;
+using RiceTea.Core.Buffers;
 using RiceTea.Core.Collections;
+using RiceTea.Core.Extensions;
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 
+using ShioUI.Caching;
+using ShioUI.Internals;
 using ShioUI.Internals.Native;
 using ShioUI.Utils;
 using ShioUI.Windows;
 
 namespace ShioUI;
 
-public static partial class WindowMessageLoop
+public static unsafe partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
     private static readonly Action<NativeWindow> _windowShowAction = static window => window.ShowCore();
@@ -26,10 +28,12 @@ public static partial class WindowMessageLoop
         CoreWindow.DisposeAllWindows();
         User32.PostQuitMessage(exitCode);
     };
-    private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
-        UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
+    private static readonly ArrayPool<IWindowMessageFilter> _windowMessageFilterPool = ArrayPool<IWindowMessageFilter>.Shared;
+    private static readonly CacheStore<IWindowMessageFilter> _windowMessageFilterStore = new(null, &CreateSnapshotForWindowMessageFilter, &DropSnapshot);
+    private static readonly SyncList<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _windowMessageFilters = new(new());
 
     private static NativeWindow? _mainWindow;
+    private static ulong _windowMessageFiltersUpdateCounter;
     private static uint _invokeBarrier, _threadIdForMessageLoop;
     private static bool _isFirstTimeStart = true;
 
@@ -113,30 +117,31 @@ public static partial class WindowMessageLoop
         return result;
     }
 
-    internal static MessageLoopExceptionEventHandler? GetExceptionEventHandler() => ExceptionCaught;
+    public static MessageLoopExceptionEventHandler? GetExceptionEventHandler() => ExceptionCaught;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static unsafe int DoMessageLoop()
     {
         PumpingMessage msg;
+        PumpingMessage* pMsg = &msg;
         SysBool32 status;
-        while (status = User32.GetMessageW(&msg, IntPtr.Zero, 0u, 0u))
+        while (status = User32.GetMessageW(pMsg, IntPtr.Zero, 0u, 0u))
         {
             if (status.IsFailed)
                 goto Failed;
 
-            if (TryFilterMessage(ref msg, out nint result))
+            if (WindowMessageFilterHelper.TryFilterMessage(pMsg, _windowMessageFilterStore, out nint result))
             {
                 if (User32.InSendMessage())
                     User32.ReplyMessage(result);
             }
             else
             {
-                User32.TranslateMessage(&msg);
-                User32.DispatchMessageW(&msg);
+                User32.TranslateMessage(pMsg);
+                User32.DispatchMessageW(pMsg);
             }
         }
-        return unchecked((int)msg.wParam);
+        return unchecked((int)msg.body.wParam);
 
     Failed:
         MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
@@ -186,20 +191,21 @@ public static partial class WindowMessageLoop
                     case 1:
                         {
                             PumpingMessage msg;
-                            while (User32.PeekMessageW(&msg, IntPtr.Zero, 0u, 0u, PeekMessageOptions.Remove))
+                            PumpingMessage* pMsg = &msg;
+                            while (User32.PeekMessageW(pMsg, IntPtr.Zero, 0u, 0u, PeekMessageOptions.Remove))
                             {
-                                if (msg.message == WindowMessage.Quit)
-                                    User32.PostQuitMessage(unchecked((int)msg.wParam));
+                                if (msg.body.message == WindowMessage.Quit)
+                                    User32.PostQuitMessage(unchecked((int)msg.body.wParam));
 
-                                if (TryFilterMessage(ref msg, out nint result))
+                                if (WindowMessageFilterHelper.TryFilterMessage(pMsg, _windowMessageFilterStore, out nint result))
                                 {
                                     if (User32.InSendMessage())
                                         User32.ReplyMessage(result);
                                 }
                                 else
                                 {
-                                    User32.TranslateMessage(&msg);
-                                    User32.DispatchMessageW(&msg);
+                                    User32.TranslateMessage(pMsg);
+                                    User32.DispatchMessageW(pMsg);
                                 }
                             }
                         }
@@ -220,47 +226,41 @@ public static partial class WindowMessageLoop
         }
     }
 
-    [Inline(InlineBehavior.Remove)]
-    private static bool TryFilterMessage(ref PumpingMessage msg, out nint result)
-    {
-        UnwrappableList<IWindowMessageFilter> filters = _filters.Update();
-        int count = filters.Count;
-        if (count <= 0)
-            goto Failed;
-
-        IntPtr hwnd = msg.hwnd;
-        WindowMessage message = msg.message;
-        nint wParam = msg.wParam;
-        nint lParam = msg.lParam;
-        ref IWindowMessageFilter filterRef = ref UnsafeHelper.GetArrayDataReference(filters.Unwrap());
-        for (nuint i = 0, limit = unchecked((nuint)count); i < limit; i++)
-        {
-            IWindowMessageFilter filter = UnsafeHelper.AddTypedOffset(ref filterRef, i);
-            try
-            {
-                if (filter.TryProcessWindowMessage(msg.hwnd, msg.message, msg.wParam, msg.lParam, out result))
-                    return true;
-            }
-            catch (Exception ex)
-            {
-                MessageLoopExceptionEventHandler? eventHandler = ExceptionCaught;
-                if (eventHandler is null)
-                    throw;
-                eventHandler.Invoke(filter, new MessageLoopExceptionEventArgs(ex));
-            }
-        }
-
-    Failed:
-        result = 0;
-        return false;
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Stop(int exitCode = 0) => InvokeAsync(_stopAction, exitCode);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void AddMessageFilter(IWindowMessageFilter messageFilter) => _filters.Add(messageFilter);
+    public static void AddMessageFilter(IWindowMessageFilter filter)
+    {
+        SyncList<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> filters = _windowMessageFilters;
+
+        using Lock.Scope scope = filters.EnterLockScope();
+        filters.Remove(filter);
+        filters.Add(filter);
+
+        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref _windowMessageFiltersUpdateCounter));
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RemoveMessageFilter(IWindowMessageFilter messageFilter) => _filters.Remove(messageFilter);
+    public static void RemoveMessageFilter(IWindowMessageFilter filter)
+    {
+        _windowMessageFilters.Remove(filter);
+        _windowMessageFilterStore.UpdateTimestamp(Atomics.Increment(ref _windowMessageFiltersUpdateCounter));
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static CacheStore<IWindowMessageFilter>.Body CreateSnapshotForWindowMessageFilter(object? owner)
+    {
+        ArrayPool<IWindowMessageFilter> pool = _windowMessageFilterPool;
+        (IWindowMessageFilter[] elements, int count) = pool.EnterRentScopeAndCapture(_windowMessageFilters);
+        return new(elements, count);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void DropSnapshot(object? owner, in CacheStore<IWindowMessageFilter>.Body body)
+    {
+        ArrayPool<IWindowMessageFilter> pool = _windowMessageFilterPool;
+        pool.Return(body.Array);
+    }
+
 }
