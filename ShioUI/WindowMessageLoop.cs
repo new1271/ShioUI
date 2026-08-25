@@ -20,8 +20,12 @@ namespace ShioUI;
 public static partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
-
     private static readonly Action<NativeWindow> _windowShowAction = static window => window.ShowCore();
+    private static readonly Action<int> _stopAction = static exitCode =>
+    {
+        CoreWindow.DisposeAllWindows();
+        User32.PostQuitMessage(exitCode);
+    };
     private static readonly UpdatableCollection<IWindowMessageFilter, UnwrappableList<IWindowMessageFilter>> _filters =
         UpdatableCollection.CreateUnwrapped<IWindowMessageFilter>();
 
@@ -252,11 +256,7 @@ public static partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Stop(int exitCode = 0)
-    {
-        CoreWindow.DisposeAllWindows();
-        User32.PostQuitMessage(exitCode);
-    }
+    public static void Stop(int exitCode = 0) => InvokeAsync(_stopAction, exitCode);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddMessageFilter(IWindowMessageFilter messageFilter) => _filters.Add(messageFilter);
