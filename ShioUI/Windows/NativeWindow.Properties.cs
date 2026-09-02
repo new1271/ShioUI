@@ -144,7 +144,7 @@ partial class NativeWindow
             IntPtr handle = Handle;
             if (handle == IntPtr.Zero)
             {
-                Interlocked.Exchange(ref _cachedIcon, value);
+                Atomics.Write(ref _cachedIcon, value);
                 return;
             }
             IntPtr iconHandle = value is null ? IntPtr.Zero : User32.CopyIcon(value.Handle);
