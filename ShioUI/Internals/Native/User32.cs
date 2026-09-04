@@ -291,9 +291,6 @@ internal static unsafe class User32
     public static extern IntPtr SetClipboardData(ClipboardFormat format, IntPtr hMem);
 
     [DllImport(LibraryName)]
-    public static extern short GetAsyncKeyState(VirtualKey vKey);
-
-    [DllImport(LibraryName)]
     public static extern short GetKeyState(VirtualKey vKey);
 
     [DllImport(LibraryName)]
