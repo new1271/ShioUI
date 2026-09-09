@@ -19,7 +19,7 @@ namespace ShioUI.Windows;
 
 public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 {
-    private static readonly Action<NativeWindow> WakeUpCoreAction = static (window) => window.WakeUpCore();
+    private static readonly Action<NativeWindow> PresentCoreAction = static (window) => window.PresentCore();
     private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowCore();
     private static readonly Action<NativeWindow> HideCoreAction = static (window) => window.HideCore();
     private static readonly Action<NativeWindow> ShowDialogCoreAction = static (window) => window.ShowDialogCore();
@@ -42,57 +42,53 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         _dialogTokenSource = null;
     }
 
-    public void WakeUp()
+    public void Present()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, PresentCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
                 WindowMessageLoop.ProcessAllInvoke();
-                WakeUpCore();
+                PresentCore();
             }
             else
-                WindowMessageLoop.Invoke(WakeUpCoreAction, this);
+                WindowMessageLoop.Invoke(PresentCoreAction, this);
         }
-        else
-            WindowMessageLoop.Start(this);
     }
 
-    public Task WakeUpAsync()
+    public Task PresentAsync()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, PresentCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
                 WindowMessageLoop.ProcessAllInvoke();
-                WakeUpCore();
+                PresentCore();
             }
             else
-                return WindowMessageLoop.InvokeTaskAsync(WakeUpCoreAction, this);
+                return WindowMessageLoop.InvokeTaskAsync(PresentCoreAction, this);
         }
-        else
-            WindowMessageLoop.Start(this);
 
         return Task.CompletedTask;
     }
 
     public void Hide()
     {
-        if (!WindowMessageLoop.HasMessageLoop)
-            return;
-
-        if (WindowMessageLoop.IsMessageLoopThread)
+        if (!WindowMessageLoop.TryStart(this, HideCoreAction, out _))
         {
-            WindowMessageLoop.ProcessAllInvoke();
-            HideCore();
+            if (WindowMessageLoop.IsMessageLoopThread)
+            {
+                WindowMessageLoop.ProcessAllInvoke();
+                HideCore();
+            }
+            else
+                WindowMessageLoop.Invoke(HideCoreAction, this);
         }
-        else
-            WindowMessageLoop.Invoke(HideCoreAction, this);
     }
 
     public Task HideAsync()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, HideCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
@@ -108,7 +104,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 
     public void Show()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, ShowCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
@@ -118,13 +114,11 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             else
                 WindowMessageLoop.Invoke(ShowCoreAction, this);
         }
-        else
-            WindowMessageLoop.Start(this);
     }
 
     public Task ShowAsync()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, ShowCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
@@ -134,15 +128,13 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             else
                 return WindowMessageLoop.InvokeTaskAsync(ShowCoreAction, this);
         }
-        else
-            WindowMessageLoop.Start(this);
 
         return Task.CompletedTask;
     }
 
     public DialogResult ShowDialog()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, ShowCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
@@ -152,16 +144,13 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             else
                 WindowMessageLoop.Invoke(ShowDialogCoreAction, this);
         }
-        else
-        {
-            WindowMessageLoop.Start(this);
-        }
+
         return (DialogResult)Atomics.Read(ref _dialogResult);
     }
 
     public Task<DialogResult> ShowDialogAsync()
     {
-        if (WindowMessageLoop.HasMessageLoop)
+        if (!WindowMessageLoop.TryStart(this, ShowCoreAction, out _))
         {
             if (WindowMessageLoop.IsMessageLoopThread)
             {
@@ -171,8 +160,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             else
                 return AsyncCore();
         }
-        else
-            WindowMessageLoop.Start(this);
+
         return Task.FromResult((DialogResult)Atomics.Read(ref _dialogResult));
 
         async Task<DialogResult> AsyncCore()
@@ -182,7 +170,7 @@ public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         }
     }
 
-    private void WakeUpCore()
+    private void PresentCore()
     {
         IntPtr handle = GetOrCreateWindowHandle();
         if (User32.IsIconic(handle))

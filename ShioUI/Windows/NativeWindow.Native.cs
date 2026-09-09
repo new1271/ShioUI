@@ -33,6 +33,8 @@ partial class NativeWindow : IDisposable
             lpParam: null);
         if (result == IntPtr.Zero)
             Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
+
+        RuntimeFlags = GetRuntimeFlagsDirectly() | WindowRuntimeFlags.Initialized;
         return result;
     }
 

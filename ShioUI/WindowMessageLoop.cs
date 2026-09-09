@@ -22,8 +22,8 @@ namespace ShioUI;
 public static unsafe partial class WindowMessageLoop
 {
     private static readonly QueueStatusFlags StatusFlags = SystemHelper.IsWindows8OrHigher() ? QueueStatusFlags.AllInput : QueueStatusFlags.AllInputOld;
-    private static readonly Action<NativeWindow> _windowShowAction = static window => window.ShowCore();
-    private static readonly Action<int> _stopAction = static exitCode =>
+    private static readonly Action<NativeWindow> WindowShowAction = static window => window.ShowCore();
+    private static readonly Action<int> StopAction = static exitCode =>
     {
         CoreWindow.DisposeAndClearAllWindows();
         User32.PostQuitMessage(exitCode);
@@ -83,22 +83,23 @@ public static unsafe partial class WindowMessageLoop
     }
 
     public static void ChangeMainWindow(NativeWindow? mainWindow)
+        => ChangeMainWindow(mainWindow, WindowShowAction);
+
+    public static void ChangeMainWindow(NativeWindow? mainWindow, Action<NativeWindow>? changeAction)
     {
         uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
             InvalidOperationException.Throw("The message loop is not exists!");
-        ChangeMainWindowCore(mainWindow, IsMessageLoopThread);
+        ChangeMainWindowCore(mainWindow, changeAction, IsMessageLoopThread);
     }
 
-    private static void ChangeMainWindowCore(NativeWindow? mainWindow, bool isMessageLoopThread)
+    private static void ChangeMainWindowCore(NativeWindow? mainWindow, Action<NativeWindow>? changeAction, bool isMessageLoopThread)
     {
         if (mainWindow is not null)
         {
             mainWindow.Destroyed += OnWindowDestroyed;
-            if (isMessageLoopThread)
-                mainWindow.ShowCore();
-            else
-                InvokeAsync(_windowShowAction, mainWindow);
+            if (changeAction is not null)
+                Invoke(changeAction, mainWindow);
         }
         NativeWindow? oldWindow = Atomics.Exchange(ref _mainWindow, mainWindow);
         if (oldWindow is not null && !ReferenceEquals(oldWindow, mainWindow))
@@ -108,14 +109,42 @@ public static unsafe partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Start() => Start(mainWindow: null);
+    public static int Start() => Start(mainWindow: null, startAction: null);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Start(NativeWindow? mainWindow)
+    public static int Start(NativeWindow? mainWindow) => Start(mainWindow, WindowShowAction);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Start(NativeWindow? mainWindow, Action<NativeWindow>? startAction)
     {
         uint currentThreadId = NativeMethods.GetCurrentThreadId();
         if (Atomics.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
             InvalidOperationException.Throw("Message loop is already exists!");
+        return StartCore(mainWindow, startAction, currentThreadId);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryStart(out int result) => TryStart(null, null, out result);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryStart(NativeWindow? mainWindow, out int result) => TryStart(mainWindow, WindowShowAction, out result);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryStart(NativeWindow? mainWindow, Action<NativeWindow>? startAction, out int result)
+    {
+        uint currentThreadId = NativeMethods.GetCurrentThreadId();
+        if (Atomics.CompareExchange(ref _threadIdForMessageLoop, currentThreadId, 0) != 0)
+        {
+            result = 0;
+            return false;
+        }
+        result = StartCore(mainWindow, startAction, currentThreadId);
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int StartCore(NativeWindow? mainWindow, Action<NativeWindow>? startAction, uint currentThreadId)
+    {
         if (_isFirstTimeStart)
         {
             _isFirstTimeStart = false;
@@ -126,18 +155,16 @@ public static unsafe partial class WindowMessageLoop
             ProcessAllInvoke();
         }
 
-        ChangeMainWindowCore(mainWindow, isMessageLoopThread: true);
-        int result;
+        ChangeMainWindowCore(mainWindow, startAction, isMessageLoopThread: true);
         try
         {
-            result = DoMessageLoop();
+            return DoMessageLoop();
         }
         finally
         {
             Atomics.CompareExchange(ref _threadIdForMessageLoop, 0, currentThreadId);
-            ChangeMainWindowCore(null, isMessageLoopThread: false);
+            ChangeMainWindowCore(null, null, isMessageLoopThread: false);
         }
-        return result;
     }
 
     public static MessageLoopExceptionEventHandler? GetExceptionEventHandler() => ExceptionCaught;
@@ -250,7 +277,7 @@ public static unsafe partial class WindowMessageLoop
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Stop(int exitCode = 0) => InvokeAsync(_stopAction, exitCode);
+    public static void Stop(int exitCode = 0) => InvokeAsync(StopAction, exitCode);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AddMessageFilter(IWindowMessageFilter filter)
