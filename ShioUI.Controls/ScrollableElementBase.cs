@@ -79,7 +79,7 @@ public abstract partial class ScrollableElementBase : UIElement,
     protected override void ApplyThemeCore(IThemeResourceProvider provider)
         => UIElementHelper.ApplyThemeBrushesUnsafe(provider, _brushes, _brushNames, _scrollBarThemePrefix, (nuint)Brush._Last);
 
-    protected override void Update() => Update(ScrollableElementUpdateFlags.Content);
+    public override void Update() => Update(ScrollableElementUpdateFlags.Content);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void Update(ScrollableElementUpdateFlags flags)

@@ -91,7 +91,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     public override void OnSizeChanged() => Update();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected override void Update() => Update(RedrawType.RedrawAllContent);
+    public override void Update() => Update(RedrawType.RedrawAllContent);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Update(RedrawType type)

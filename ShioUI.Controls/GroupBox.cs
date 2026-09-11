@@ -140,7 +140,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected override void Update() => Update(RedrawType.RedrawAllContent);
+    public override void Update() => Update(RedrawType.RedrawAllContent);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Update(RedrawType type)

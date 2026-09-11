@@ -15,18 +15,6 @@ namespace ShioUI;
 
 partial class UIElement
 {
-    public bool IsDisposed
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Atomics.Read(ref _disposed) != 0;
-    }
-
-    public int ElementId
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _identifier;
-    }
-
     public IRenderWindow Window
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -41,20 +29,6 @@ partial class UIElement
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Parent.RootWindow;
-    }
-
-    protected bool EnablePartialRendering
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _enablePartialRendering;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        init => _enablePartialRendering = value;
-    }
-
-    public bool IsRenderedOnce
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => CheckIsRenderedOnce(Atomics.Read(ref _requestRedraw));
     }
 
     public IElementContainer Parent

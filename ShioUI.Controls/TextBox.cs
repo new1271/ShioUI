@@ -181,7 +181,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected override void Update()
+    public override void Update()
     {
         Atomics.Exchange(ref _rawUpdateFlags, (long)RenderObjectUpdateFlags.FlagsAllTrue);
         Update(ScrollableElementUpdateFlags.All);
