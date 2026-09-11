@@ -60,6 +60,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetSourceSize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, uint, int>)functionPointer)(nativePointer, size.Width, size.Height);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -71,6 +72,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSourceSize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint*, uint*, int>)functionPointer)(nativePointer, (uint*)&size - 1, (uint*)&size);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return size;
     }
@@ -81,6 +83,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetMaximumFrameLatency);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, int>)functionPointer)(nativePointer, value);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -92,6 +95,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMaximumFrameLatency);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -100,7 +104,9 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFrameLatencyWaitableObject);
-        return ((delegate* unmanaged[Stdcall]<void*, IntPtr>)functionPointer)(nativePointer);
+        IntPtr result = ((delegate* unmanaged[Stdcall]<void*, IntPtr>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -108,8 +114,12 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetMatrixTransform);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, int>)functionPointer)(nativePointer, UnsafeHelper.AsPointerIn(in value));
-        ThrowHelper.ThrowExceptionForHR(hr);
+        fixed (Matrix3x2* pValue = &value)
+        {
+            int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, int>)functionPointer)(nativePointer, pValue);
+            AfterUnmanagedCall();
+            ThrowHelper.ThrowExceptionForHR(hr);
+        }
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -120,6 +130,7 @@ public unsafe sealed class DXGISwapChain2 : DXGISwapChain1
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMatrixTransform);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }

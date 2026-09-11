@@ -6,6 +6,7 @@ using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
 
 namespace ShioUI.Graphics.Native.DXGI;
 
@@ -27,8 +28,11 @@ public unsafe class DXGIFactory1 : DXGIFactory
     public DXGIFactory1(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static new DXGIFactory1? Create(in Guid riid, bool throwException = true)
-        => Create(UnsafeHelper.AsPointerIn(in riid), throwException);
+    public static new DXGIFactory1? Create(in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return Create(riid, throwException);
+    }
 
     [SkipLocalsInit]
     public static new DXGIFactory1? Create(Guid* riid, bool throwException = true)
@@ -42,13 +46,14 @@ public unsafe class DXGIFactory1 : DXGIFactory
         return factory == null ? null : new DXGIFactory1(factory, ReferenceType.Owned);
     }
 
-    public bool IsCurrent => IsCurrentCore();
+    public SysBool32 IsCurrent => IsCurrentCore();
 
     public DXGIAdapter1? EnumAdapters1(uint adapter, bool throwException = true)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EnumAdapters1);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, int>)functionPointer)(nativePointer, adapter, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else
@@ -57,10 +62,12 @@ public unsafe class DXGIFactory1 : DXGIFactory
     }
 
     [Inline(InlineBehavior.Remove)]
-    private bool IsCurrentCore()
+    private SysBool32 IsCurrentCore()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.IsCurrent);
-        return ((delegate* unmanaged[Stdcall]<void*, bool>)functionPointer)(nativePointer);
+        SysBool32 result = ((delegate* unmanaged[Stdcall]<void*, SysBool32>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 }

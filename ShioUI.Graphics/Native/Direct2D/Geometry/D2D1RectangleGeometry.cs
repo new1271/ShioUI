@@ -34,6 +34,7 @@ public sealed unsafe class D2D1RectangleGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetRect);
         ((delegate* unmanaged[Stdcall]<void*, RectF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 }

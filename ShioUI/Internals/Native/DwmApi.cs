@@ -47,8 +47,11 @@ internal static unsafe class DwmApi
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool DwmGetWindowAttribute<T>(IntPtr hwnd, DwmWindowAttribute attr, out T value) where T : unmanaged
     {
-        int hr = DwmGetWindowAttribute(hwnd, attr, UnsafeHelper.AsPointerOut(out value), sizeof(T));
-        return hr >= 0;
+        fixed (T* ptr = &value)
+        {
+            int hr = DwmGetWindowAttribute(hwnd, attr, ptr, sizeof(T));
+            return hr >= 0;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -57,5 +60,8 @@ internal static unsafe class DwmApi
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int DwmSetWindowAttribute<T>(IntPtr hwnd, DwmWindowAttribute attr, in T value) where T : unmanaged
-        => DwmSetWindowAttribute(hwnd, attr, UnsafeHelper.AsPointerIn(in value), sizeof(T));
+    {
+        fixed (T* ptr = &value)
+            return DwmSetWindowAttribute(hwnd, attr, ptr, sizeof(T));
+    }
 }

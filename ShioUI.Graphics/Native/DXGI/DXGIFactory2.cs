@@ -36,8 +36,8 @@ public unsafe class DXGIFactory2 : DXGIFactory1
 
     public DXGIFactory2(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
-    public static new DXGIFactory2? Create(in Guid riid, bool throwException = true)
-        => Create(DXGICreateFactoryFlags.None, riid, throwException);
+    public static new DXGIFactory2? Create(in Guid iid, bool throwException = true)
+        => Create(DXGICreateFactoryFlags.None, iid, throwException);
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,8 +45,11 @@ public unsafe class DXGIFactory2 : DXGIFactory1
         => Create(DXGICreateFactoryFlags.None, riid, throwException);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DXGIFactory2? Create(DXGICreateFactoryFlags flags, in Guid riid, bool throwException = true)
-        => Create(flags, UnsafeHelper.AsPointerIn(in riid), throwException);
+    public static DXGIFactory2? Create(DXGICreateFactoryFlags flags, in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return Create(flags, riid, throwException);
+    }
 
     [SkipLocalsInit]
     public static DXGIFactory2? Create(DXGICreateFactoryFlags flags, Guid* riid, bool throwException = true)
@@ -62,12 +65,19 @@ public unsafe class DXGIFactory2 : DXGIFactory1
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DXGISwapChain1 CreateSwapChainForHwnd(ComObject device, IntPtr handle, in DXGISwapChainDescription1 desc)
-        => CreateSwapChainForHwnd(device, handle, UnsafeHelper.AsPointerIn(in desc), null);
+    {
+        fixed (DXGISwapChainDescription1* pDesc = &desc)
+            return CreateSwapChainForHwnd(device, handle, pDesc, null);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DXGISwapChain1 CreateSwapChainForHwnd(ComObject device, IntPtr handle, in DXGISwapChainDescription1 desc,
         in DXGISwapChainFullscreenDescription fullscreenDesc)
-        => CreateSwapChainForHwnd(device, handle, UnsafeHelper.AsPointerIn(in desc), UnsafeHelper.AsPointerIn(in fullscreenDesc));
+    {
+        fixed (DXGISwapChainDescription1* pDesc = &desc)
+        fixed (DXGISwapChainFullscreenDescription* pFullscreenDesc = &fullscreenDesc)
+            return CreateSwapChainForHwnd(device, handle, pDesc, pFullscreenDesc);
+    }
 
     public DXGISwapChain1 CreateSwapChainForHwnd(ComObject device, IntPtr handle, DXGISwapChainDescription1* pDesc,
         DXGISwapChainFullscreenDescription* pFullscreenDesc)
@@ -76,13 +86,17 @@ public unsafe class DXGIFactory2 : DXGIFactory1
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateSwapChainForHwnd);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, IntPtr, DXGISwapChainDescription1*, DXGISwapChainFullscreenDescription*, void*, void**, int>)functionPointer)(nativePointer,
             device.NativePointer, handle, pDesc, pFullscreenDesc, null, &nativePointer);
+        AfterUnmanagedCall(device);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DXGISwapChain1(nativePointer, ReferenceType.Owned);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DXGISwapChain1 CreateSwapChainForComposition(ComObject device, in DXGISwapChainDescription1 desc)
-        => CreateSwapChainForComposition(device, UnsafeHelper.AsPointerIn(in desc));
+    {
+        fixed (DXGISwapChainDescription1* pDesc = &desc)
+            return CreateSwapChainForComposition(device, pDesc);
+    }
 
     public DXGISwapChain1 CreateSwapChainForComposition(ComObject device, DXGISwapChainDescription1* pDesc)
     {
@@ -90,6 +104,7 @@ public unsafe class DXGIFactory2 : DXGIFactory1
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateSwapChainForComposition);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, DXGISwapChainDescription1*, void*, void**, int>)functionPointer)(nativePointer,
             device.NativePointer, pDesc, null, &nativePointer);
+        AfterUnmanagedCall(device);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DXGISwapChain1(nativePointer, ReferenceType.Owned);
     }

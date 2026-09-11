@@ -1164,7 +1164,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (pointY < 0)
             return;
 
-        int pos = MathHelper.MakeSigned(layout.HitTestPoint(pointX, pointY, out bool isTrailingHit, out bool isInside).TextPosition);
+        int pos = MathHelper.MakeSigned(layout.HitTestPoint(pointX, pointY, out SysBool32 isTrailingHit, out SysBool32 isInside).TextPosition);
         if (isTrailingHit)
             pos = AdjustCaretIndex(text, pos + 1, takeGreaterIfNotExists: true);
         UpdateCaretIndex(pos);
@@ -1185,7 +1185,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         pointY += metrics.Height + 5;
         if (pointY < 0)
             return;
-        int pos = MathHelper.MakeSigned(layout.HitTestPoint(pointX, pointY, out bool isTrailingHit, out bool isInside).TextPosition);
+        int pos = MathHelper.MakeSigned(layout.HitTestPoint(pointX, pointY, out SysBool32 isTrailingHit, out SysBool32 isInside).TextPosition);
         if (isTrailingHit)
             pos = AdjustCaretIndex(text, pos + 1, takeGreaterIfNotExists: true);
         UpdateCaretIndex(pos);
@@ -1210,7 +1210,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         _this.Update();
     }
 
-    private int GetCaretIndexFromPoint(PointF point, out bool isInside)
+    private int GetCaretIndexFromPoint(PointF point, out SysBool32 isInside)
     {
         PointF viewportPoint = ViewportPoint;
         Point location = ContentLocation;
@@ -1218,7 +1218,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         float viewportTop = location.Y + UIConstants.ElementMarginHalf - viewportPoint.Y;
         string text = _text;
         using DWriteTextLayout layout = CreateVirtualTextLayout(text);
-        int result = MathHelper.MakeSigned(layout.HitTestPoint(point.X - viewportLeft, point.Y - viewportTop, out bool isTrailingHit, out isInside).TextPosition);
+        int result = MathHelper.MakeSigned(layout.HitTestPoint(point.X - viewportLeft, point.Y - viewportTop, out SysBool32 isTrailingHit, out isInside).TextPosition);
         if (isTrailingHit)
             result = AdjustCaretIndex(text, result + 1, takeGreaterIfNotExists: true);
         return result;
@@ -1274,7 +1274,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 clicks = 1;
         }
         _clicks = clicks;
-        int caretIndex = GetCaretIndexFromPoint(location, out bool isInside);
+        int caretIndex = GetCaretIndexFromPoint(location, out SysBool32 isInside);
         switch (clicks)
         {
             case 1:

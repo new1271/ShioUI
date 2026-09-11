@@ -33,6 +33,7 @@ public sealed unsafe class D2D1ColorContext : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetColorSpace);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1ColorSpace>)functionPointer)(nativePointer);
     }
 
@@ -43,6 +44,7 @@ public sealed unsafe class D2D1ColorContext : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetProfileSize);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
     }
 
@@ -64,6 +66,7 @@ public sealed unsafe class D2D1ColorContext : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetProfile);
         int hr = ((delegate* unmanaged[Stdcall]<void*, byte*, uint, int>)functionPointer)(nativePointer, profile, profileSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

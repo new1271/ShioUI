@@ -22,6 +22,7 @@ public sealed unsafe class WICBitmapFlipRotator : WICBitmapSource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Initialize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, WICBitmapTransformOptions, int>)functionPointer)(nativePointer, 
             source.NativePointer, options);
+        AfterUnmanagedCall(source);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

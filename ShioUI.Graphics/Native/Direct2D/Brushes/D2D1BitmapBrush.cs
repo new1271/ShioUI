@@ -35,7 +35,6 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
         set => SetExtendModeX(value);
     }
 
-
     /// <summary>
     /// Gets or sets how the bitmap is to be treated outside of its natural extent on the Y
     /// axis.
@@ -70,6 +69,7 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetExtendModeX);
         ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode, void>)functionPointer)(nativePointer, extendMode);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -78,6 +78,7 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetExtendModeY);
         ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode, void>)functionPointer)(nativePointer, extendMode);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -86,6 +87,7 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetInterpolationMode);
         ((delegate* unmanaged[Stdcall]<void*, D2D1BitmapInterpolationMode, void>)functionPointer)(nativePointer, interpolationMode);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -94,6 +96,7 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetBitmap);
         ((delegate* unmanaged[Stdcall]<void*, void*, void>)functionPointer)(nativePointer, bitmap == null ? null : bitmap.NativePointer);
+        AfterUnmanagedCall(bitmap);
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -101,7 +104,9 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetExtendModeX);
-        return ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode>)functionPointer)(nativePointer);
+        D2D1ExtendMode result = ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -109,7 +114,9 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetExtendModeY);
-        return ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode>)functionPointer)(nativePointer);
+        D2D1ExtendMode result = ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -117,7 +124,9 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetInterpolationMode);
-        return ((delegate* unmanaged[Stdcall]<void*, D2D1BitmapInterpolationMode>)functionPointer)(nativePointer);
+        D2D1BitmapInterpolationMode result = ((delegate* unmanaged[Stdcall]<void*, D2D1BitmapInterpolationMode>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     private D2D1Bitmap? GetBitmap()
@@ -126,6 +135,7 @@ public unsafe sealed class D2D1BitmapBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetBitmap);
         ((delegate* unmanaged[Stdcall]<void*, void**, void>)functionPointer)(nativePointer, &pBitmap);
+        AfterUnmanagedCall();
         return pBitmap == null ? null : new D2D1Bitmap(pBitmap, ReferenceType.Owned);
     }
 }

@@ -1,18 +1,20 @@
+using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Security;
 
 using InlineMethod;
 
+using RiceTea.Core.Helpers;
+using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
+
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 using ShioUI.Graphics.Native.Direct2D.Geometry;
 using ShioUI.Graphics.Native.DirectWrite;
 using ShioUI.Graphics.Native.WIC;
-
-using RiceTea.Core.Helpers;
-using RiceTea.Core.Native;
-using RiceTea.Core.Structures;
 
 namespace ShioUI.Graphics.Native.Direct2D;
 
@@ -155,7 +157,10 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// <inheritdoc cref="CreateBitmap(SizeU, void*, uint, D2D1BitmapProperties*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1Bitmap CreateBitmap(SizeU size, void* srcData, uint pitch, in D2D1BitmapProperties bitmapProperties)
-        => CreateBitmap(size, srcData, pitch, UnsafeHelper.AsPointerIn(in bitmapProperties));
+    {
+        fixed (D2D1BitmapProperties* pBitmapProperties = &bitmapProperties)
+            return CreateBitmap(size, srcData, pitch, pBitmapProperties);
+    }
 
     /// <summary>
     /// Create a D2D bitmap by copying from memory, or create uninitialized.
@@ -166,6 +171,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, SizeU, void*, uint, D2D1BitmapProperties*, void**, int>)functionPointer)(nativePointer,
             size, srcData, pitch, bitmapProperties, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Bitmap(nativePointer, ReferenceType.Owned);
     }
@@ -178,7 +184,10 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// <inheritdoc cref="CreateBitmapFromWicBitmap(WICBitmapSource, D2D1BitmapProperties*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1Bitmap CreateBitmapFromWicBitmap(WICBitmapSource wicBitmapSource, in D2D1BitmapProperties bitmapProperties)
-        => CreateBitmapFromWicBitmap(wicBitmapSource, UnsafeHelper.AsPointerIn(in bitmapProperties));
+    {
+        fixed (D2D1BitmapProperties* pBitmapProperties = &bitmapProperties)
+            return CreateBitmapFromWicBitmap(wicBitmapSource, pBitmapProperties);
+    }
 
     /// <summary>
     /// Create a D2D bitmap by copying a WIC bitmap.
@@ -189,6 +198,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapFromWicBitmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, D2D1BitmapProperties*, void**, int>)functionPointer)(nativePointer,
             wicBitmapSource.NativePointer, bitmapProperties, &nativePointer);
+        AfterUnmanagedCall(wicBitmapSource);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Bitmap(nativePointer, ReferenceType.Owned);
     }
@@ -198,19 +208,29 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1BitmapBrush CreateBitmapBrush(D2D1Bitmap bitmap, in D2D1BitmapBrushProperties bitmapBrushProperties)
-        => CreateBitmapBrush(bitmap, UnsafeHelper.AsPointerIn(in bitmapBrushProperties), null);
+    {
+        fixed (D2D1BitmapBrushProperties* pBitmapBrushProperties = &bitmapBrushProperties)
+            return CreateBitmapBrush(bitmap, pBitmapBrushProperties, null);
+    }
 
     /// <summary>
     /// Creates a bitmap brush. The bitmap is scaled, rotated, skewed to fill or pen a geometry.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1BitmapBrush CreateBitmapBrush(D2D1Bitmap bitmap, in D2D1BrushProperties brushProperties)
-        => CreateBitmapBrush(bitmap, null, UnsafeHelper.AsPointerIn(in brushProperties));
+    {
+        fixed (D2D1BrushProperties* pBrushProperties = &brushProperties)
+            return CreateBitmapBrush(bitmap, null, pBrushProperties);
+    }
 
     /// <inheritdoc cref="CreateBitmapBrush(D2D1Bitmap, D2D1BitmapBrushProperties*, D2D1BrushProperties*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1BitmapBrush CreateBitmapBrush(D2D1Bitmap bitmap, in D2D1BitmapBrushProperties bitmapBrushProperties, in D2D1BrushProperties brushProperties)
-        => CreateBitmapBrush(bitmap, UnsafeHelper.AsPointerIn(in bitmapBrushProperties), UnsafeHelper.AsPointerIn(in brushProperties));
+    {
+        fixed (D2D1BitmapBrushProperties* pBitmapBrushProperties = &bitmapBrushProperties)
+        fixed (D2D1BrushProperties* pBrushProperties = &brushProperties)
+            return CreateBitmapBrush(bitmap, pBitmapBrushProperties, pBrushProperties);
+    }
 
     /// <summary>
     /// Creates a bitmap brush. The bitmap is scaled, rotated, skewed or tiled to fill or pen a geometry.
@@ -221,23 +241,32 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapBrush);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, D2D1BitmapBrushProperties*, D2D1BrushProperties*, void**, int>)functionPointer)(nativePointer,
             bitmap == null ? null : bitmap.NativePointer, bitmapBrushProperties, brushProperties, &nativePointer);
+        AfterUnmanagedCall(bitmap);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1BitmapBrush(nativePointer, ReferenceType.Owned);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1SolidColorBrush CreateSolidColorBrush(in D2D1ColorF color)
-        => CreateSolidColorBrush(UnsafeHelper.AsPointerIn(in color), null);
+    {
+        fixed (D2D1ColorF* pColor = &color)
+            return CreateSolidColorBrush(pColor, null);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1SolidColorBrush CreateSolidColorBrush(in D2D1ColorF color, in D2D1BrushProperties brushProperties)
-        => CreateSolidColorBrush(UnsafeHelper.AsPointerIn(in color), UnsafeHelper.AsPointerIn(in brushProperties));
+    {
+        fixed (D2D1ColorF* pColor = &color)
+        fixed (D2D1BrushProperties* pBrushProperties = &brushProperties)
+            return CreateSolidColorBrush(pColor, pBrushProperties);
+    }
 
     public D2D1SolidColorBrush CreateSolidColorBrush(D2D1ColorF* color, D2D1BrushProperties* brushProperties)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateSolidColorBrush);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1ColorF*, D2D1BrushProperties*, void**, int>)functionPointer)(nativePointer, color, brushProperties, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1SolidColorBrush(nativePointer, ReferenceType.Owned);
     }
@@ -270,6 +299,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateGradientStopCollection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1GradientStop*, uint, D2D1Gamma, D2D1ExtendMode, void**, int>)functionPointer)(nativePointer,
             gradientStops, gradientStopsCount, colorInterpolationGamma, extendMode, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1GradientStopCollection(nativePointer, ReferenceType.Owned);
     }
@@ -277,13 +307,19 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1LinearGradientBrush CreateLinearGradientBrush(in D2D1LinearGradientBrushProperties linearGradientBrushProperties,
         D2D1GradientStopCollection gradientStopCollection)
-        => CreateLinearGradientBrush(UnsafeHelper.AsPointerIn(in linearGradientBrushProperties), null, gradientStopCollection);
+    {
+        fixed (D2D1LinearGradientBrushProperties* pLinearGradientBrushProperties = &linearGradientBrushProperties)
+            return CreateLinearGradientBrush(pLinearGradientBrushProperties, null, gradientStopCollection);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1LinearGradientBrush CreateLinearGradientBrush(in D2D1LinearGradientBrushProperties linearGradientBrushProperties, in D2D1BrushProperties brushProperties,
         D2D1GradientStopCollection gradientStopCollection)
-        => CreateLinearGradientBrush(UnsafeHelper.AsPointerIn(in linearGradientBrushProperties), UnsafeHelper.AsPointerIn(in brushProperties),
-            gradientStopCollection);
+    {
+        fixed (D2D1LinearGradientBrushProperties* pLinearGradientBrushProperties = &linearGradientBrushProperties)
+        fixed (D2D1BrushProperties* pBrushProperties = &brushProperties)
+            return CreateLinearGradientBrush(pLinearGradientBrushProperties, pBrushProperties, gradientStopCollection);
+    }
 
     public D2D1LinearGradientBrush CreateLinearGradientBrush(D2D1LinearGradientBrushProperties* linearGradientBrushProperties, D2D1BrushProperties* brushProperties,
         D2D1GradientStopCollection gradientStopCollection)
@@ -292,6 +328,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateLinearGradientBrush);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1LinearGradientBrushProperties*, D2D1BrushProperties*, void*, void**, int>)functionPointer)(nativePointer,
             linearGradientBrushProperties, brushProperties, gradientStopCollection.NativePointer, &nativePointer);
+        AfterUnmanagedCall(gradientStopCollection);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1LinearGradientBrush(nativePointer, ReferenceType.Owned);
     }
@@ -299,13 +336,19 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1RadialGradientBrush CreateRadialGradientBrush(in D2D1RadialGradientBrushProperties radialGradientBrushProperties,
         D2D1GradientStopCollection gradientStopCollection)
-        => CreateRadialGradientBrush(UnsafeHelper.AsPointerIn(in radialGradientBrushProperties), null, gradientStopCollection);
+    {
+        fixed (D2D1RadialGradientBrushProperties* pRadialGradientBrushProperties = &radialGradientBrushProperties)
+            return CreateRadialGradientBrush(pRadialGradientBrushProperties, null, gradientStopCollection);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1RadialGradientBrush CreateRadialGradientBrush(in D2D1RadialGradientBrushProperties radialGradientBrushProperties, in D2D1BrushProperties brushProperties,
         D2D1GradientStopCollection gradientStopCollection)
-        => CreateRadialGradientBrush(UnsafeHelper.AsPointerIn(radialGradientBrushProperties), UnsafeHelper.AsPointerIn(in brushProperties),
-            gradientStopCollection);
+    {
+        fixed (D2D1RadialGradientBrushProperties* pRadialGradientBrushProperties = &radialGradientBrushProperties)
+        fixed (D2D1BrushProperties* pBrushProperties = &brushProperties)
+            return CreateRadialGradientBrush(pRadialGradientBrushProperties, pBrushProperties, gradientStopCollection);
+    }
 
     public D2D1RadialGradientBrush CreateRadialGradientBrush(D2D1RadialGradientBrushProperties* radialGradientBrushProperties, D2D1BrushProperties* brushProperties,
         D2D1GradientStopCollection gradientStopCollection)
@@ -314,6 +357,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateRadialGradientBrush);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1RadialGradientBrushProperties*, D2D1BrushProperties*, void*, void**, int>)functionPointer)(nativePointer,
             radialGradientBrushProperties, brushProperties, gradientStopCollection.NativePointer, &nativePointer);
+        AfterUnmanagedCall(gradientStopCollection);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1RadialGradientBrush(nativePointer, ReferenceType.Owned);
     }
@@ -343,6 +387,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateLayer);
         int hr = ((delegate* unmanaged[Stdcall]<void*, SizeF*, void**, int>)functionPointer)(nativePointer, size, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Layer(nativePointer, ReferenceType.Owned);
     }
@@ -355,6 +400,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateMesh);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Mesh(nativePointer, ReferenceType.Owned);
     }
@@ -371,11 +417,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, PointF, PointF, void*, float, void*, void>)functionPointer)(nativePointer, point0, point1, brush.NativePointer,
             strokeWidth, strokeStyle == null ? null : strokeStyle.NativePointer);
+        AfterUnmanagedCall(brush);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawRectangle(in RectF rect, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
-        => DrawRectangle(UnsafeHelper.AsPointerIn(in rect), brush, strokeWidth, strokeStyle);
+    {
+        fixed (RectF* pRect = &rect)
+            DrawRectangle(pRect, brush, strokeWidth, strokeStyle);
+    }
 
     public void DrawRectangle(RectF* rect, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
     {
@@ -389,11 +439,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, RectF*, void*, float, void*, void>)functionPointer)(nativePointer, rect, brush.NativePointer,
             strokeWidth, strokeStyle == null ? null : strokeStyle.NativePointer);
+        AfterUnmanagedCall(brush, strokeStyle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void FillRectangle(in RectF rect, D2D1Brush brush)
-        => FillRectangle(UnsafeHelper.AsPointerIn(in rect), brush);
+    {
+        fixed (RectF* pRect = &rect)
+            FillRectangle(pRect, brush);
+    }
 
     public void FillRectangle(RectF* rect, D2D1Brush brush)
     {
@@ -406,11 +460,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, RectF*, void*, void>)functionPointer)(nativePointer, rect, brush.NativePointer);
+        AfterUnmanagedCall(brush);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawRoundedRectangle(in D2D1RoundedRectangle roundedRect, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
-        => DrawRoundedRectangle(UnsafeHelper.AsPointerIn(in roundedRect), brush, strokeWidth, strokeStyle);
+    {
+        fixed (D2D1RoundedRectangle* pRoundedRect = &roundedRect)
+            DrawRoundedRectangle(pRoundedRect, brush, strokeWidth, strokeStyle);
+    }
 
     public void DrawRoundedRectangle(D2D1RoundedRectangle* roundedRect, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
     {
@@ -424,11 +482,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, D2D1RoundedRectangle*, void*, float, void*, void>)functionPointer)(nativePointer, roundedRect, brush.NativePointer,
             strokeWidth, strokeStyle == null ? null : strokeStyle.NativePointer);
+        AfterUnmanagedCall(brush, strokeStyle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void FillRoundedRectangle(in D2D1RoundedRectangle roundedRect, D2D1Brush brush)
-        => FillRoundedRectangle(UnsafeHelper.AsPointerIn(in roundedRect), brush);
+    {
+        fixed (D2D1RoundedRectangle* pRoundedRect = &roundedRect)
+            FillRoundedRectangle(pRoundedRect, brush);
+    }
 
     public void FillRoundedRectangle(D2D1RoundedRectangle* roundedRect, D2D1Brush brush)
     {
@@ -441,11 +503,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, D2D1RoundedRectangle*, void*, void>)functionPointer)(nativePointer, roundedRect, brush.NativePointer);
+        AfterUnmanagedCall(brush);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawEllipse(in D2D1Ellipse ellipse, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
-        => DrawEllipse(UnsafeHelper.AsPointerIn(in ellipse), brush, strokeWidth, strokeStyle);
+    {
+        fixed (D2D1Ellipse* pEllipse = &ellipse)
+            DrawEllipse(pEllipse, brush, strokeWidth, strokeStyle);
+    }
 
     public void DrawEllipse(D2D1Ellipse* ellipse, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
     {
@@ -459,11 +525,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, D2D1Ellipse*, void*, float, void*, void>)functionPointer)(nativePointer, ellipse, brush.NativePointer,
             strokeWidth, strokeStyle == null ? null : strokeStyle.NativePointer);
+        AfterUnmanagedCall(brush, strokeStyle);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void FillEllipse(in D2D1Ellipse ellipse, D2D1Brush brush)
-        => FillEllipse(UnsafeHelper.AsPointerIn(in ellipse), brush);
+    {
+        fixed (D2D1Ellipse* pEllipse = &ellipse)
+            FillEllipse(pEllipse, brush);
+    }
 
     public void FillEllipse(D2D1Ellipse* ellipse, D2D1Brush brush)
     {
@@ -476,6 +546,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, D2D1Ellipse*, void*, void>)functionPointer)(nativePointer, ellipse, brush.NativePointer);
+        AfterUnmanagedCall(brush);
     }
 
     public void DrawGeometry(D2D1Geometry geometry, D2D1Brush brush, float strokeWidth = 1.0f, D2D1StrokeStyle? strokeStyle = null)
@@ -490,6 +561,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, void*, void*, float, void*, void>)functionPointer)(nativePointer, geometry.NativePointer, brush.NativePointer,
             strokeWidth, strokeStyle == null ? null : strokeStyle.NativePointer);
+        AfterUnmanagedCall(geometry, brush, strokeStyle);
     }
 
     /// <param name="opacityBrush">
@@ -510,17 +582,24 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, void*, void*, void*, void>)functionPointer)(nativePointer, geometry.NativePointer, brush.NativePointer,
             opacityBrush is null ? null : opacityBrush.NativePointer);
+        AfterUnmanagedCall(geometry, brush, opacityBrush);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawBitmap(D2D1Bitmap bitmap, in RectF destinationRectangle, float opacity = 1.0f,
         D2D1BitmapInterpolationMode interpolationMode = D2D1BitmapInterpolationMode.Linear)
-        => DrawBitmap(bitmap, UnsafeHelper.AsPointerIn(in destinationRectangle), opacity, interpolationMode, null);
+    {
+        fixed (RectF* pDestinationRectangle = &destinationRectangle)
+            DrawBitmap(bitmap, pDestinationRectangle, opacity, interpolationMode, null);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawBitmap(D2D1Bitmap bitmap, in RectF destinationRectangle, in RectF sourceRectangle, float opacity = 1.0f,
         D2D1BitmapInterpolationMode interpolationMode = D2D1BitmapInterpolationMode.Linear)
-        => DrawBitmap(bitmap, UnsafeHelper.AsPointerIn(in destinationRectangle), opacity, interpolationMode, UnsafeHelper.AsPointerIn(sourceRectangle));
+    {
+        fixed (RectF* pDestinationRectangle = &destinationRectangle, pSourceRectangle = &sourceRectangle)
+            DrawBitmap(bitmap, pDestinationRectangle, opacity, interpolationMode, pSourceRectangle);
+    }
 
     public void DrawBitmap(D2D1Bitmap bitmap, RectF* destinationRectangle = null, float opacity = 1.0f,
         D2D1BitmapInterpolationMode interpolationMode = D2D1BitmapInterpolationMode.Linear, RectF* sourceRectangle = null)
@@ -529,13 +608,17 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.DrawBitmap);
         ((delegate* unmanaged[Stdcall]<void*, void*, RectF*, float, D2D1BitmapInterpolationMode, RectF*, void>)functionPointer)(nativePointer, bitmap.NativePointer,
             destinationRectangle, opacity, interpolationMode, sourceRectangle);
+        AfterUnmanagedCall(bitmap);
     }
 
     ///<inheritdoc cref="DrawText(char*, uint, DWriteTextFormat, RectF*, D2D1Brush, D2D1DrawTextOptions, DWriteMeasuringMode)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawText(char character, DWriteTextFormat textFormat, in RectF layoutRect, D2D1Brush defaultFillBrush,
         D2D1DrawTextOptions options = D2D1DrawTextOptions.None, DWriteMeasuringMode measuringMode = DWriteMeasuringMode.Natural)
-        => DrawText(character, textFormat, UnsafeHelper.AsPointerIn(in layoutRect), defaultFillBrush, options, measuringMode);
+    {
+        fixed (RectF* pLayoutRect = &layoutRect)
+            DrawText(character, textFormat, pLayoutRect, defaultFillBrush, options, measuringMode);
+    }
 
     ///<inheritdoc cref="DrawText(char*, uint, DWriteTextFormat, RectF*, D2D1Brush, D2D1DrawTextOptions, DWriteMeasuringMode)"/>
     [Inline(InlineBehavior.Keep, export: true)]
@@ -550,7 +633,10 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawText(string text, DWriteTextFormat textFormat, in RectF layoutRect, D2D1Brush defaultFillBrush,
         D2D1DrawTextOptions options = D2D1DrawTextOptions.None, DWriteMeasuringMode measuringMode = DWriteMeasuringMode.Natural)
-        => DrawText(text, textFormat, UnsafeHelper.AsPointerIn(in layoutRect), defaultFillBrush, options, measuringMode);
+    {
+        fixed (RectF* pLayoutRect = &layoutRect)
+            DrawText(text, textFormat, pLayoutRect, defaultFillBrush, options, measuringMode);
+    }
 
     ///<inheritdoc cref="DrawText(char*, uint, DWriteTextFormat, RectF*, D2D1Brush, D2D1DrawTextOptions, DWriteMeasuringMode)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -572,6 +658,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.DrawText);
         ((delegate* unmanaged[Stdcall]<void*, char*, uint, void*, RectF*, void*, D2D1DrawTextOptions, DWriteMeasuringMode, void>)functionPointer)(nativePointer,
             text, textLength, textFormat.NativePointer, layoutRect, defaultFillBrush.NativePointer, options, measuringMode);
+        AfterUnmanagedCall(textFormat, defaultFillBrush);
     }
 
     /// <summary>
@@ -594,11 +681,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, PointF, void*, void*, D2D1DrawTextOptions, void>)functionPointer)(nativePointer,
             origin, textLayout.NativePointer, defaultFillBrush.NativePointer, options);
+        AfterUnmanagedCall(textLayout, defaultFillBrush);
     }
 
     [Inline(InlineBehavior.Remove)]
     private void SetTransform(in Matrix3x2 matrix)
-        => SetTransformCore(UnsafeHelper.AsPointerIn(in matrix));
+    {
+        fixed (Matrix3x2* pMatrix = &matrix)
+            SetTransformCore(pMatrix);
+    }
 
     [Inline(InlineBehavior.Remove)]
     private void SetTransformCore(Matrix3x2* matrix)
@@ -612,6 +703,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, Matrix3x2*, void>)functionPointer)(nativePointer, matrix);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -628,6 +720,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, Matrix3x2*, void>)functionPointer)(nativePointer, &matrix);
+        AfterUnmanagedCall();
         return matrix;
     }
 
@@ -643,6 +736,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, D2D1AntialiasMode, void>)functionPointer)(nativePointer, antialiasMode);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -650,13 +744,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetAntialiasMode);
-        return ((delegate* unmanaged
+        D2D1AntialiasMode result = ((delegate* unmanaged
 #if NET8_0_OR_GREATER
         [Stdcall, SuppressGCTransition]
 #else
         [Stdcall]
 #endif
         <void*, D2D1AntialiasMode>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -671,6 +767,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, D2D1TextAntialiasMode, void>)functionPointer)(nativePointer, textAntialiasMode);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -678,13 +775,15 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetTextAntialiasMode);
-        return ((delegate* unmanaged
+        D2D1TextAntialiasMode result = ((delegate* unmanaged
 #if NET8_0_OR_GREATER
         [Stdcall, SuppressGCTransition]
 #else
         [Stdcall]
 #endif
         <void*, D2D1TextAntialiasMode>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="PushLayer(D2D1LayerParametersNative*, D2D1Layer?)"/>
@@ -695,7 +794,10 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// <inheritdoc cref="PushLayer(D2D1LayerParametersNative*, D2D1Layer?)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void PushLayer(in D2D1LayerParametersNative layerParameters, D2D1Layer? layer)
-        => PushLayer(UnsafeHelper.AsPointerIn(in layerParameters), layer);
+    {
+        fixed (D2D1LayerParametersNative* pLayerParameters = &layerParameters)
+            PushLayer(pLayerParameters, layer);
+    }
 
     /// <summary>
     /// Start a layer of drawing calls.
@@ -725,6 +827,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 #endif
         <void*, D2D1LayerParametersNative*, void*, void>)functionPointer)(
             nativePointer, layerParameters, layer is null ? null : layer.NativePointer);
+        AfterUnmanagedCall(layer);
     }
 
     /// <summary>
@@ -742,6 +845,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, void>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Keep, export: true)]
@@ -760,13 +864,18 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Flush);
-        return ((delegate* unmanaged[Stdcall]<void*, ulong*, ulong*, int>)functionPointer)(nativePointer, tag1, tag2);
+        int result = ((delegate* unmanaged[Stdcall]<void*, ulong*, ulong*, int>)functionPointer)(nativePointer, tag1, tag2);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="PushAxisAlignedClip(RectF*, D2D1AntialiasMode)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void PushAxisAlignedClip(in RectF clipRect, D2D1AntialiasMode antialiasMode)
-        => PushAxisAlignedClip(UnsafeHelper.AsPointerIn(in clipRect), antialiasMode);
+    {
+        fixed (RectF* pClipRect = &clipRect)
+            PushAxisAlignedClip(pClipRect, antialiasMode);
+    }
 
     /// <summary>
     /// Pushes a clip. The clip can be antialiased. The clip must be axis aligned. <br/>
@@ -787,6 +896,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, RectF*, D2D1AntialiasMode, void>)functionPointer)(nativePointer, clipRect, antialiasMode);
+        AfterUnmanagedCall();
     }
 
     public void PopAxisAlignedClip()
@@ -800,6 +910,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, void>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Keep, export: true)]
@@ -808,7 +919,10 @@ public unsafe class D2D1RenderTarget : D2D1Resource
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear(in D2D1ColorF clearColor)
-        => Clear(UnsafeHelper.AsPointerIn(in clearColor));
+    {
+        fixed (D2D1ColorF* pClearColor = &clearColor)
+            Clear(pClearColor);
+    }
 
     public void Clear(D2D1ColorF* clearColor)
     {
@@ -821,6 +935,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, D2D1ColorF*, void>)functionPointer)(nativePointer, clearColor);
+        AfterUnmanagedCall();
     }
 
     /// <summary>
@@ -838,6 +953,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, void>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
     }
 
     /// <inheritdoc cref="TryEndDraw(ulong*, ulong*)"/>
@@ -863,7 +979,9 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EndDraw);
-        return ((delegate* unmanaged[Stdcall]<void*, ulong*, ulong*, int>)functionPointer)(nativePointer, tag1, tag2);
+        int result = ((delegate* unmanaged[Stdcall]<void*, ulong*, ulong*, int>)functionPointer)(nativePointer, tag1, tag2);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -879,6 +997,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, D2D1PixelFormat*, void>)functionPointer)(nativePointer, &format);
+        AfterUnmanagedCall();
         return format;
     }
 
@@ -894,6 +1013,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, float, float, void>)functionPointer)(nativePointer, dpi.X, dpi.Y);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -910,6 +1030,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, float*, float*, void>)functionPointer)(nativePointer, (float*)&result, (float*)&result + 1);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -926,6 +1047,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, SizeF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -942,6 +1064,7 @@ public unsafe class D2D1RenderTarget : D2D1Resource
         [Stdcall]
 #endif
         <void*, SizeU*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -953,19 +1076,24 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMaximumBitmapSize);
-        return ((delegate* unmanaged
+        uint result = ((delegate* unmanaged
 #if NET8_0_OR_GREATER
         [Stdcall, SuppressGCTransition]
 #else
         [Stdcall]
 #endif
         <void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="IsSupported(D2D1RenderTargetProperties*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsSupported(in D2D1RenderTargetProperties renderTargetProperties)
-        => IsSupported(UnsafeHelper.AsPointerIn(in renderTargetProperties));
+    {
+        fixed (D2D1RenderTargetProperties* pRenderTargetProperties = &renderTargetProperties)
+            return IsSupported(pRenderTargetProperties);
+    }
 
     /// <summary>
     /// Returns true if the given properties are supported by this render target. The DPI is ignored. 
@@ -974,16 +1102,18 @@ public unsafe class D2D1RenderTarget : D2D1Resource
     /// NOTE: If the render target type is software, then neither <see cref="D2D1FeatureLevel.Level_9"/> 
     /// nor <see cref="D2D1FeatureLevel.Level_10"/> will be considered to be supported.
     /// </remarks>
-    public bool IsSupported(D2D1RenderTargetProperties* renderTargetProperties)
+    public SysBool32 IsSupported(D2D1RenderTargetProperties* renderTargetProperties)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.IsSupported);
-        return ((delegate* unmanaged
+        SysBool32 result = ((delegate* unmanaged
 #if NET8_0_OR_GREATER
         [Stdcall, SuppressGCTransition]
 #else
         [Stdcall]
 #endif
-        <void*, D2D1RenderTargetProperties*, bool>)functionPointer)(nativePointer, renderTargetProperties);
+        <void*, D2D1RenderTargetProperties*, SysBool32>)functionPointer)(nativePointer, renderTargetProperties);
+        AfterUnmanagedCall();
+        return result;
     }
 }

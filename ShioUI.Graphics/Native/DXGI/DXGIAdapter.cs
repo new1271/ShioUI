@@ -41,6 +41,7 @@ public unsafe class DXGIAdapter : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDesc);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGIAdapterDescription*, int>)functionPointer)(nativePointer, &desc);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return desc;
     }

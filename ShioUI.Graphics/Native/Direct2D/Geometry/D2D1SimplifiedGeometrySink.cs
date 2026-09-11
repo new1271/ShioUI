@@ -37,6 +37,7 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFillMode);
         ((delegate* unmanaged[Stdcall]<void*, D2D1FillMode, void>)functionPointer)(nativePointer, fillMode);
+        AfterUnmanagedCall();
     }
 
     public void SetSegmentFlags(D2D1PathSegment vertexFlags)
@@ -44,6 +45,7 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetSegmentFlags);
         ((delegate* unmanaged[Stdcall]<void*, D2D1PathSegment, void>)functionPointer)(nativePointer, vertexFlags);
+        AfterUnmanagedCall();
     }
 
     public void BeginFigure(PointF startPoint, D2D1FigureBegin figureBegin)
@@ -51,6 +53,7 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.BeginFigure);
         ((delegate* unmanaged[Stdcall]<void*, PointF, D2D1FigureBegin, void>)functionPointer)(nativePointer, startPoint, figureBegin);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Keep, export: true)]
@@ -70,11 +73,15 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.AddLines);
         ((delegate* unmanaged[Stdcall]<void*, PointF*, uint, void>)functionPointer)(nativePointer, points, pointsCount);
+        AfterUnmanagedCall();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddBeziers(in D2D1BezierSegment bezier)
-        => AddBeziers(UnsafeHelper.AsPointerIn(in bezier), 1u);
+    {
+        fixed (D2D1BezierSegment* pBeziers = &bezier)
+            AddBeziers(pBeziers, 1u);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddBeziers(params D2D1BezierSegment[] beziers)
@@ -88,6 +95,7 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.AddBeziers);
         ((delegate* unmanaged[Stdcall]<void*, D2D1BezierSegment*, uint, void>)functionPointer)(nativePointer, beziers, beziersCount);
+        AfterUnmanagedCall();
     }
 
     public void EndFigure(D2D1FigureEnd figureEnd)
@@ -95,6 +103,7 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EndFigure);
         ((delegate* unmanaged[Stdcall]<void*, D2D1FigureEnd, void>)functionPointer)(nativePointer, figureEnd);
+        AfterUnmanagedCall();
     }
 
     public void Close()
@@ -102,6 +111,7 @@ public unsafe class D2D1SimplifiedGeometrySink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Close);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

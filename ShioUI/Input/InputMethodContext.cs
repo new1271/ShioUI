@@ -8,6 +8,7 @@ using ShioUI.Utils;
 
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
+using RiceTea.Core.Structures;
 
 namespace ShioUI.Input;
 
@@ -179,13 +180,21 @@ public sealed class InputMethodContext : CriticalFinalizerObject, ICheckableDisp
         return unchecked((int)value);
     }
 
-    public unsafe bool SetCandidateWindow(in IMECandidateForm form) => SetCandidateWindow(UnsafeHelper.AsPointerIn(in form));
+    public unsafe SysBool32 SetCandidateWindow(in IMECandidateForm form)
+    {
+        fixed (IMECandidateForm* pForm = &form)
+            return SetCandidateWindow(pForm);
+    }
 
-    public unsafe bool SetCandidateWindow(IMECandidateForm* pForm) => Imm32.ImmSetCandidateWindow(_himc, pForm);
+    public unsafe SysBool32 SetCandidateWindow(IMECandidateForm* pForm) => Imm32.ImmSetCandidateWindow(_himc, pForm);
 
-    public unsafe bool SetCompositionWindow(in IMECompositionForm form) => SetCompositionWindow(UnsafeHelper.AsPointerIn(in form));
+    public unsafe SysBool32 SetCompositionWindow(in IMECompositionForm form)
+    {
+        fixed (IMECompositionForm* pForm = &form)
+            return SetCompositionWindow(pForm);
+    }
 
-    public unsafe bool SetCompositionWindow(IMECompositionForm* pForm) => Imm32.ImmSetCompositionWindow(_himc, pForm);
+    public unsafe SysBool32 SetCompositionWindow(IMECompositionForm* pForm) => Imm32.ImmSetCompositionWindow(_himc, pForm);
 
     public VirtualKey GetRealKeyCode()
     {

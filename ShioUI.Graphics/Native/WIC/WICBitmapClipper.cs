@@ -21,14 +21,18 @@ public sealed unsafe class WICBitmapClipper : WICBitmapSource
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize(WICBitmapSource source, in Rectangle rect)
-        => Initialize(source, UnsafeHelper.AsPointerIn(in rect));
+    {
+        fixed (Rectangle* pRect = &rect)
+            Initialize(source, pRect);
+    }
 
     public void Initialize(WICBitmapSource source, Rectangle* pRect)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Initialize);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, void*, Rectangle*, int>)functionPointer)(nativePointer, 
+        int hr = ((delegate* unmanaged[Stdcall]<void*, void*, Rectangle*, int>)functionPointer)(nativePointer,
             source.NativePointer, pRect);
+        AfterUnmanagedCall(source);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

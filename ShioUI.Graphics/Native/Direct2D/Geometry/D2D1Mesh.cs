@@ -27,6 +27,7 @@ public sealed unsafe class D2D1Mesh : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Open);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1TessellationSink(nativePointer, ReferenceType.Owned);
     }

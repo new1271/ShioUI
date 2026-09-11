@@ -45,6 +45,7 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Open);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1GeometrySink(nativePointer, ReferenceType.Owned);
     }
@@ -57,6 +58,7 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Stream);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, int>)functionPointer)(nativePointer, sink.NativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -68,6 +70,7 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSegmentCount);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -80,6 +83,7 @@ public unsafe sealed class D2D1PathGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFigureCount);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }

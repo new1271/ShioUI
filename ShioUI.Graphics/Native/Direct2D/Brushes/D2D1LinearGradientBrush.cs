@@ -44,6 +44,7 @@ public unsafe sealed class D2D1LinearGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetStartPoint);
         ((delegate* unmanaged[Stdcall]<void*, PointF, void>)functionPointer)(nativePointer, startPoint);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -52,6 +53,7 @@ public unsafe sealed class D2D1LinearGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetEndPoint);
         ((delegate* unmanaged[Stdcall]<void*, PointF, void>)functionPointer)(nativePointer, endPoint);
+        AfterUnmanagedCall();
     }
 
     [SkipLocalsInit]
@@ -62,6 +64,7 @@ public unsafe sealed class D2D1LinearGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetStartPoint);
         ((delegate* unmanaged[Stdcall]<void*, PointF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -73,6 +76,7 @@ public unsafe sealed class D2D1LinearGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetEndPoint);
         ((delegate* unmanaged[Stdcall]<void*, PointF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -82,6 +86,7 @@ public unsafe sealed class D2D1LinearGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetGradientStopCollection);
         ((delegate* unmanaged[Stdcall]<void*, void**, void>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         return nativePointer == null ? null : new D2D1GradientStopCollection(nativePointer, ReferenceType.Owned);
     }
 }

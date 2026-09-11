@@ -51,6 +51,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetStartCap);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1CapStyle>)functionPointer)(nativePointer);
     }
 
@@ -59,6 +60,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetEndCap);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1CapStyle>)functionPointer)(nativePointer);
     }
 
@@ -67,6 +69,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDashCap);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1CapStyle>)functionPointer)(nativePointer);
     }
 
@@ -75,6 +78,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMiterLimit);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
     }
 
@@ -83,6 +87,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLineJoin);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1LineJoin>)functionPointer)(nativePointer);
     }
 
@@ -91,6 +96,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDashOffset);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
     }
 
@@ -98,6 +104,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDashStyle);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1DashStyle>)functionPointer)(nativePointer);
     }
 
@@ -105,6 +112,7 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDashesCount);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
     }
 
@@ -130,5 +138,6 @@ public unsafe sealed class D2D1StrokeStyle : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDashes);
         ((delegate* unmanaged[Stdcall]<void*, float*, uint, void>)functionPointer)(nativePointer, dashes, dashesCount);
+        AfterUnmanagedCall();
     }
 }

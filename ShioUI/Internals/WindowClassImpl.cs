@@ -83,6 +83,7 @@ internal sealed unsafe class WindowClassImpl
         {
             if (instance.TryProcessWindowMessage(hwnd, message, wParam, lParam, out nint result))
                 return result;
+            GC.KeepAlive(instance);
         }
         catch (Exception ex)
         {
@@ -138,6 +139,7 @@ internal sealed unsafe class WindowClassImpl
         }
         finally
         {
+            GC.KeepAlive(owner);
             ExitBarrier();
         }
     }
@@ -167,6 +169,7 @@ internal sealed unsafe class WindowClassImpl
         }
         finally
         {
+            GC.KeepAlive(owner);
             ExitBarrier();
         }
     }

@@ -62,13 +62,16 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
 
     public IEnumerator<DWriteFont> GetEnumerator() => new Enumerator(this);
 
-    IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this);
+    IEnumerator<DWriteFont> IEnumerable<DWriteFont>.GetEnumerator() => GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public DWriteFontCollection GetFontCollection()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontCollection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFontCollection(nativePointer, ReferenceType.Owned);
     }
@@ -78,7 +81,9 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontCount);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -88,11 +93,12 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFont);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, int>)functionPointer)(nativePointer, index, &font);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFont(font, ReferenceType.Owned);
     }
 
-    private sealed class Enumerator : IEnumerator<DWriteFont>
+    public struct Enumerator : IEnumerator<DWriteFont>
     {
         private readonly DWriteFontList _list;
         private readonly uint _bound;
@@ -106,7 +112,7 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
             _index = uint.MaxValue;
         }
 
-        public DWriteFont Current
+        public readonly DWriteFont Current
         {
             get
             {
@@ -117,7 +123,7 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
             }
         }
 
-        object IEnumerator.Current => Current;
+        readonly object IEnumerator.Current => Current;
 
         public bool MoveNext()
         {
@@ -140,10 +146,6 @@ public unsafe class DWriteFontList : ComObject, IReadOnlyList<DWriteFont>
             _index = uint.MaxValue;
         }
 
-        public void Dispose()
-        {
-            Reset();
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => Reset();
     }
 }

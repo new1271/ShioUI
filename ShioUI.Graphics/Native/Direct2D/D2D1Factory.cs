@@ -3,12 +3,12 @@ using System.Security;
 
 using InlineMethod;
 
-using ShioUI.Graphics.Native.Direct2D.Geometry;
-
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
 using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
+
+using ShioUI.Graphics.Native.Direct2D.Geometry;
 
 namespace ShioUI.Graphics.Native.Direct2D;
 
@@ -43,8 +43,12 @@ public unsafe sealed class D2D1Factory : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateRectangleGeometry);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, RectF*, void**, int>)functionPointer)(nativePointer, UnsafeHelper.AsPointerIn(rect), &nativePointer);
-        ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        fixed (RectF* pRect = &rect)
+        {
+            int hr = ((delegate* unmanaged[Stdcall]<void*, RectF*, void**, int>)functionPointer)(nativePointer, pRect, &nativePointer);
+            AfterUnmanagedCall();
+            ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        }
         return new D2D1RectangleGeometry(nativePointer, ReferenceType.Owned);
     }
 
@@ -52,8 +56,12 @@ public unsafe sealed class D2D1Factory : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateRoundedRectangleGeometry);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1RoundedRectangle*, void**, int>)functionPointer)(nativePointer, UnsafeHelper.AsPointerIn(roundedRect), &nativePointer);
-        ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        fixed (D2D1RoundedRectangle* pRoundedRect = &roundedRect)
+        {
+            int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1RoundedRectangle*, void**, int>)functionPointer)(nativePointer, pRoundedRect, &nativePointer);
+            AfterUnmanagedCall();
+            ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        }
         return new D2D1RoundedRectangleGeometry(nativePointer, ReferenceType.Owned);
     }
 
@@ -61,8 +69,12 @@ public unsafe sealed class D2D1Factory : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateEllipseGeometry);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1Ellipse*, void**, int>)functionPointer)(nativePointer, UnsafeHelper.AsPointerIn(ellipse), &nativePointer);
-        ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        fixed (D2D1Ellipse* pEllipse = &ellipse)
+        {
+            int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1Ellipse*, void**, int>)functionPointer)(nativePointer, pEllipse, &nativePointer);
+            AfterUnmanagedCall();
+            ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
+        }
         return new D2D1EllipseGeometry(nativePointer, ReferenceType.Owned);
     }
 
@@ -75,6 +87,7 @@ public unsafe sealed class D2D1Factory : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreatePathGeometry);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1PathGeometry(nativePointer, ReferenceType.Owned);
     }
@@ -83,7 +96,10 @@ public unsafe sealed class D2D1Factory : ComObject
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1StrokeStyle CreateStrokeStyle(in D2D1StrokeStyleProperties strokeStyleProperties)
-        => CreateStrokeStyle(UnsafeHelper.AsPointerIn(in strokeStyleProperties), null, 0u);
+    {
+        fixed (D2D1StrokeStyleProperties* pStrokeStyleProperties = &strokeStyleProperties)
+            return CreateStrokeStyle(pStrokeStyleProperties, null, 0u);
+    }
 
     /// <inheritdoc cref="CreateStrokeStyle(D2D1StrokeStyleProperties*, float*, uint)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,7 +111,10 @@ public unsafe sealed class D2D1Factory : ComObject
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1StrokeStyle CreateStrokeStyle(in D2D1StrokeStyleProperties strokeStyleProperties, float* dashes, uint dashesCount)
-        => CreateStrokeStyle(UnsafeHelper.AsPointerIn(in strokeStyleProperties), dashes, dashesCount);
+    {
+        fixed (D2D1StrokeStyleProperties* pStrokeStyleProperties = &strokeStyleProperties)
+            return CreateStrokeStyle(pStrokeStyleProperties, dashes, dashesCount);
+    }
 
     /// <summary>
     /// Allows a non-default stroke style to be specified for a given geometry at draw time.
@@ -106,6 +125,7 @@ public unsafe sealed class D2D1Factory : ComObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateStrokeStyle);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1StrokeStyleProperties*, float*, uint, void**, int>)functionPointer)(nativePointer,
             strokeStyleProperties, dashes, dashesCount, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1StrokeStyle(nativePointer, ReferenceType.Owned);
     }

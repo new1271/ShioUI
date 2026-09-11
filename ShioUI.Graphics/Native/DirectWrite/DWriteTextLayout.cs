@@ -7,6 +7,7 @@ using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
 
 
@@ -94,6 +95,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetMaxWidth);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, int>)functionPointer)(nativePointer, maxWidth);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -103,6 +105,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetMaxHeight);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, int>)functionPointer)(nativePointer, maxHeight);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -116,6 +119,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFontCollection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, DWriteTextRange, int>)functionPointer)(nativePointer, fontCollection.NativePointer, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -141,6 +145,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFontFamilyName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, DWriteTextRange, int>)functionPointer)(nativePointer, fontFamilyName, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -154,6 +159,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFontWeight);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight, DWriteTextRange, int>)functionPointer)(nativePointer, fontWeight, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -167,6 +173,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFontStyle);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteFontStyle, DWriteTextRange, int>)functionPointer)(nativePointer, fontStyle, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -180,6 +187,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFontStretch);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteFontStretch, DWriteTextRange, int>)functionPointer)(nativePointer, fontStretch, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -193,6 +201,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFontSize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, DWriteTextRange, int>)functionPointer)(nativePointer, fontSize, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -201,11 +210,12 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// </summary>
     /// <param name="hasUnderline">The Boolean flag indicates whether underline takes place</param>
     /// <param name="textRange">Text range to which this change applies.</param>
-    public void SetUnderline(bool hasUnderline, DWriteTextRange textRange)
+    public void SetUnderline(SysBool32 hasUnderline, DWriteTextRange textRange)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetUnderline);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, bool, DWriteTextRange, int>)functionPointer)(nativePointer, hasUnderline, textRange);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, SysBool32, DWriteTextRange, int>)functionPointer)(nativePointer, hasUnderline, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -214,11 +224,12 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// </summary>
     /// <param name="hasStrikethrough">The Boolean flag indicates whether strikethrough takes place</param>
     /// <param name="textRange">Text range to which this change applies.</param>
-    public void SetStrikethrough(bool hasStrikethrough, DWriteTextRange textRange)
+    public void SetStrikethrough(SysBool32 hasStrikethrough, DWriteTextRange textRange)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetStrikethrough);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, bool, DWriteTextRange, int>)functionPointer)(nativePointer, hasStrikethrough, textRange);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, SysBool32, DWriteTextRange, int>)functionPointer)(nativePointer, hasStrikethrough, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -237,6 +248,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetDrawingEffect);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, DWriteTextRange, int>)functionPointer)(nativePointer,
             drawingEffect == null ? null : drawingEffect.NativePointer, textRange);
+        AfterUnmanagedCall(drawingEffect);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -262,6 +274,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetLocaleName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, DWriteTextRange, int>)functionPointer)(nativePointer, localeName, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -270,7 +283,9 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMaxWidth);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -278,7 +293,9 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMaxHeight);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="GetFontCollection(uint, DWriteTextRange*)"/>
@@ -290,7 +307,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontCollection(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DWriteFontCollection? GetFontCollection(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontCollection(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontCollection(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the font collection where the current position is at.
@@ -306,6 +326,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontCollection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &nativePointer, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new DWriteFontCollection(nativePointer, ReferenceType.Owned);
     }
@@ -319,7 +340,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontFamilyNameLength(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint GetFontFamilyNameLength(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontFamilyNameLength(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontFamilyNameLength(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the length of the font family name where the current position is at.
@@ -350,7 +374,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontFamilyName(uint, char*, uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string GetFontFamilyName(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontFamilyName(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontFamilyName(currentPosition, pTextRange);
+    }
 
     /// <inheritdoc cref="GetFontFamilyName(uint, char*, uint, DWriteTextRange*)"/>
     public string GetFontFamilyName(uint currentPosition, DWriteTextRange* textRange)
@@ -375,7 +402,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontFamilyName(uint, char*, uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GetFontFamilyName(uint currentPosition, char* fontFamilyName, uint nameSize, out DWriteTextRange textRange)
-        => GetFontFamilyName(currentPosition, fontFamilyName, nameSize, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            GetFontFamilyName(currentPosition, fontFamilyName, nameSize, pTextRange);
+    }
 
     /// <summary>
     /// Copy the font family name where the current position is at.
@@ -390,6 +420,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontFamilyName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, char*, uint, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, fontFamilyName, nameSize, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -402,7 +433,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontWeight(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DWriteFontWeight GetFontWeight(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontWeight(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontWeight(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the font weight where the current position is at.
@@ -420,6 +454,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontWeight);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, DWriteFontWeight*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &fontWeight, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return fontWeight;
     }
@@ -433,7 +468,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontStyle(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DWriteFontStyle GetFontStyle(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontStyle(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontStyle(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the font style where the current position is at.
@@ -451,6 +489,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontStyle);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, DWriteFontStyle*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &fontStyle, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return fontStyle;
     }
@@ -464,7 +503,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontStretch(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DWriteFontStretch GetFontStretch(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontStretch(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontStretch(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the font stretch where the current position is at.
@@ -495,7 +537,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetFontSize(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float GetFontSize(uint currentPosition, out DWriteTextRange textRange)
-        => GetFontSize(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetFontSize(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the font em height where the current position is at.
@@ -513,6 +558,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontSize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, float*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &fontSize, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return fontSize;
     }
@@ -520,13 +566,16 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetUnderline(uint, DWriteTextRange*)"/>
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool GetUnderline(uint currentPosition)
+    public SysBool32 GetUnderline(uint currentPosition)
         => GetUnderline(currentPosition, null);
 
     /// <inheritdoc cref="GetUnderline(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool GetUnderline(uint currentPosition, out DWriteTextRange textRange)
-        => GetUnderline(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    public SysBool32 GetUnderline(uint currentPosition, out DWriteTextRange textRange)
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetUnderline(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the underline presence where the current position is at.
@@ -534,16 +583,17 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <param name="currentPosition">The current text position.</param>
     /// <param name="textRange">The position range of the current format.</param>
     /// <returns>
-    /// The <see cref="bool"/> flag indicates whether text is underlined.
+    /// The <see cref="SysBool32"/> flag indicates whether text is underlined.
     /// </returns>
     [SkipLocalsInit]
-    public bool GetUnderline(uint currentPosition, DWriteTextRange* textRange)
+    public SysBool32 GetUnderline(uint currentPosition, DWriteTextRange* textRange)
     {
-        bool hasUnderline;
+        SysBool32 hasUnderline;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetUnderline);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, bool*, DWriteTextRange*, int>)functionPointer)(nativePointer,
+        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, SysBool32*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &hasUnderline, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return hasUnderline;
     }
@@ -551,13 +601,16 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetStrikethrough(uint, DWriteTextRange*)"/>
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool GetStrikethrough(uint currentPosition)
+    public SysBool32 GetStrikethrough(uint currentPosition)
         => GetStrikethrough(currentPosition, null);
 
     /// <inheritdoc cref="GetStrikethrough(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool GetStrikethrough(uint currentPosition, out DWriteTextRange textRange)
-        => GetStrikethrough(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    public SysBool32 GetStrikethrough(uint currentPosition, out DWriteTextRange textRange)
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetStrikethrough(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the strikethrough presence where the current position is at.
@@ -565,16 +618,17 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <param name="currentPosition">The current text position.</param>
     /// <param name="textRange">The position range of the current format.</param>
     /// <returns>
-    /// The <see cref="bool"/> flag indicates whether text has strikethrough.
+    /// The <see cref="SysBool32"/> flag indicates whether text has strikethrough.
     /// </returns>
     [SkipLocalsInit]
-    public bool GetStrikethrough(uint currentPosition, DWriteTextRange* textRange)
+    public SysBool32 GetStrikethrough(uint currentPosition, DWriteTextRange* textRange)
     {
         bool hasStrikethrough;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetStrikethrough);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, bool*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &hasStrikethrough, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return hasStrikethrough;
     }
@@ -588,7 +642,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetDrawingEffect(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ComObject? GetDrawingEffect(uint currentPosition, out DWriteTextRange textRange)
-        => GetDrawingEffect(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetDrawingEffect(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the application-defined drawing effect where the current position is at.
@@ -604,6 +661,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDrawingEffect);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &nativePointer, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new ComObject(nativePointer, ReferenceType.Owned);
     }
@@ -611,7 +669,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetInlineObject(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DWriteInlineObject? GetInlineObject(uint currentPosition, out DWriteTextRange textRange)
-        => GetInlineObject(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetInlineObject(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the inline object at the given position.
@@ -627,6 +688,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetInlineObject);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &nativePointer, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new DWriteInlineObject(nativePointer, ReferenceType.Owned);
     }
@@ -640,7 +702,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetLocaleNameLength(uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint GetLocaleNameLength(uint currentPosition, out DWriteTextRange textRange)
-        => GetLocaleNameLength(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetLocaleNameLength(currentPosition, pTextRange);
+    }
 
     /// <summary>
     /// Get the length of the locale name where the current position is at.
@@ -658,6 +723,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLocaleNameLength);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, uint*, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, &nameLength, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nameLength;
     }
@@ -671,7 +737,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetLocaleName(uint, char*, uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string GetLocaleName(uint currentPosition, out DWriteTextRange textRange)
-        => GetLocaleName(currentPosition, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            return GetLocaleName(currentPosition, pTextRange);
+    }
 
     /// <inheritdoc cref="GetLocaleName(uint, char*, uint, DWriteTextRange*)"/>
     public string GetLocaleName(uint currentPosition, DWriteTextRange* textRange)
@@ -696,7 +765,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <inheritdoc cref="GetLocaleName(uint, char*, uint, DWriteTextRange*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GetLocaleName(uint currentPosition, char* localeName, uint nameSize, out DWriteTextRange textRange)
-        => GetLocaleName(currentPosition, localeName, nameSize, UnsafeHelper.AsPointerOut(out textRange));
+    {
+        fixed (DWriteTextRange* pTextRange = &textRange)
+            GetLocaleName(currentPosition, localeName, nameSize, pTextRange);
+    }
 
     /// <summary>
     /// Get the locale name where the current position is at.
@@ -711,6 +783,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLocaleName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, char*, uint, DWriteTextRange*, int>)functionPointer)(nativePointer,
             currentPosition, localeName, nameSize, textRange);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -754,7 +827,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int TryGetLineMetrics(DWriteLineMetrics* lineMetrics, uint maxLineCount, out uint actualLineCount)
-        => TryGetLineMetrics(lineMetrics, maxLineCount, UnsafeHelper.AsPointerOut(out actualLineCount));
+    {
+        fixed (uint* pActualLineCount = &actualLineCount)
+            return TryGetLineMetrics(lineMetrics, maxLineCount, pActualLineCount);
+    }
 
     /// <summary>
     /// Try returns properties of each line.
@@ -775,7 +851,9 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLineMetrics);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteLineMetrics*, uint, uint*, int>)functionPointer)(nativePointer, lineMetrics, maxLineCount, actualLineCount);
+        int result = ((delegate* unmanaged[Stdcall]<void*, DWriteLineMetrics*, uint, uint*, int>)functionPointer)(nativePointer, lineMetrics, maxLineCount, actualLineCount);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -798,6 +876,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMetrics);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteTextMetrics*, int>)functionPointer)(nativePointer, &textMetrics);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return textMetrics;
     }
@@ -820,6 +899,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetOverhangMetrics);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteOverhangMetrics*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -837,6 +917,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.DetermineMinWidth);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float*, int>)functionPointer)(nativePointer, &minWidth);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return minWidth;
     }
@@ -846,15 +927,15 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DWriteHitTestMetrics HitTestPoint(PointF point, out bool isTrailingHit, out bool isInside)
+    public DWriteHitTestMetrics HitTestPoint(PointF point, out SysBool32 isTrailingHit, out SysBool32 isInside)
         => HitTestPoint(point.X, point.Y, out isTrailingHit, out isInside);
 
-    /// <inheritdoc cref="HitTestPoint(float, float, bool*, bool*)"/>
+    /// <inheritdoc cref="HitTestPoint(float, float, SysBool32*, SysBool32*)"/>
     /// <param name="point">The point to hit-test, relative to the top-left location of the layout box.</param>
 
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DWriteHitTestMetrics HitTestPoint(PointF point, bool* isTrailingHit, bool* isInside)
+    public DWriteHitTestMetrics HitTestPoint(PointF point, SysBool32* isTrailingHit, SysBool32* isInside)
         => HitTestPoint(point.X, point.Y, isTrailingHit, isInside);
 
     /// <summary>
@@ -867,7 +948,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <param name="pointX">X coordinate to hit-test, relative to the top-left location of the layout box.</param>
     /// <param name="pointY">Y coordinate to hit-test, relative to the top-left location of the layout box.</param>
     /// <param name="isTrailingHit">Output flag indicating whether the hit-test location is at the leading or the trailing side of the character. <br/> 
-    ///     When the output <paramref name="isInside"/> value is set to <see langword="false"/>, this value is set according to the output
+    ///     When the output <paramref name="isInside"/> value is set to <see cref="SysBool32.False"/>, this value is set according to the output
     ///     *position value to represent the edge closest to the hit-test location. </param>
     /// <param name="isInside">Output flag indicating whether the hit-test location is inside the text string.
     ///     When false, the position nearest the text's edge is returned.</param>
@@ -875,8 +956,11 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     ///  is set to false, this structure represents the geometry enclosing the edge closest to the hit-test location.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DWriteHitTestMetrics HitTestPoint(float pointX, float pointY, out bool isTrailingHit, out bool isInside)
-        => HitTestPoint(pointX, pointY, UnsafeHelper.AsPointerOut(out isTrailingHit), UnsafeHelper.AsPointerOut(out isInside));
+    public DWriteHitTestMetrics HitTestPoint(float pointX, float pointY, out SysBool32 isTrailingHit, out SysBool32 isInside)
+    {
+        fixed (SysBool32* pIsTrailingHit = &isTrailingHit, pIsInside = &isInside)
+            return HitTestPoint(pointX, pointY, pIsTrailingHit, pIsInside);
+    }
 
     /// <summary>
     /// Given a coordinate (in DIPs) relative to the top-left of the layout box,
@@ -888,7 +972,7 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// <param name="pointX">X coordinate to hit-test, relative to the top-left location of the layout box.</param>
     /// <param name="pointY">Y coordinate to hit-test, relative to the top-left location of the layout box.</param>
     /// <param name="isTrailingHit">Output flag indicating whether the hit-test location is at the leading or the trailing side of the character. <br/> 
-    ///     When the output *<paramref name="isInside"/> value is set to <see langword="false"/>, this value is set according to the output
+    ///     When the output *<paramref name="isInside"/> value is set to <see cref="SysBool32.False"/>, this value is set according to the output
     ///     *position value to represent the edge closest to the hit-test location. </param>
     /// <param name="isInside">Output flag indicating whether the hit-test location is inside the text string.
     ///     When false, the position nearest the text's edge is returned.</param>
@@ -897,21 +981,25 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     ///  is set to false, this structure represents the geometry enclosing the edge closest to the hit-test location.
     /// </returns>
     [SkipLocalsInit]
-    public DWriteHitTestMetrics HitTestPoint(float pointX, float pointY, bool* isTrailingHit, bool* isInside)
+    public DWriteHitTestMetrics HitTestPoint(float pointX, float pointY, SysBool32* isTrailingHit, SysBool32* isInside)
     {
         DWriteHitTestMetrics hitTestMetrics;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.HitTestPoint);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, float, float, bool*, bool*, DWriteHitTestMetrics*, int>)functionPointer)(nativePointer,
+        int hr = ((delegate* unmanaged[Stdcall]<void*, float, float, SysBool32*, SysBool32*, DWriteHitTestMetrics*, int>)functionPointer)(nativePointer,
             pointX, pointY, isTrailingHit, isInside, &hitTestMetrics);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return hitTestMetrics;
     }
 
     /// <inheritdoc cref="HitTestTextPosition(uint, bool, float*, float*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DWriteHitTestMetrics HitTestTextPosition(uint textPosition, bool isTrailingHit, out float pointX, out float pointY)
-        => HitTestTextPosition(textPosition, isTrailingHit, UnsafeHelper.AsPointerOut(out pointX), UnsafeHelper.AsPointerOut(out pointY));
+    public DWriteHitTestMetrics HitTestTextPosition(uint textPosition, SysBool32 isTrailingHit, out float pointX, out float pointY)
+    {
+        fixed (float* pPointX = &pointX, pPointY = &pointY)
+            return HitTestTextPosition(textPosition, isTrailingHit, pPointX, pPointY);
+    }
 
     /// <summary>
     /// Given a text position and whether the caret is on the leading or trailing
@@ -938,13 +1026,14 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     /// when diacritics join their base character, or when you test a surrogate pair.
     /// </remarks>
     [SkipLocalsInit]
-    public DWriteHitTestMetrics HitTestTextPosition(uint textPosition, bool isTrailingHit, float* pointX, float* pointY)
+    public DWriteHitTestMetrics HitTestTextPosition(uint textPosition, SysBool32 isTrailingHit, float* pointX, float* pointY)
     {
         DWriteHitTestMetrics hitTestMetrics;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.HitTestTextPosition);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, bool, float*, float*, DWriteHitTestMetrics*, int>)functionPointer)(nativePointer,
+        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, SysBool32, float*, float*, DWriteHitTestMetrics*, int>)functionPointer)(nativePointer,
             textPosition, isTrailingHit, pointX, pointY, &hitTestMetrics);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return hitTestMetrics;
     }
@@ -1027,7 +1116,10 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int TryHitTestTextRange(uint textPosition, uint textLength, float originX, float originY, DWriteHitTestMetrics* hitTestMetrics,
         uint maxHitTestMetricsCount, out uint actualHitTestMetricsCount)
-        => TryHitTestTextRange(textPosition, textLength, originX, originY, hitTestMetrics, maxHitTestMetricsCount, UnsafeHelper.AsPointerOut(out actualHitTestMetricsCount));
+    {
+        fixed (uint* pActualHitTestMetricsCount = &actualHitTestMetricsCount)
+            return TryHitTestTextRange(textPosition, textLength, originX, originY, hitTestMetrics, maxHitTestMetricsCount, pActualHitTestMetricsCount);
+    }
 
     /// <summary>
     /// The application calls this function to get a set of hit-test metrics corresponding to a range of text positions. <br/>
@@ -1068,7 +1160,9 @@ public unsafe sealed class DWriteTextLayout : DWriteTextFormat
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.HitTestTextRange);
-        return ((delegate* unmanaged[Stdcall]<void*, uint, uint, float, float, DWriteHitTestMetrics*, uint, uint*, int>)functionPointer)(nativePointer,
+        int result = ((delegate* unmanaged[Stdcall]<void*, uint, uint, float, float, DWriteHitTestMetrics*, uint, uint*, int>)functionPointer)(nativePointer,
             textPosition, textLength, originX, originY, hitTestMetrics, maxHitTestMetricsCount, actualHitTestMetricsCount);
+        AfterUnmanagedCall();
+        return result;
     }
 }

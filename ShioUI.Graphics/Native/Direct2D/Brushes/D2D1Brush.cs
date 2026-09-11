@@ -50,6 +50,7 @@ public unsafe class D2D1Brush : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetOpacity);
         ((delegate* unmanaged[Stdcall]<void*, float, void>)functionPointer)(nativePointer, opacity);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -58,6 +59,7 @@ public unsafe class D2D1Brush : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetTransform);
         ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, void>)functionPointer)(nativePointer, transform);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -65,7 +67,9 @@ public unsafe class D2D1Brush : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetOpacity);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [SkipLocalsInit]
@@ -76,6 +80,7 @@ public unsafe class D2D1Brush : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetTransform);
         ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 }

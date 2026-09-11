@@ -22,6 +22,7 @@ public sealed unsafe class WICBitmapFrameDecode : WICBitmapSource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetThumbnail);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new WICBitmapSource(nativePointer, ReferenceType.Owned);
     }

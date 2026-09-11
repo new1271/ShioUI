@@ -8,6 +8,7 @@ using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
 
 namespace ShioUI.Graphics.Native.DirectWrite;
@@ -61,16 +62,20 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
         get => GetFontFamily(index);
     }
 
-    public IEnumerator<DWriteFontFamily> GetEnumerator() => new Enumerator(this);
+    public Enumerator GetEnumerator() => new Enumerator(this);
 
-    IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this);
+    IEnumerator<DWriteFontFamily> IEnumerable<DWriteFontFamily>.GetEnumerator() => GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     [Inline(InlineBehavior.Remove)]
     private uint GetFontFamilyCount()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontFamilyCount);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -79,13 +84,14 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontFamily);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, int>)functionPointer)(nativePointer, index, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFontFamily(nativePointer, ReferenceType.Owned);
     }
 
     /// <inheritdoc cref="FindFamilyName(char*, uint*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool FindFamilyName(string familyName, out uint index)
+    public SysBool32 FindFamilyName(string familyName, out uint index)
     {
         fixed (char* ptr = familyName)
             return FindFamilyName(ptr, out index);
@@ -93,8 +99,11 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
 
     /// <inheritdoc cref="FindFamilyName(char*, uint*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool FindFamilyName(char* familyName, out uint index)
-        => FindFamilyName(familyName, UnsafeHelper.AsPointerOut(out index));
+    public SysBool32 FindFamilyName(char* familyName, out uint index)
+    {
+        fixed (uint* pIndex = &index)
+            return FindFamilyName(familyName, pIndex);
+    }
 
     /// <summary>
     /// Finds the font family with the specified family name.
@@ -105,17 +114,18 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
     /// <see langword="true"/> if the family name exists or <see langword="false"/> otherwise.
     /// </returns>
     [SkipLocalsInit]
-    public bool FindFamilyName(char* familyName, uint* index)
+    public SysBool32 FindFamilyName(char* familyName, uint* index)
     {
-        bool exists;
+        SysBool32 exists;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.FindFamilyName);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint*, bool*, int>)functionPointer)(nativePointer, familyName, index, &exists);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint*, SysBool32*, int>)functionPointer)(nativePointer, familyName, index, &exists);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return exists;
     }
 
-    private sealed class Enumerator : IEnumerator<DWriteFontFamily>
+    public struct Enumerator : IEnumerator<DWriteFontFamily>
     {
         private readonly DWriteFontCollection _collection;
         private readonly uint _bound;
@@ -129,7 +139,7 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
             _index = uint.MaxValue;
         }
 
-        public DWriteFontFamily Current
+        public readonly DWriteFontFamily Current
         {
             get
             {
@@ -163,10 +173,6 @@ public unsafe sealed class DWriteFontCollection : ComObject, IReadOnlyCollection
             _index = uint.MaxValue;
         }
 
-        public void Dispose()
-        {
-            Reset();
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => Reset();
     }
 }

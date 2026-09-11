@@ -1,4 +1,6 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Security;
 
@@ -74,6 +76,7 @@ public unsafe class D2D1Bitmap : D2D1Image
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSize);
         ((delegate* unmanaged[Stdcall]<void*, SizeF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -85,6 +88,7 @@ public unsafe class D2D1Bitmap : D2D1Image
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPixelSize);
         ((delegate* unmanaged[Stdcall]<void*, SizeU*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -96,6 +100,7 @@ public unsafe class D2D1Bitmap : D2D1Image
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPixelFormat);
         ((delegate* unmanaged[Stdcall]<void*, D2D1PixelFormat*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -114,6 +119,7 @@ public unsafe class D2D1Bitmap : D2D1Image
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDpi);
         ((delegate* unmanaged[Stdcall]<void*, float*, float*, void>)functionPointer)(nativePointer, dpiX, dpiY);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Keep, export: true)]
@@ -123,13 +129,18 @@ public unsafe class D2D1Bitmap : D2D1Image
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CopyFromBitmap(in PointU destPoint, D2D1Bitmap bitmap, in RectU srcRect)
-        => CopyFromBitmap(UnsafeHelper.AsPointerIn(in destPoint), bitmap, UnsafeHelper.AsPointerIn(in srcRect));
+    {
+        fixed (PointU* pDestPoint = &destPoint)
+        fixed (RectU* pSrcRect = &srcRect)
+            CopyFromBitmap(pDestPoint, bitmap, pSrcRect);
+    }
 
     public void CopyFromBitmap(PointU* destPoint, D2D1Bitmap bitmap, RectU* srcRect)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CopyFromBitmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, PointU*, void*, RectU*, int>)functionPointer)(nativePointer, destPoint, bitmap.NativePointer, srcRect);
+        AfterUnmanagedCall(bitmap);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -140,13 +151,18 @@ public unsafe class D2D1Bitmap : D2D1Image
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CopyFromRenderTarget(in PointU destPoint, D2D1RenderTarget renderTarget, in RectU srcRect)
-        => CopyFromRenderTarget(UnsafeHelper.AsPointerIn(in destPoint), renderTarget, UnsafeHelper.AsPointerIn(in srcRect));
+    {
+        fixed (PointU* pDestPoint = &destPoint)
+        fixed (RectU* pSrcRect = &srcRect)
+            CopyFromRenderTarget(pDestPoint, renderTarget, pSrcRect);
+    }
 
     public void CopyFromRenderTarget(PointU* destPoint, D2D1RenderTarget renderTarget, RectU* srcRect)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CopyFromRenderTarget);
         int hr = ((delegate* unmanaged[Stdcall]<void*, PointU*, void*, RectU*, int>)functionPointer)(nativePointer, destPoint, renderTarget.NativePointer, srcRect);
+        AfterUnmanagedCall(renderTarget);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -157,13 +173,17 @@ public unsafe class D2D1Bitmap : D2D1Image
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CopyFromMemory(in RectU dstRect, void* srcData, uint pitch)
-        => CopyFromMemory(UnsafeHelper.AsPointerIn(in dstRect), srcData, pitch);
+    {
+        fixed (RectU* pDstPoint = &dstRect)
+            CopyFromMemory(pDstPoint, srcData, pitch);
+    }
 
     public void CopyFromMemory(RectU* dstRect, void* srcData, uint pitch)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CopyFromMemory);
         int hr = ((delegate* unmanaged[Stdcall]<void*, RectU*, void*, uint, int>)functionPointer)(nativePointer, dstRect, srcData, pitch);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

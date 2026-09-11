@@ -22,8 +22,12 @@ public static unsafe class WIC
     public static WICBitmapSource? WICConvertBitmapSource(WICBitmapSource src, in Guid dstFormat)
     {
         void* result;
-        int hr = WICConvertBitmapSource(UnsafeHelper.AsPointerIn(in dstFormat), src.NativePointer, &result);
-        ThrowHelper.ThrowExceptionForHR(hr);
+        fixed (Guid* pDstFormat = &dstFormat)
+        {
+            int hr = WICConvertBitmapSource(pDstFormat, src.NativePointer, &result);
+            GC.KeepAlive(src);
+            ThrowHelper.ThrowExceptionForHR(hr);
+        }
         return result == null ? null : new WICBitmapSource(result, ReferenceType.Owned);
     }
 }

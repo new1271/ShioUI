@@ -29,8 +29,11 @@ public unsafe class DXGIFactory : DXGIObject
     public DXGIFactory(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DXGIFactory? Create(in Guid riid, bool throwException = true)
-        => Create(UnsafeHelper.AsPointerIn(in riid), throwException);
+    public static DXGIFactory? Create(in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return Create(riid, throwException);
+    }
 
     [SkipLocalsInit]
     public static DXGIFactory? Create(Guid* riid, bool throwException = true)
@@ -49,6 +52,7 @@ public unsafe class DXGIFactory : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EnumAdapters);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, int>)functionPointer)(nativePointer, adapter, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else
@@ -61,6 +65,7 @@ public unsafe class DXGIFactory : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.MakeWindowAssociation);
         int hr = ((delegate* unmanaged[Stdcall]<void*, IntPtr, DXGIMakeWindowAssociationFlags, int>)functionPointer)(nativePointer, windowHandle, flags);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -69,13 +74,17 @@ public unsafe class DXGIFactory : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetWindowAssociation);
         int hr = ((delegate* unmanaged[Stdcall]<void*, IntPtr*, int>)functionPointer)(nativePointer, (IntPtr*)&nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return (IntPtr)nativePointer;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DXGISwapChain CreateSwapChain(ComObject device, in DXGISwapChainDescription desc)
-        => CreateSwapChain(device, UnsafeHelper.AsPointerIn(in desc));
+    {
+        fixed (DXGISwapChainDescription* pDesc = &desc)
+            return CreateSwapChain(device, pDesc);
+    }
 
     public DXGISwapChain CreateSwapChain(ComObject device, DXGISwapChainDescription* pDesc)
     {
@@ -83,6 +92,7 @@ public unsafe class DXGIFactory : DXGIObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateSwapChain);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, DXGISwapChainDescription*, void**, int>)functionPointer)(nativePointer,
             device.NativePointer, pDesc, &nativePointer);
+        AfterUnmanagedCall(device);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DXGISwapChain(nativePointer, ReferenceType.Owned);
     }

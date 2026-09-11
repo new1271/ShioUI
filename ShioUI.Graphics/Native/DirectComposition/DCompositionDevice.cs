@@ -55,6 +55,7 @@ public unsafe sealed class DCompositionDevice : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Commit);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -63,14 +64,16 @@ public unsafe sealed class DCompositionDevice : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.WaitForCommitCompletion);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
-    public DCompositionTarget CreateTargetForHwnd(IntPtr hwnd, bool topMost)
+    public DCompositionTarget CreateTargetForHwnd(IntPtr hwnd, SysBool32 topMost)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateTargetForHwnd);
         int hr = ((delegate* unmanaged[Stdcall]<void*, IntPtr, SysBool32, void**, int>)functionPointer)(nativePointer, hwnd, topMost, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DCompositionTarget(nativePointer, ReferenceType.Owned);
     }
@@ -80,6 +83,7 @@ public unsafe sealed class DCompositionDevice : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateVisual);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DCompositionVisual(nativePointer, ReferenceType.Owned);
     }

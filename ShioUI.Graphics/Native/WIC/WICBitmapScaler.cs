@@ -22,6 +22,7 @@ public sealed unsafe class WICBitmapScaler : WICBitmapSource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Initialize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, uint, uint, WICBitmapInterpolationMode, int>)functionPointer)(nativePointer, 
             source.NativePointer, width, height, mode);
+        AfterUnmanagedCall(source);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

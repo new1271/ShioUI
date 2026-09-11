@@ -33,6 +33,7 @@ public sealed unsafe class D2D1RoundedRectangleGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetRoundedRect);
         ((delegate* unmanaged[Stdcall]<void*, D2D1RoundedRectangle*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 }

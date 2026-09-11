@@ -47,22 +47,31 @@ public unsafe class DXGISwapChain : DXGIDeviceSubObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Present);
-        return ((delegate* unmanaged[Stdcall]<void*, uint, DXGIPresentFlags, int>)functionPointer)(nativePointer, syncInterval, flags);
+        int result = ((delegate* unmanaged[Stdcall]<void*, uint, DXGIPresentFlags, int>)functionPointer)(nativePointer, syncInterval, flags);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T GetBuffer<T>(uint buffer, in Guid riid) where T : ComObject, new()
-        => GetBuffer<T>(buffer, UnsafeHelper.AsPointerIn(in riid));
+    public T GetBuffer<T>(uint buffer, in Guid iid) where T : ComObject, new()
+    {
+        fixed (Guid* riid = &iid)
+            return GetBuffer<T>(buffer, riid);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ComObject GetBuffer(uint buffer, in Guid riid)
-        => GetBuffer(buffer, UnsafeHelper.AsPointerIn(in riid));
+    public ComObject GetBuffer(uint buffer, in Guid iid)
+    {
+        fixed (Guid* riid = &iid)
+            return GetBuffer(buffer, riid);
+    }
 
     public T GetBuffer<T>(uint buffer, Guid* riid) where T : ComObject, new()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetBuffer);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, Guid*, void**, int>)functionPointer)(nativePointer, buffer, riid, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return FromNativePointer<T>(nativePointer, ReferenceType.Owned)!;
     }
@@ -72,6 +81,7 @@ public unsafe class DXGISwapChain : DXGIDeviceSubObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetBuffer);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, Guid*, void**, int>)functionPointer)(nativePointer, buffer, riid, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new ComObject(nativePointer, ReferenceType.Owned);
     }
@@ -84,6 +94,7 @@ public unsafe class DXGISwapChain : DXGIDeviceSubObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDesc);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGISwapChainDescription*, int>)functionPointer)(nativePointer, &desc);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return desc;
     }
@@ -104,6 +115,7 @@ public unsafe class DXGISwapChain : DXGIDeviceSubObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.ResizeBuffers);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, uint, uint, DXGIFormat, DXGISwapChainFlags, int>)functionPointer)(nativePointer,
             bufferCount, width, height, format, flags);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

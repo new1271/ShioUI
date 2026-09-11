@@ -26,14 +26,18 @@ public unsafe class DXGIFactory4 : DXGIFactory3
     public DXGIFactory4(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DXGIAdapter? EnumAdapterByLuid(Luid adapterLuid, in Guid riid, bool throwException = true)
-        => EnumAdapterByLuid(adapterLuid, UnsafeHelper.AsPointerIn(in riid), throwException);
+    public DXGIAdapter? EnumAdapterByLuid(Luid adapterLuid, in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return EnumAdapterByLuid(adapterLuid, riid, throwException);
+    }
 
     public DXGIAdapter? EnumAdapterByLuid(Luid adapterLuid, Guid* riid, bool throwException = true)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EnumAdapterByLuid);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Luid, Guid*, void**, int>)functionPointer)(nativePointer, adapterLuid, riid, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else
@@ -42,14 +46,18 @@ public unsafe class DXGIFactory4 : DXGIFactory3
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DXGIAdapter? EnumWarpAdapter(in Guid riid, bool throwException = true)
-        => EnumWarpAdapter(UnsafeHelper.AsPointerIn(in riid), throwException);
+    public DXGIAdapter? EnumWarpAdapter(in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return EnumWarpAdapter(riid, throwException);
+    }
 
     public DXGIAdapter? EnumWarpAdapter(Guid* riid, bool throwException = true)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EnumWarpAdapter);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Guid*, void**, int>)functionPointer)(nativePointer, riid, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else

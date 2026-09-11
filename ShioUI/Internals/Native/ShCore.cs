@@ -24,12 +24,15 @@ internal static unsafe class ShCore
         void* pointer = _pointers[0];
         if (pointer == null)
             return Constants.E_NOTIMPL;
-        return ((delegate* unmanaged
+        fixed (uint* pDpiX = &dpiX, pDpiY = &dpiY)
+        {
+            return ((delegate* unmanaged
 #if NET8_0_OR_GREATER
             [Stdcall, SuppressGCTransition]
 #else
-            [Stdcall]
+                [Stdcall]
 #endif
-            <IntPtr, MonitorDpiType, uint*, uint*, int>)pointer)(hMonitor, dpiType, UnsafeHelper.AsPointerOut(out dpiX), UnsafeHelper.AsPointerOut(out dpiY));
+                <IntPtr, MonitorDpiType, uint*, uint*, int>)pointer)(hMonitor, dpiType, pDpiX, pDpiY);
+        }
     }
 }

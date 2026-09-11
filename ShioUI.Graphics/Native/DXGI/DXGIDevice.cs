@@ -41,6 +41,7 @@ public unsafe class DXGIDevice : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetAdapter);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DXGIAdapter(nativePointer, ReferenceType.Owned);
     }
@@ -51,6 +52,7 @@ public unsafe class DXGIDevice : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetGPUThreadPriority);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int, int>)functionPointer)(nativePointer, priority);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -62,6 +64,7 @@ public unsafe class DXGIDevice : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetGPUThreadPriority);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int*, int>)functionPointer)(nativePointer, &priority);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return priority;
     }

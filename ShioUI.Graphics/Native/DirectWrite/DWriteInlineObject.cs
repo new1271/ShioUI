@@ -38,6 +38,7 @@ public unsafe sealed class DWriteInlineObject : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMetrics);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteInlineObjectMetrics*, int>)functionPointer)(nativePointer, &metrics);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return metrics;
     }
@@ -63,6 +64,7 @@ public unsafe sealed class DWriteInlineObject : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetOverhangMetrics);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteOverhangMetrics*, int>)functionPointer)(nativePointer, &metrics);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return metrics;
     }
@@ -83,6 +85,7 @@ public unsafe sealed class DWriteInlineObject : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetBreakConditions);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteBreakCondition*, DWriteBreakCondition*, int>)functionPointer)(nativePointer, &before, &after);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return (before, after);
     }

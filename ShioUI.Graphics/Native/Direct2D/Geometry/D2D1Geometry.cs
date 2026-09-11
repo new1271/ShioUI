@@ -1,3 +1,4 @@
+using System;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -45,7 +46,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="GetBounds(Matrix3x2*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public RectF GetBounds(in Matrix3x2 worldTransform)
-        => GetBounds(UnsafeHelper.AsPointerIn(in worldTransform));
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            return GetBounds(pWorldTransform);
+    }
 
     /// <summary>
     /// Retrieve the bounds of the geometry, with an optional applied transform.
@@ -57,6 +61,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetBounds);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, RectF*, int>)functionPointer)(nativePointer, worldTransform, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -70,7 +75,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="GetWidenedBounds(float, D2D1StrokeStyle, Matrix3x2*, float)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public RectF GetWidenedBounds(float strokeWidth, D2D1StrokeStyle strokeStyle, in Matrix3x2 worldTransform, float flatteningTolerance)
-        => GetWidenedBounds(strokeWidth, strokeStyle, UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            return GetWidenedBounds(strokeWidth, strokeStyle, pWorldTransform, flatteningTolerance);
+    }
 
     /// <summary>
     /// Get the bounds of the corresponding geometry after it has been widened or have
@@ -84,6 +92,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetWidenedBounds);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, void*, Matrix3x2*, float, RectF*, int>)functionPointer)(nativePointer, strokeWidth,
             strokeStyle == null ? null : strokeStyle.NativePointer, worldTransform, flatteningTolerance, &result);
+        AfterUnmanagedCall(strokeStyle);
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -91,26 +100,30 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="StrokeContainsPoint(PointF, float, D2D1StrokeStyle, Matrix3x2*, float)"/>
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, float flatteningTolerance)
+    public SysBool32 StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, float flatteningTolerance)
         => StrokeContainsPoint(point, strokeWidth, strokeStyle, null, flatteningTolerance);
 
     /// <inheritdoc cref="StrokeContainsPoint(PointF, float, D2D1StrokeStyle, Matrix3x2*, float)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, in Matrix3x2 worldTransform, float flatteningTolerance)
-        => StrokeContainsPoint(point, strokeWidth, strokeStyle, UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance);
+    public SysBool32 StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, in Matrix3x2 worldTransform, float flatteningTolerance)
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            return StrokeContainsPoint(point, strokeWidth, strokeStyle, pWorldTransform, flatteningTolerance);
+    }
 
     /// <summary>
     /// Checks to see whether the corresponding penned and widened geometry contains the
     /// given point.
     /// </summary>
     [SkipLocalsInit]
-    public bool StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, Matrix3x2* worldTransform, float flatteningTolerance)
+    public SysBool32 StrokeContainsPoint(PointF point, float strokeWidth, D2D1StrokeStyle strokeStyle, Matrix3x2* worldTransform, float flatteningTolerance)
     {
-        bool result;
+        SysBool32 result;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.StrokeContainsPoint);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, PointF, float, void*, Matrix3x2*, float, bool*, int>)functionPointer)(nativePointer, point, strokeWidth,
+        int hr = ((delegate* unmanaged[Stdcall]<void*, PointF, float, void*, Matrix3x2*, float, SysBool32*, int>)functionPointer)(nativePointer, point, strokeWidth,
             strokeStyle == null ? null : strokeStyle.NativePointer, worldTransform, flatteningTolerance, &result);
+        AfterUnmanagedCall(strokeStyle);
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -118,24 +131,28 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="FillContainsPoint(PointF, Matrix3x2*, float)"/>
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool FillContainsPoint(PointF point, float flatteningTolerance)
+    public SysBool32 FillContainsPoint(PointF point, float flatteningTolerance)
         => FillContainsPoint(point, null, flatteningTolerance);
 
     /// <inheritdoc cref="FillContainsPoint(PointF, Matrix3x2*, float)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool FillContainsPoint(PointF point, in Matrix3x2 worldTransform, float flatteningTolerance)
-        => FillContainsPoint(point, UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance);
+    public SysBool32 FillContainsPoint(PointF point, in Matrix3x2 worldTransform, float flatteningTolerance)
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            return FillContainsPoint(point, pWorldTransform, flatteningTolerance);
+    }
 
     /// <summary>
     /// Test whether the given fill of this geometry would contain this point.
     /// </summary>
     [SkipLocalsInit]
-    public bool FillContainsPoint(PointF point, Matrix3x2* worldTransform, float flatteningTolerance)
+    public SysBool32 FillContainsPoint(PointF point, Matrix3x2* worldTransform, float flatteningTolerance)
     {
-        bool result;
+        SysBool32 result;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.FillContainsPoint);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, PointF, Matrix3x2*, float, bool*, int>)functionPointer)(nativePointer, point, worldTransform, flatteningTolerance, &result);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, PointF, Matrix3x2*, float, SysBool32*, int>)functionPointer)(nativePointer, point, worldTransform, flatteningTolerance, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -149,7 +166,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="CompareWithGeometry(D2D1Geometry, Matrix3x2*, float)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1GeometryRelation CompareWithGeometry(D2D1Geometry geometry, in Matrix3x2 inputGeometryTransform, float flatteningTolerance)
-        => CompareWithGeometry(geometry, UnsafeHelper.AsPointerIn(in inputGeometryTransform), flatteningTolerance);
+    {
+        fixed (Matrix3x2* pInputGeometryTransform = &inputGeometryTransform)
+            return CompareWithGeometry(geometry, pInputGeometryTransform, flatteningTolerance);
+    }
 
     /// <summary>
     /// Compare how one geometry intersects or contains another geometry.
@@ -163,6 +183,8 @@ public unsafe class D2D1Geometry : D2D1Resource
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, Matrix3x2*, float, D2D1GeometryRelation*, int>)functionPointer)(nativePointer,
             geometry.NativePointer, inputGeometryTransform, flatteningTolerance, &result);
         ThrowHelper.ThrowExceptionForHR(hr);
+
+        AfterUnmanagedCall(geometry);
         return result;
     }
 
@@ -176,7 +198,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Simplify(D2D1GeometrySimplificationOption simplificationOption, in Matrix3x2 worldTransform,
         float flatteningTolerance, D2D1SimplifiedGeometrySink geometrySink)
-        => Simplify(simplificationOption, UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance, geometrySink);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            Simplify(simplificationOption, pWorldTransform, flatteningTolerance, geometrySink);
+    }
 
     /// <summary>
     /// Converts a geometry to a simplified geometry that has arcs and quadratic beziers
@@ -189,6 +214,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Simplify);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1GeometrySimplificationOption, Matrix3x2*, float, void*, int>)functionPointer)(nativePointer,
             simplificationOption, worldTransform, flatteningTolerance, geometrySink.NativePointer);
+        AfterUnmanagedCall(geometrySink);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -201,7 +227,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="Tessellate(Matrix3x2*, float, D2D1TessellationSink)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Tessellate(in Matrix3x2 worldTransform, float flatteningTolerance, D2D1TessellationSink tessellationSink)
-        => Tessellate(UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance, tessellationSink);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            Tessellate(pWorldTransform, flatteningTolerance, tessellationSink);
+    }
 
     /// <summary>
     /// Tessellates a geometry into triangles.
@@ -212,6 +241,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Tessellate);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, float, void*, int>)functionPointer)(nativePointer,
             worldTransform, flatteningTolerance, tessellationSink.NativePointer);
+        AfterUnmanagedCall(tessellationSink);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -226,8 +256,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CombineWithGeometry(D2D1Geometry inputGeometry, D2D1CombineMode combineMode, in Matrix3x2 inputGeometryTransform,
         float flatteningTolerance, D2D1SimplifiedGeometrySink geometrySink)
-        => CombineWithGeometry(inputGeometry, combineMode, UnsafeHelper.AsPointerIn(in inputGeometryTransform),
-            flatteningTolerance, geometrySink);
+    {
+        fixed (Matrix3x2* pInputGeometryTransform = &inputGeometryTransform)
+            CombineWithGeometry(inputGeometry, combineMode, pInputGeometryTransform, flatteningTolerance, geometrySink);
+    }
 
     /// <summary>
     /// Performs a combine operation between the two geometries to produce a resulting
@@ -240,6 +272,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CombineWithGeometry);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, D2D1CombineMode, Matrix3x2*, float, void*, int>)functionPointer)(nativePointer, inputGeometry.NativePointer,
             combineMode, inputGeometryTransform, flatteningTolerance, geometrySink.NativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -252,7 +285,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="Outline(Matrix3x2*, float, D2D1SimplifiedGeometrySink)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Outline(in Matrix3x2 worldTransform, float flatteningTolerance, D2D1SimplifiedGeometrySink geometrySink)
-        => Outline(UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance, geometrySink);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            Outline(pWorldTransform, flatteningTolerance, geometrySink);
+    }
 
     /// <summary>
     /// Computes the outline of the geometry. The result is written back into a
@@ -264,6 +300,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Outline);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, float, void*, int>)functionPointer)(nativePointer, worldTransform,
             flatteningTolerance, geometrySink.NativePointer);
+        AfterUnmanagedCall(geometrySink);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -276,7 +313,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="ComputeArea(Matrix3x2*, float)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float ComputeArea(in Matrix3x2 worldTransform, float flatteningTolerance)
-        => ComputeArea(UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            return ComputeArea(pWorldTransform, flatteningTolerance);
+    }
 
     /// <summary>
     /// Computes the area of the geometry.
@@ -289,6 +329,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.ComputeArea);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, float, float*, int>)functionPointer)(nativePointer, worldTransform,
             flatteningTolerance, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -302,7 +343,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="ComputeLength(Matrix3x2*, float)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float ComputeLength(in Matrix3x2 worldTransform, float flatteningTolerance)
-        => ComputeLength(UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            return ComputeLength(pWorldTransform, flatteningTolerance);
+    }
 
     /// <summary>
     /// Computes the length of the geometry.
@@ -315,6 +359,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.ComputeLength);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Matrix3x2*, float, float*, int>)functionPointer)(nativePointer, worldTransform,
             flatteningTolerance, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -322,13 +367,19 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="ComputePointAtLength(float, Matrix3x2*, float, PointF*, PointF*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ComputePointAtLength(float length, float flatteningTolerance, out PointF point, out PointF unitTangentVector)
-        => ComputePointAtLength(length, null, flatteningTolerance, UnsafeHelper.AsPointerOut(out point), UnsafeHelper.AsPointerOut(out unitTangentVector));
+    {
+        fixed (PointF* pPoint = &point, pUnitTangentVector = &unitTangentVector)
+            ComputePointAtLength(length, null, flatteningTolerance, pPoint, pUnitTangentVector);
+    }
 
     /// <inheritdoc cref="ComputePointAtLength(float, Matrix3x2*, float, PointF*, PointF*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ComputePointAtLength(float length, in Matrix3x2 worldTransform, float flatteningTolerance, out PointF point, out PointF unitTangentVector)
-        => ComputePointAtLength(length, UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance,
-            UnsafeHelper.AsPointerOut(out point), UnsafeHelper.AsPointerOut(out unitTangentVector));
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+        fixed (PointF* pPoint = &point, pUnitTangentVector = &unitTangentVector)
+            ComputePointAtLength(length, pWorldTransform, flatteningTolerance, pPoint, pUnitTangentVector);
+    }
 
     /// <summary>
     /// Computes the point and tangent a given distance along the path.
@@ -341,8 +392,8 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.ComputePointAtLength);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, Matrix3x2*, float, PointF*, PointF*, int>)functionPointer)(nativePointer, length, worldTransform,
             flatteningTolerance, point, unitTangentVector);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
-        return;
     }
 
     /// <inheritdoc cref="Widen(float, D2D1StrokeStyle, Matrix3x2*, float, D2D1GeometrySink)"/>
@@ -354,7 +405,10 @@ public unsafe class D2D1Geometry : D2D1Resource
     /// <inheritdoc cref="Widen(float, D2D1StrokeStyle, Matrix3x2*, float, D2D1GeometrySink)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Widen(float strokeWidth, D2D1StrokeStyle strokeStyle, in Matrix3x2 worldTransform, float flatteningTolerance, D2D1GeometrySink geometrySink)
-        => Widen(strokeWidth, strokeStyle, UnsafeHelper.AsPointerIn(in worldTransform), flatteningTolerance, geometrySink);
+    {
+        fixed (Matrix3x2* pWorldTransform = &worldTransform)
+            Widen(strokeWidth, strokeStyle, pWorldTransform, flatteningTolerance, geometrySink);
+    }
 
     /// <summary>
     /// Get the geometry and widen it as well as apply an optional pen style.
@@ -365,6 +419,7 @@ public unsafe class D2D1Geometry : D2D1Resource
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Widen);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, void*, Matrix3x2*, float, void*, int>)functionPointer)(nativePointer, strokeWidth,
             strokeStyle == null ? null : strokeStyle.NativePointer, worldTransform, flatteningTolerance, geometrySink.NativePointer);
+        AfterUnmanagedCall(strokeStyle, geometrySink);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

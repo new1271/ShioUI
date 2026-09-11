@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Security;
@@ -32,7 +33,10 @@ public static unsafe class D2D1
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float D2D1ComputeMaximumScaleFactor(in Matrix3x2 matrix)
-        => D2D1ComputeMaximumScaleFactor(UnsafeHelper.AsPointerIn(in matrix));
+    {
+        fixed (Matrix3x2* pMatrix = &matrix)
+            return D2D1ComputeMaximumScaleFactor(pMatrix);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float D2D1ComputeMaximumScaleFactor(Matrix3x2* matrix)

@@ -39,6 +39,7 @@ public unsafe sealed class D2D1Bitmap1 : D2D1Bitmap
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetColorContext);
         ((delegate* unmanaged[Stdcall]<void*, void*, void>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         return nativePointer == null ? null : new D2D1ColorContext(nativePointer, ReferenceType.Owned);
     }
 
@@ -47,6 +48,7 @@ public unsafe sealed class D2D1Bitmap1 : D2D1Bitmap
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetOptions);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, D2D1BitmapOptions>)functionPointer)(nativePointer);
     }
 
@@ -59,6 +61,7 @@ public unsafe sealed class D2D1Bitmap1 : D2D1Bitmap
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSurface);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return new DXGISurface(nativePointer, ReferenceType.Owned);
     }
@@ -75,6 +78,7 @@ public unsafe sealed class D2D1Bitmap1 : D2D1Bitmap
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Map);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1MapOptions, D2D1MappedRect*, int>)functionPointer)(nativePointer, options, &mappedRect);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return mappedRect;
     }
@@ -87,6 +91,7 @@ public unsafe sealed class D2D1Bitmap1 : D2D1Bitmap
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Unmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

@@ -5,6 +5,7 @@ using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
 
 namespace ShioUI.Graphics.Native.DirectWrite;
@@ -72,6 +73,7 @@ public unsafe sealed class DWriteFont : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontFamily);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFontFamily(nativePointer, ReferenceType.Owned);
     }
@@ -81,7 +83,9 @@ public unsafe sealed class DWriteFont : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetWeight);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight>)functionPointer)(nativePointer);
+        DWriteFontWeight result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -89,7 +93,9 @@ public unsafe sealed class DWriteFont : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetStretch);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontStretch>)functionPointer)(nativePointer);
+        DWriteFontStretch result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontStretch>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -97,15 +103,19 @@ public unsafe sealed class DWriteFont : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetStyle);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontStyle>)functionPointer)(nativePointer);
+        DWriteFontStyle result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontStyle>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
-    private bool IsSymbolFontCore()
+    private SysBool32 IsSymbolFontCore()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.IsSymbolFont);
-        return ((delegate* unmanaged[Stdcall]<void*, bool>)functionPointer)(nativePointer);
+        SysBool32 result = ((delegate* unmanaged[Stdcall]<void*, SysBool32>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -125,8 +135,11 @@ public unsafe sealed class DWriteFont : ComObject
 
     /// <inheritdoc cref="GetInformationalStrings(DWriteInformationalStringId, bool*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DWriteLocalizedStrings GetInformationalStrings(DWriteInformationalStringId informationalStringId, out bool exists)
-        => GetInformationalStrings(informationalStringId, UnsafeHelper.AsPointerOut(out exists));
+    public DWriteLocalizedStrings GetInformationalStrings(DWriteInformationalStringId informationalStringId, out SysBool32 exists)
+    {
+        fixed (SysBool32* pExists = &exists)
+            return GetInformationalStrings(informationalStringId, pExists);
+    }
 
     /// <summary>
     /// Gets a localized strings collection containing the specified informational strings, indexed by locale name.
@@ -136,12 +149,13 @@ public unsafe sealed class DWriteFont : ComObject
     /// <returns>
     /// The newly created localized strings object.
     /// </returns>
-    public DWriteLocalizedStrings GetInformationalStrings(DWriteInformationalStringId informationalStringId, bool* exists)
+    public DWriteLocalizedStrings GetInformationalStrings(DWriteInformationalStringId informationalStringId, SysBool32* exists)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetInformationalStrings);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteInformationalStringId, void**, bool*, int>)functionPointer)(nativePointer, informationalStringId,
+        int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteInformationalStringId, void**, SysBool32*, int>)functionPointer)(nativePointer, informationalStringId,
             &nativePointer, exists);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteLocalizedStrings(nativePointer, ReferenceType.Owned);
     }
@@ -151,14 +165,16 @@ public unsafe sealed class DWriteFont : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSimulations);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontSimulations>)functionPointer)(nativePointer);
+        DWriteFontSimulations result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontSimulations>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="HasCharacter(uint)"/>
     /// <param name="charactor">Unicode (UCS-2) character value.</param>
     [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasCharacter(char charactor) => HasCharacter(unchecked((uint)charactor));
+    public SysBool32 HasCharacter(char charactor) => HasCharacter(unchecked((uint)charactor));
 
     /// <summary>
     /// Determines whether the font supports the specified character.
@@ -168,12 +184,13 @@ public unsafe sealed class DWriteFont : ComObject
     /// <see langword="true"/> if the font supports the specified character or <see langword="false"/> if not.
     /// </returns>
     [SkipLocalsInit]
-    public bool HasCharacter(uint unicodeValue)
+    public SysBool32 HasCharacter(uint unicodeValue)
     {
-        bool exists;
+        SysBool32 exists;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.HasCharacter);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, bool*, int>)functionPointer)(nativePointer, unicodeValue, &exists);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, uint, SysBool32*, int>)functionPointer)(nativePointer, unicodeValue, &exists);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return exists;
     }

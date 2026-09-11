@@ -38,6 +38,7 @@ public sealed unsafe class D2D1DeviceContext1 : D2D1DeviceContext
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateFilledGeometryRealization);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, float, void**, int>)functionPointer)(nativePointer, geometry.NativePointer, flatteningTolerance, &nativePointer);
+        AfterUnmanagedCall(geometry);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1GeometryRealization(nativePointer, ReferenceType.Owned);
     }
@@ -54,6 +55,7 @@ public sealed unsafe class D2D1DeviceContext1 : D2D1DeviceContext
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateStrokedGeometryRealization);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, float, float, void*, void**, int>)functionPointer)(nativePointer,
             geometry.NativePointer, flatteningTolerance, strokeWidth, strokeStyle == null ? null : strokeStyle.NativePointer, &nativePointer);
+        AfterUnmanagedCall(geometry, strokeStyle);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1GeometryRealization(nativePointer, ReferenceType.Owned);
     }
@@ -69,5 +71,6 @@ public sealed unsafe class D2D1DeviceContext1 : D2D1DeviceContext
         [Stdcall]
 #endif
         <void*, void*, void*, void>)functionPointer)(nativePointer, geometryRealization.NativePointer, brush.NativePointer);
+        AfterUnmanagedCall(geometryRealization, brush);
     }
 }

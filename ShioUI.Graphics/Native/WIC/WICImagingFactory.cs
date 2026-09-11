@@ -68,7 +68,10 @@ public sealed unsafe class WICImagingFactory : ComObject
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public WICBitmapDecoder CreateDecoderFromFilename(string filename, in Guid vendorGuid, FileAccess access, WICDecodeOptions metadataOptions)
-        => CreateDecoderFromFilenameCore(filename, UnsafeHelper.AsPointerIn(in vendorGuid), access, metadataOptions);
+    {
+        fixed (Guid* pVenderGuid = &vendorGuid)
+            return CreateDecoderFromFilenameCore(filename, pVenderGuid, access, metadataOptions);
+    }
 
     private WICBitmapDecoder CreateDecoderFromFilenameCore(string filename, Guid* vendorGuid, FileAccess access, WICDecodeOptions metadataOptions)
     {
@@ -79,6 +82,7 @@ public sealed unsafe class WICImagingFactory : ComObject
         {
             hr = ((delegate* unmanaged[Stdcall]<void*, char*, Guid*, uint, WICDecodeOptions, void**, int>)functionPointer)(nativePointer,
                 ptr, vendorGuid, ConvertFileAccessToWin32GenericAccess(access), metadataOptions, &nativePointer);
+            AfterUnmanagedCall();
         }
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new WICBitmapDecoder(nativePointer, ReferenceType.Owned);
@@ -90,7 +94,10 @@ public sealed unsafe class WICImagingFactory : ComObject
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public WICBitmapDecoder CreateDecoderFromStream(IWin32Stream stream, in Guid vendorGuid, WICDecodeOptions metadataOptions)
-        => CreateDecoderFromStream(stream, UnsafeHelper.AsPointerIn(in vendorGuid), metadataOptions);
+    {
+        fixed (Guid* pVendorGuid = &vendorGuid)
+            return CreateDecoderFromStream(stream, pVendorGuid, metadataOptions);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public WICBitmapDecoder CreateDecoderFromStream(IWin32Stream stream, Guid* vendorGuid, WICDecodeOptions metadataOptions)
@@ -107,6 +114,7 @@ public sealed unsafe class WICImagingFactory : ComObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateDecoderFromStream);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, Guid*, WICDecodeOptions, void**, int>)functionPointer)(nativePointer,
                 pStream, vendorGuid, metadataOptions, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new WICBitmapDecoder(nativePointer, ReferenceType.Owned);
     }
@@ -117,7 +125,10 @@ public sealed unsafe class WICImagingFactory : ComObject
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public WICBitmapDecoder CreateDecoderFromFileHandle(IntPtr handle, in Guid vendorGuid, WICDecodeOptions metadataOptions)
-        => CreateDecoderFromFileHandleCore(handle, UnsafeHelper.AsPointerIn(in vendorGuid), metadataOptions);
+    {
+        fixed (Guid* pVendorGuid = &vendorGuid)
+            return CreateDecoderFromFileHandleCore(handle, pVendorGuid, metadataOptions);
+    }
 
     private WICBitmapDecoder CreateDecoderFromFileHandleCore(IntPtr handle, Guid* vendorGuid, WICDecodeOptions metadataOptions)
     {
@@ -125,6 +136,7 @@ public sealed unsafe class WICImagingFactory : ComObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateDecoderFromFileHandle);
         int hr = ((delegate* unmanaged[Stdcall]<void*, IntPtr, Guid*, WICDecodeOptions, void**, int>)functionPointer)(nativePointer,
                 handle, vendorGuid, metadataOptions, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new WICBitmapDecoder(nativePointer, ReferenceType.Owned);
     }
@@ -134,6 +146,7 @@ public sealed unsafe class WICImagingFactory : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapScaler);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new WICBitmapScaler(nativePointer, ReferenceType.Owned);
     }
@@ -143,6 +156,7 @@ public sealed unsafe class WICImagingFactory : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapClipper);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new WICBitmapClipper(nativePointer, ReferenceType.Owned);
     }
@@ -152,6 +166,7 @@ public sealed unsafe class WICImagingFactory : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapFlipRotator);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new WICBitmapFlipRotator(nativePointer, ReferenceType.Owned);
     }

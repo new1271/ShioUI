@@ -31,7 +31,6 @@ public unsafe class WICBitmapSource : ComObject
     public Guid PixelFormat => GetPixelFormat();
     public PointD Resolution => GetResolution();
 
-
     [SkipLocalsInit]
     [Inline(InlineBehavior.Remove)]
     private Size GetSize()
@@ -40,6 +39,7 @@ public unsafe class WICBitmapSource : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int*, int*, int>)functionPointer)(nativePointer, (int*)&result, (int*)&result + 1);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -52,6 +52,7 @@ public unsafe class WICBitmapSource : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPixelFormat);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Guid*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -64,6 +65,7 @@ public unsafe class WICBitmapSource : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetResolution);
         int hr = ((delegate* unmanaged[Stdcall]<void*, double*, double*, int>)functionPointer)(nativePointer, (double*)&result, (double*)&result + 1);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -72,8 +74,12 @@ public unsafe class WICBitmapSource : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CopyPixels);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, Rectangle*, uint, uint, byte*, int>)functionPointer)(nativePointer,
-            UnsafeHelper.AsPointerIn(rect), stride, bufferSize, buffer);
-        ThrowHelper.ThrowExceptionForHR(hr);
+        fixed (Rectangle* pRect = &rect)
+        {
+            int hr = ((delegate* unmanaged[Stdcall]<void*, Rectangle*, uint, uint, byte*, int>)functionPointer)(nativePointer,
+                pRect, stride, bufferSize, buffer);
+            AfterUnmanagedCall();
+            ThrowHelper.ThrowExceptionForHR(hr);
+        }
     }
 }

@@ -67,6 +67,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetCenter);
         ((delegate* unmanaged[Stdcall]<void*, PointF, void>)functionPointer)(nativePointer, startPoint);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -75,6 +76,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetGradientOriginOffset);
         ((delegate* unmanaged[Stdcall]<void*, PointF, void>)functionPointer)(nativePointer, endPoint);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -83,6 +85,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetRadiusX);
         ((delegate* unmanaged[Stdcall]<void*, float, void>)functionPointer)(nativePointer, radiusX);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -91,6 +94,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetRadiusY);
         ((delegate* unmanaged[Stdcall]<void*, float, void>)functionPointer)(nativePointer, radiusY);
+        AfterUnmanagedCall();
     }
 
     [SkipLocalsInit]
@@ -101,6 +105,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetCenter);
         ((delegate* unmanaged[Stdcall]<void*, PointF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -112,6 +117,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetGradientOriginOffset);
         ((delegate* unmanaged[Stdcall]<void*, PointF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 
@@ -120,7 +126,9 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetRadiusX);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -128,7 +136,9 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetRadiusY);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -137,6 +147,7 @@ public unsafe sealed class D2D1RadialGradientBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetGradientStopCollection);
         ((delegate* unmanaged[Stdcall]<void*, void**, void>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         return nativePointer == null ? null : new D2D1GradientStopCollection(nativePointer, ReferenceType.Owned);
     }
 }

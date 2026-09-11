@@ -25,13 +25,16 @@ public sealed unsafe class D2D1TessellationSink : ComObject
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddTriangles(in D2D1Triangle triangle)
-        => AddTriangles(UnsafeHelper.AsPointerIn(in triangle), 1u);
+    {
+        fixed (D2D1Triangle* pTriangles = &triangle)
+            AddTriangles(pTriangles, 1u);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddTriangles(params D2D1Triangle[] triangles)
     {
-        fixed (D2D1Triangle* ptr = triangles)
-            AddTriangles(ptr, unchecked((uint)triangles.Length));
+        fixed (D2D1Triangle* pTriangles = triangles)
+            AddTriangles(pTriangles, MathHelper.MakeUnsigned(triangles.Length));
     }
 
     public void AddTriangles(D2D1Triangle* triangles, uint trianglesCount)
@@ -39,6 +42,7 @@ public sealed unsafe class D2D1TessellationSink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.AddTriangles);
         ((delegate* unmanaged[Stdcall]<void*, D2D1Triangle*, uint, void>)functionPointer)(nativePointer, triangles, trianglesCount);
+        AfterUnmanagedCall();
     }
 
     public void Close()
@@ -46,6 +50,7 @@ public sealed unsafe class D2D1TessellationSink : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Close);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

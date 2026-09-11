@@ -26,16 +26,16 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
         _End
     }
 
-    private readonly LazyTiny<D2D1GradientStop[]> _arrayLazy;
+    private readonly LazyTiny<D2D1GradientStop[], D2D1GradientStopCollection> _arrayLazy;
 
     public D2D1GradientStopCollection() : base()
     {
-        _arrayLazy = new LazyTiny<D2D1GradientStop[]>(() => GetGradientStops(GetGradientStopCount()));
+        _arrayLazy = new LazyTiny<D2D1GradientStop[], D2D1GradientStopCollection>(_this => _this.GetGradientStops(GetGradientStopCount()), this);
     }
 
     public D2D1GradientStopCollection(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType)
     {
-        _arrayLazy = new LazyTiny<D2D1GradientStop[]>(() => GetGradientStops(GetGradientStopCount()));
+        _arrayLazy = new LazyTiny<D2D1GradientStop[], D2D1GradientStopCollection>(_this => _this.GetGradientStops(GetGradientStopCount()), this);
     }
 
     /// <summary>
@@ -51,7 +51,9 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
 
     public D2D1GradientStop this[uint index] => _arrayLazy.Value[index];
 
-    public IEnumerator<D2D1GradientStop> GetEnumerator() => new Enumerator(_arrayLazy.Value);
+    public Enumerator GetEnumerator() => new Enumerator(_arrayLazy.Value);
+
+    IEnumerator<D2D1GradientStop> IEnumerable<D2D1GradientStop>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => _arrayLazy.Value.GetEnumerator();
 
@@ -78,7 +80,9 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetGradientStopCount);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -96,6 +100,7 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetGradientStops);
         ((delegate* unmanaged[Stdcall]<void*, D2D1GradientStop*, uint, void>)functionPointer)(nativePointer, gradientStops, gradientStopsCount);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -103,17 +108,21 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetColorInterpolationGamma);
-        return ((delegate* unmanaged[Stdcall]<void*, D2D1Gamma>)functionPointer)(nativePointer);
+        D2D1Gamma result = ((delegate* unmanaged[Stdcall]<void*, D2D1Gamma>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     private D2D1ExtendMode GetExtendMode()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetExtendMode);
-        return ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode>)functionPointer)(nativePointer);
+        D2D1ExtendMode result = ((delegate* unmanaged[Stdcall]<void*, D2D1ExtendMode>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
-    private sealed class Enumerator : IEnumerator<D2D1GradientStop>
+    public struct Enumerator : IEnumerator<D2D1GradientStop>
     {
         private readonly int _bound;
         private readonly D2D1GradientStop[] _array;
@@ -127,9 +136,9 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
             _index = -1;
         }
 
-        public D2D1GradientStop Current => _index < 0 || _index >= _bound ? default : _array[_index];
+        public readonly D2D1GradientStop Current => _index < 0 || _index >= _bound ? default : _array[_index];
 
-        object IEnumerator.Current => _index < 0 || _index >= _bound ? default : _array[_index];
+        readonly object IEnumerator.Current => _index < 0 || _index >= _bound ? default : _array[_index];
 
         public bool MoveNext()
         {
@@ -146,10 +155,6 @@ public unsafe sealed class D2D1GradientStopCollection : D2D1Resource, IReadOnlyC
             _index = -1;
         }
 
-        public void Dispose()
-        {
-            Reset();
-            GC.SuppressFinalize(this);
-        }
+        public void Dispose() => Reset();
     }
 }

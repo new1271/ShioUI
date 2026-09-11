@@ -24,14 +24,18 @@ public unsafe class DXGIFactory6 : DXGIFactory5
     public DXGIFactory6(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DXGIAdapter? EnumAdapterByGpuPreference(uint adapter, DXGIGpuPreference perference, in Guid riid, bool throwException = true)
-        => EnumAdapterByGpuPreference(adapter, perference, UnsafeHelper.AsPointerIn(in riid), throwException);
+    public DXGIAdapter? EnumAdapterByGpuPreference(uint adapter, DXGIGpuPreference perference, in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return EnumAdapterByGpuPreference(adapter, perference, riid, throwException);
+    }
 
     public DXGIAdapter? EnumAdapterByGpuPreference(uint adapter, DXGIGpuPreference perference, Guid* riid, bool throwException = true)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.EnumAdapterByGpuPreference);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, DXGIGpuPreference, Guid*, void**, int>)functionPointer)(nativePointer, adapter, perference, riid, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else

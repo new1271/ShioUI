@@ -144,6 +144,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetTextAlignment);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteTextAlignment, int>)functionPointer)(nativePointer, textAlignment);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -153,6 +154,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetParagraphAlignment);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteParagraphAlignment, int>)functionPointer)(nativePointer, paragraphAlignment);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -162,6 +164,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetWordWrapping);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteWordWrapping, int>)functionPointer)(nativePointer, wordWrapping);
+        AfterUnmanagedCall();
         if (hr >= 0)
             return;
         if (wordWrapping < DWriteWordWrapping.EmergencyBreak)
@@ -175,6 +178,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetReadingDirection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteReadingDirection, int>)functionPointer)(nativePointer, readingDirection);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -184,6 +188,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetFlowDirection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteFlowDirection, int>)functionPointer)(nativePointer, flowDirection);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -193,13 +198,17 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetIncrementalTabStop);
         int hr = ((delegate* unmanaged[Stdcall]<void*, float, int>)functionPointer)(nativePointer, incrementalTabStop);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
     /// <inheritdoc cref="SetTrimming(DWriteTrimming*, DWriteInlineObject?)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetTrimming(in DWriteTrimming trimmingOptions, DWriteInlineObject? trimmingSign)
-        => SetTrimming(UnsafeHelper.AsPointerIn(in trimmingOptions), trimmingSign);
+    {
+        fixed (DWriteTrimming* pTrimmingOptions = &trimmingOptions)
+            SetTrimming(pTrimmingOptions, trimmingSign);
+    }
 
     /// <summary>
     /// Set trimming options for any trailing text exceeding the layout width or for any far text exceeding the layout height.
@@ -216,6 +225,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetTrimming);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteTrimming*, void*, int>)functionPointer)(nativePointer,
             trimmingOptions, trimmingSign is null ? null : trimmingSign.NativePointer);
+        AfterUnmanagedCall(trimmingSign);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -234,6 +244,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetLineSpacing);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteLineSpacingMethod, float, float, int>)functionPointer)(nativePointer, lineSpacingMethod, lineSpacing, baseline);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -242,7 +253,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetTextAlignment);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteTextAlignment>)functionPointer)(nativePointer);
+        DWriteTextAlignment result = ((delegate* unmanaged[Stdcall]<void*, DWriteTextAlignment>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -250,7 +263,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetParagraphAlignment);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteParagraphAlignment>)functionPointer)(nativePointer);
+        DWriteParagraphAlignment result = ((delegate* unmanaged[Stdcall]<void*, DWriteParagraphAlignment>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -258,7 +273,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetWordWrapping);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteWordWrapping>)functionPointer)(nativePointer);
+        DWriteWordWrapping result = ((delegate* unmanaged[Stdcall]<void*, DWriteWordWrapping>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -266,7 +283,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetReadingDirection);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteReadingDirection>)functionPointer)(nativePointer);
+        DWriteReadingDirection result = ((delegate* unmanaged[Stdcall]<void*, DWriteReadingDirection>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -274,7 +293,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFlowDirection);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFlowDirection>)functionPointer)(nativePointer);
+        DWriteFlowDirection result = ((delegate* unmanaged[Stdcall]<void*, DWriteFlowDirection>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -282,13 +303,18 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetIncrementalTabStop);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="GetTrimming(DWriteTrimming*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DWriteInlineObject? GetTrimming(out DWriteTrimming trimmingOptions)
-        => GetTrimming(UnsafeHelper.AsPointerOut(out trimmingOptions));
+    {
+        fixed (DWriteTrimming* pTrimmingOptions = &trimmingOptions)
+            return GetTrimming(pTrimmingOptions);
+    }
 
     /// <summary>
     /// Get trimming options for text overflowing the layout width.
@@ -303,6 +329,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetTrimming);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteTrimming*, void*, int>)functionPointer)(nativePointer,
             trimmingOptions, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer is null ? null : new DWriteInlineObject(nativePointer, ReferenceType.Owned);
     }
@@ -318,7 +345,11 @@ public unsafe class DWriteTextFormat : ComObject
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GetLineSpacing(out DWriteLineSpacingMethod lineSpacingMethod, out float lineSpacing, out float baseline)
-        => GetLineSpacing(UnsafeHelper.AsPointerOut(out lineSpacingMethod), UnsafeHelper.AsPointerOut(out lineSpacing), UnsafeHelper.AsPointerOut(out baseline));
+    {
+        fixed (DWriteLineSpacingMethod* pLineSpacingMethod = &lineSpacingMethod)
+        fixed (float* pLineSpacing = &lineSpacing, pBaseLine = &baseline)
+            GetLineSpacing(pLineSpacingMethod, pLineSpacing, pBaseLine);
+    }
 
     /// <summary>
     /// Get line spacing.
@@ -334,6 +365,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLineSpacing);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteLineSpacingMethod*, float*, float*, int>)functionPointer)(nativePointer, lineSpacingMethod, lineSpacing, baseline);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -348,6 +380,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontCollection);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFontCollection(nativePointer, ReferenceType.Owned);
     }
@@ -359,7 +392,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontFamilyNameLength);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -388,6 +423,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontFamilyName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint, int>)functionPointer)(nativePointer, fontFamilyName, nameSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -396,7 +432,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontWeight);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight>)functionPointer)(nativePointer);
+        DWriteFontWeight result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -404,7 +442,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontStyle);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontStyle>)functionPointer)(nativePointer);
+        DWriteFontStyle result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontStyle>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -412,7 +452,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontStretch);
-        return ((delegate* unmanaged[Stdcall]<void*, DWriteFontStretch>)functionPointer)(nativePointer);
+        DWriteFontStretch result = ((delegate* unmanaged[Stdcall]<void*, DWriteFontStretch>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -420,7 +462,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFontSize);
-        return ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        float result = ((delegate* unmanaged[Stdcall]<void*, float>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -430,7 +474,9 @@ public unsafe class DWriteTextFormat : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLocaleNameLength);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -459,6 +505,7 @@ public unsafe class DWriteTextFormat : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLocaleName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint, int>)functionPointer)(nativePointer, localeName, nameSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

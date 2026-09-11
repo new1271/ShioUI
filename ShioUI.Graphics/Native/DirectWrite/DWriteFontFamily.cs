@@ -36,6 +36,7 @@ public unsafe sealed class DWriteFontFamily : DWriteFontList
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFamilyNames);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteLocalizedStrings(nativePointer, ReferenceType.Owned);
     }
@@ -55,6 +56,7 @@ public unsafe sealed class DWriteFontFamily : DWriteFontList
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFirstMatchingFont);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight, DWriteFontStretch, DWriteFontStyle, void**, int>)functionPointer)(nativePointer,
             weight, stretch, style, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFont(nativePointer, ReferenceType.Owned);
     }
@@ -74,6 +76,7 @@ public unsafe sealed class DWriteFontFamily : DWriteFontList
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMatchingFonts);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DWriteFontWeight, DWriteFontStretch, DWriteFontStyle, void**, int>)functionPointer)(nativePointer,
             weight, stretch, style, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFontList(nativePointer, ReferenceType.Owned);
     }

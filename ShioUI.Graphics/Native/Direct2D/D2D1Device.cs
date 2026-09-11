@@ -37,12 +37,16 @@ public sealed unsafe class D2D1Device : D2D1Resource
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D2D1Device Create(DXGIDevice device, in D2D1CreationProperties creationProperties)
-        => Create(device, UnsafeHelper.AsPointerIn(in creationProperties));
+    {
+        fixed (D2D1CreationProperties* pCreationProperties = &creationProperties)
+            return Create(device, pCreationProperties);
+    }
 
     public static D2D1Device Create(DXGIDevice device, D2D1CreationProperties* creationProperties)
     {
         void* nativePointer;
         int hr = D2D1.D2D1CreateDevice(device.NativePointer, creationProperties, &nativePointer);
+        GC.KeepAlive(device);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Device(nativePointer, ReferenceType.Owned);
     }
@@ -64,6 +68,7 @@ public sealed unsafe class D2D1Device : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateDeviceContext);
         int hr = ((delegate* unmanaged[Stdcall]<void*, D2D1DeviceContextOptions, void**, int>)functionPointer)(nativePointer, options, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1DeviceContext(nativePointer, ReferenceType.Owned);
     }
@@ -74,6 +79,7 @@ public sealed unsafe class D2D1Device : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetMaximumTextureMemory);
         ((delegate* unmanaged[Stdcall]<void*, ulong, void>)functionPointer)(nativePointer, maximumInBytes);
+        AfterUnmanagedCall();
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -81,7 +87,9 @@ public sealed unsafe class D2D1Device : D2D1Resource
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetMaximumTextureMemory);
-        return ((delegate* unmanaged[Stdcall]<void*, ulong>)functionPointer)(nativePointer);
+        ulong result = ((delegate* unmanaged[Stdcall]<void*, ulong>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -93,5 +101,6 @@ public sealed unsafe class D2D1Device : D2D1Resource
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.ClearResources);
         ((delegate* unmanaged[Stdcall]<void*, uint, void>)functionPointer)(nativePointer, millisecondsSinceUse);
+        AfterUnmanagedCall();
     }
 }

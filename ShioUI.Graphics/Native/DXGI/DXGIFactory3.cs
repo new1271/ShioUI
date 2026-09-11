@@ -30,6 +30,8 @@ public unsafe class DXGIFactory3 : DXGIFactory2
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetCreationFlags);
-        return ((delegate* unmanaged[Stdcall]<void*, DXGICreateFactoryFlags>)functionPointer)(nativePointer);
+        DXGICreateFactoryFlags result = ((delegate* unmanaged[Stdcall]<void*, DXGICreateFactoryFlags>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 }

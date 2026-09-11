@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 using InlineMethod;
@@ -32,7 +33,9 @@ public unsafe sealed class D2D1SolidColorBrush : D2D1Brush
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetColor);
-        ((delegate* unmanaged[Stdcall]<void*, D2D1ColorF*, void>)functionPointer)(nativePointer, UnsafeHelper.AsPointerIn(in color));
+        fixed (D2D1ColorF* pColor = &color)
+            ((delegate* unmanaged[Stdcall]<void*, D2D1ColorF*, void>)functionPointer)(nativePointer, pColor);
+        AfterUnmanagedCall();
     }
 
     [SkipLocalsInit]
@@ -43,6 +46,7 @@ public unsafe sealed class D2D1SolidColorBrush : D2D1Brush
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetColor);
         ((delegate* unmanaged[Stdcall]<void*, D2D1ColorF*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 }

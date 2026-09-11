@@ -29,6 +29,7 @@ public sealed unsafe class DCompositionTarget : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetRoot);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, int>)functionPointer)(nativePointer, visual.NativePointer);
+        AfterUnmanagedCall(visual);
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Security;
 
 using RiceTea.Core.Native;
@@ -30,6 +31,7 @@ public abstract unsafe class D2D1Resource : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFactory);
         ((delegate* unmanaged[Stdcall]<void*, void**, void>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         return nativePointer == null ? null : new D2D1Factory(nativePointer, ReferenceType.Owned);
     }
 }

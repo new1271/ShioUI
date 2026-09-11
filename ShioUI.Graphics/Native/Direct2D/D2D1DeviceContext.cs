@@ -90,7 +90,10 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     /// <inheritdoc cref="CreateBitmap1(SizeU, void*, uint, D2D1BitmapProperties1*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1Bitmap1 CreateBitmap1(SizeU size, void* sourceData, uint pitch, in D2D1BitmapProperties1 bitmapProperties)
-        => CreateBitmap1(size, sourceData, pitch, UnsafeHelper.AsPointerIn(in bitmapProperties));
+    {
+        fixed (D2D1BitmapProperties1* pBitmapProperties = &bitmapProperties)
+            return CreateBitmap1(size, sourceData, pitch, pBitmapProperties);
+    }
 
     /// <summary>
     /// Creates a bitmap with extended bitmap properties, potentially from a block of memory.
@@ -101,6 +104,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, SizeU, void*, uint, D2D1BitmapProperties1*, void**, int>)functionPointer)(nativePointer,
             size, sourceData, pitch, bitmapProperties, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Bitmap1(nativePointer, ReferenceType.Owned);
     }
@@ -113,7 +117,10 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     /// <inheritdoc cref="CreateBitmapFromWicBitmap1(WICBitmapSource, D2D1BitmapProperties1*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1Bitmap1 CreateBitmapFromWicBitmap1(WICBitmapSource wicBitmapSource, in D2D1BitmapProperties1 bitmapProperties)
-        => CreateBitmapFromWicBitmap1(wicBitmapSource, UnsafeHelper.AsPointerIn(in bitmapProperties));
+    {
+        fixed (D2D1BitmapProperties1* pBitmapProperties = &bitmapProperties)
+            return CreateBitmapFromWicBitmap1(wicBitmapSource, pBitmapProperties);
+    }
 
     /// <summary>
     /// Create a D2D bitmap by copying a WIC bitmap.
@@ -124,6 +131,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapFromWicBitmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, D2D1BitmapProperties1*, void**, int>)functionPointer)(nativePointer,
             wicBitmapSource.NativePointer, bitmapProperties, &nativePointer);
+        AfterUnmanagedCall(wicBitmapSource);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Bitmap1(nativePointer, ReferenceType.Owned);
     }
@@ -138,7 +146,10 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     /// <inheritdoc cref="CreateBitmapFromDxgiSurface(DXGISurface, D2D1BitmapProperties1*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1Bitmap1 CreateBitmapFromDxgiSurface(DXGISurface surface, in D2D1BitmapProperties1 bitmapProperties)
-        => CreateBitmapFromDxgiSurface(surface, UnsafeHelper.AsPointerIn(in bitmapProperties));
+    {
+        fixed (D2D1BitmapProperties1* pBitmapProperties = &bitmapProperties)
+            return CreateBitmapFromDxgiSurface(surface, pBitmapProperties);
+    }
 
     /// <summary>
     /// Creates a bitmap from a DXGI surface with a set of extended properties.
@@ -149,6 +160,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateBitmapFromDxgiSurface);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, D2D1BitmapProperties1*, void**, int>)functionPointer)(nativePointer,
             surface.NativePointer, bitmapProperties, &nativePointer);
+        AfterUnmanagedCall(surface);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Bitmap1(nativePointer, ReferenceType.Owned);
     }
@@ -156,7 +168,10 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     /// <inheritdoc cref="CreateEffect(Guid*)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public D2D1Effect CreateEffect(in Guid effectId)
-        => CreateEffect(UnsafeHelper.AsPointerIn(in effectId));
+    {
+        fixed (Guid* pEffectId = &effectId)
+            return CreateEffect(pEffectId);
+    }
 
     /// <summary>
     /// Create a new effect, the effect must either be built in or previously registered
@@ -167,6 +182,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateEffect);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Guid*, void**, int>)functionPointer)(nativePointer, effectId, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new D2D1Effect(nativePointer, ReferenceType.Owned);
     }
@@ -174,17 +190,19 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     /// <summary>
     /// Indicates whether the format is supported by D2D.
     /// </summary>
-    public bool IsDxgiFormatSupported(DXGIFormat format)
+    public SysBool32 IsDxgiFormatSupported(DXGIFormat format)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.IsDxgiFormatSupported);
-        return ((delegate* unmanaged
+        SysBool32 result = ((delegate* unmanaged
 #if NET8_0_OR_GREATER
         [Stdcall, SuppressGCTransition]
 #else
         [Stdcall]
 #endif
-        <void*, DXGIFormat, bool>)functionPointer)(nativePointer, format);
+        <void*, DXGIFormat, SysBool32>)functionPointer)(nativePointer, format);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -201,6 +219,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         [Stdcall]
 #endif
         <void*, void**, void>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         return nativePointer == null ? null : new D2D1Device(nativePointer, ReferenceType.Owned);
     }
 
@@ -216,6 +235,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         [Stdcall]
 #endif
         <void*, void*, void>)functionPointer)(nativePointer, image == null ? null : image.NativePointer);
+        AfterUnmanagedCall(image);
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -231,6 +251,7 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         [Stdcall]
 #endif
         <void*, void**, void>)functionPointer)(nativePointer, &image);
+        AfterUnmanagedCall();
         return image == null ? null : new D2D1Image(image, ReferenceType.Owned);
     }
 
@@ -245,13 +266,20 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawImage(D2D1Image image, in PointF targetOffset,
         D2D1InterpolationMode interpolationMode = D2D1InterpolationMode.Linear, D2D1CompositeMode compositeMode = D2D1CompositeMode.SourceOver)
-        => DrawImage(image, UnsafeHelper.AsPointerIn(in targetOffset), null, interpolationMode, compositeMode);
+    {
+        fixed (PointF* pTargetOffset = &targetOffset)
+            DrawImage(image, pTargetOffset, null, interpolationMode, compositeMode);
+    }
 
     /// <inheritdoc cref="DrawImage(D2D1Image, PointF*, RectF*, D2D1InterpolationMode, D2D1CompositeMode)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawImage(D2D1Image image, in PointF targetOffset, in RectF imageRectangle,
         D2D1InterpolationMode interpolationMode = D2D1InterpolationMode.Linear, D2D1CompositeMode compositeMode = D2D1CompositeMode.SourceOver)
-        => DrawImage(image, UnsafeHelper.AsPointerIn(in targetOffset), UnsafeHelper.AsPointerIn(in imageRectangle), interpolationMode, compositeMode);
+    {
+        fixed (PointF* pTargetOffset = &targetOffset)
+        fixed (RectF* pImageRectangle = &imageRectangle)
+            DrawImage(image, pTargetOffset, pImageRectangle, interpolationMode, compositeMode);
+    }
 
     /// <summary>
     /// Draw an image to the device context. The image represents either a concrete
@@ -264,24 +292,33 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.DrawImage);
         ((delegate* unmanaged[Stdcall]<void*, void*, PointF*, RectF*, D2D1InterpolationMode, D2D1CompositeMode, void>)functionPointer)(nativePointer,
             image.NativePointer, targetOffset, imageRectangle, interpolationMode, compositeMode);
+        AfterUnmanagedCall(image);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawBitmap(D2D1Bitmap bitmap, in RectF destinationRectangle, float opacity = 1.0f,
        D2D1InterpolationMode interpolationMode = D2D1InterpolationMode.Linear)
-        => DrawBitmap(bitmap, UnsafeHelper.AsPointerIn(in destinationRectangle), opacity, interpolationMode, null, null);
+    {
+        fixed (RectF* pDestinationRectangle = &destinationRectangle)
+            DrawBitmap(bitmap, pDestinationRectangle, opacity, interpolationMode, null, null);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawBitmap(D2D1Bitmap bitmap, in RectF destinationRectangle, in RectF sourceRectangle, float opacity = 1.0f,
         D2D1InterpolationMode interpolationMode = D2D1InterpolationMode.Linear)
-        => DrawBitmap(bitmap, UnsafeHelper.AsPointerIn(in destinationRectangle), opacity, interpolationMode,
-            UnsafeHelper.AsPointerIn(in sourceRectangle), null);
+    {
+        fixed (RectF* pDestinationRectangle = &destinationRectangle, pSourceRectangle = &sourceRectangle)
+            DrawBitmap(bitmap, pDestinationRectangle, opacity, interpolationMode, pSourceRectangle, null);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void DrawBitmap(D2D1Bitmap bitmap, in RectF destinationRectangle, in RectF sourceRectangle, in Matrix4x4 perspectiveTransform, float opacity = 1.0f,
         D2D1InterpolationMode interpolationMode = D2D1InterpolationMode.Linear)
-        => DrawBitmap(bitmap, UnsafeHelper.AsPointerIn(in destinationRectangle), opacity, interpolationMode,
-            UnsafeHelper.AsPointerIn(in sourceRectangle), UnsafeHelper.AsPointerIn(in perspectiveTransform));
+    {
+        fixed (RectF* pDestinationRectangle = &destinationRectangle, pSourceRectangle = &sourceRectangle)
+        fixed (Matrix4x4* pPerspectiveTransform = &perspectiveTransform)
+            DrawBitmap(bitmap, pDestinationRectangle, opacity, interpolationMode, pSourceRectangle, pPerspectiveTransform);
+    }
 
     public void DrawBitmap(D2D1Bitmap bitmap, RectF* destinationRectangle = null, float opacity = 1.0f,
         D2D1InterpolationMode interpolationMode = D2D1InterpolationMode.Linear, RectF* sourceRectangle = null, Matrix4x4* perspectiveTransform = null)
@@ -290,5 +327,6 @@ public unsafe class D2D1DeviceContext : D2D1RenderTarget, IRenderingContext
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.DrawBitmap);
         ((delegate* unmanaged[Stdcall]<void*, void*, RectF*, float, D2D1InterpolationMode, RectF*, Matrix4x4*, void>)functionPointer)(nativePointer,
             bitmap.NativePointer, destinationRectangle, opacity, interpolationMode, sourceRectangle, perspectiveTransform);
+        AfterUnmanagedCall(bitmap);
     }
 }

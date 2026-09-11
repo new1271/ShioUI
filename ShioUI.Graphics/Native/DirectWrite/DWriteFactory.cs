@@ -6,6 +6,7 @@ using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
 
 namespace ShioUI.Graphics.Native.DirectWrite;
@@ -62,19 +63,28 @@ public unsafe sealed class DWriteFactory : ComObject
     /// <summary>
     /// Gets a font collection representing the set of installed fonts.
     /// </summary>
+    /// <returns>
+    /// The system font collection object.
+    /// </returns>
+    public DWriteFontCollection GetSystemFontCollection() => GetSystemFontCollection(checkForUpdates: SysBool32.False);
+
+    /// <summary>
+    /// Gets a font collection representing the set of installed fonts.
+    /// </summary>
     /// <param name="checkForUpdates">
-    /// If this parameter is <see langword="true"/>, the function performs an immediate check for changes to the set of installed fonts. <br/>
-    /// If this parameter is <see langword="false"/>, the function will still detect changes if the font cache service is running, but there may be some latency. <br/>
-    /// For example, an application might specify <see langword="true"/> if it has itself just installed a font and wants to be sure the font collection contains that font.
+    /// If this parameter is <see cref="SysBool32.True"/>, the function performs an immediate check for changes to the set of installed fonts. <br/>
+    /// If this parameter is <see cref="SysBool32.False"/>, the function will still detect changes if the font cache service is running, but there may be some latency. <br/>
+    /// For example, an application might specify <see cref="SysBool32.True"/> if it has itself just installed a font and wants to be sure the font collection contains that font.
     /// </param>
     /// <returns>
     /// The system font collection object.
     /// </returns>
-    public DWriteFontCollection GetSystemFontCollection(bool checkForUpdates = false)
+    public DWriteFontCollection GetSystemFontCollection(SysBool32 checkForUpdates)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSystemFontCollection);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, void**, bool, int>)functionPointer)(nativePointer, &nativePointer, checkForUpdates);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, void**, SysBool32, int>)functionPointer)(nativePointer, &nativePointer, checkForUpdates);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteFontCollection(nativePointer, ReferenceType.Owned);
     }
@@ -124,6 +134,7 @@ public unsafe sealed class DWriteFactory : ComObject
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, void*, DWriteFontWeight, DWriteFontStyle, DWriteFontStretch, float, char*, void**, int>)functionPointer)(
             nativePointer, fontFamilyName, fontCollection == null ? null : fontCollection.NativePointer,
             fontWeight, fontStyle, fontStretch, fontSize, localeName, &nativePointer);
+        AfterUnmanagedCall(fontCollection);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteTextFormat(nativePointer, ReferenceType.Owned);
     }
@@ -179,6 +190,7 @@ public unsafe sealed class DWriteFactory : ComObject
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateTextLayout);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint, void*, float, float, void**, int>)functionPointer)(nativePointer, text, textLength,
             textFormat.NativePointer, maxWidth, maxHeight, &nativePointer);
+        AfterUnmanagedCall(textFormat);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteTextLayout(nativePointer, ReferenceType.Owned);
     }
@@ -196,6 +208,7 @@ public unsafe sealed class DWriteFactory : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CreateEllipsisTrimmingSign);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, void**, int>)functionPointer)(nativePointer, textFormat.NativePointer, &nativePointer);
+        AfterUnmanagedCall(textFormat);
         ThrowHelper.ThrowExceptionForHR(hr, nativePointer);
         return new DWriteInlineObject(nativePointer, ReferenceType.Owned);
     }

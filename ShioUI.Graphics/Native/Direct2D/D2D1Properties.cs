@@ -47,7 +47,9 @@ public unsafe class D2D1Properties : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPropertyCount);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="GetPropertyName(uint, char*, uint)"/>
@@ -72,6 +74,7 @@ public unsafe class D2D1Properties : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPropertyName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, char*, uint, int>)functionPointer)(nativePointer, index, buffer, bufferLength);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -82,6 +85,7 @@ public unsafe class D2D1Properties : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPropertyNameLength);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
     }
 
@@ -92,6 +96,7 @@ public unsafe class D2D1Properties : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetType);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, uint, D2D1PropertyType>)functionPointer)(nativePointer, index);
     }
 
@@ -110,6 +115,7 @@ public unsafe class D2D1Properties : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPropertyIndex);
+        AfterUnmanagedCall();
         return ((delegate* unmanaged[Stdcall]<void*, char*, uint>)functionPointer)(nativePointer, name);
     }
 
@@ -132,7 +138,10 @@ public unsafe class D2D1Properties : ComObject
     /// <inheritdoc cref="SetValueByName(char*, D2D1PropertyType, byte*, uint)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetValueByName<T>(char* name, in T value) where T : unmanaged
-        => SetValueByName(name, D2D1PropertyType.Unknown, (byte*)UnsafeHelper.AsPointerIn(in value), unchecked((uint)sizeof(T)));
+    {
+        fixed (T* pValue = &value)
+            SetValueByName(name, D2D1PropertyType.Unknown, (byte*)pValue, unchecked((uint)sizeof(T)));
+    }
 
     /// <summary>
     /// Sets the value of the given property using its name.
@@ -142,13 +151,17 @@ public unsafe class D2D1Properties : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetValueByName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, D2D1PropertyType, byte*, uint, int>)functionPointer)(nativePointer, name, type, data, dataSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
     /// <inheritdoc cref="SetValue(uint, D2D1PropertyType, byte*, uint)" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetValue<T>(uint index, in T value) where T : unmanaged
-        => SetValue(index, D2D1PropertyType.Unknown, (byte*)UnsafeHelper.AsPointerIn(in value), unchecked((uint)sizeof(T)));
+    {
+        fixed (T* pValue = &value)
+            SetValue(index, D2D1PropertyType.Unknown, (byte*)pValue, unchecked((uint)sizeof(T)));
+    }
 
     /// <summary>
     /// Sets the given value using the property index.
@@ -158,6 +171,7 @@ public unsafe class D2D1Properties : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.SetValue);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, D2D1PropertyType, byte*, uint, int>)functionPointer)(nativePointer, index, type, data, dataSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -197,6 +211,7 @@ public unsafe class D2D1Properties : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetValueByName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, char*, D2D1PropertyType, byte*, uint, int>)functionPointer)(nativePointer, name, type, data, dataSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -217,6 +232,7 @@ public unsafe class D2D1Properties : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetValue);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, D2D1PropertyType, byte*, uint, int>)functionPointer)(nativePointer, index, type, data, dataSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -227,7 +243,9 @@ public unsafe class D2D1Properties : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetValueSize);
-        return ((delegate* unmanaged[Stdcall]<void*, uint, uint>)functionPointer)(nativePointer, index);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint, uint>)functionPointer)(nativePointer, index);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <summary>
@@ -239,6 +257,7 @@ public unsafe class D2D1Properties : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetSubProperties);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, int>)functionPointer)(nativePointer, index, &pProperties);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return pProperties == null ? null : new D2D1Properties(pProperties, ReferenceType.Owned);
     }

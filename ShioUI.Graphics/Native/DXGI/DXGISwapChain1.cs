@@ -53,6 +53,7 @@ public unsafe class DXGISwapChain1 : DXGISwapChain
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDesc1);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGISwapChainDescription1*, int>)functionPointer)(nativePointer, &desc);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return desc;
     }
@@ -65,6 +66,7 @@ public unsafe class DXGISwapChain1 : DXGISwapChain
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFullscreenDesc);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGISwapChainFullscreenDescription*, int>)functionPointer)(nativePointer, &fullscreenDesc);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return fullscreenDesc;
     }
@@ -74,6 +76,7 @@ public unsafe class DXGISwapChain1 : DXGISwapChain
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetHwnd);
         int hr = ((delegate* unmanaged[Stdcall]<void*, IntPtr*, int>)functionPointer)(nativePointer, (IntPtr*)&nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return (IntPtr)nativePointer;
     }
@@ -100,13 +103,18 @@ public unsafe class DXGISwapChain1 : DXGISwapChain
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int TryPresent1(uint syncInterval, DXGIPresentFlags flags, in DXGIPresentParameters presentParameters)
-        => TryPresent1(syncInterval, flags, UnsafeHelper.AsPointerIn(in presentParameters));
+    {
+        fixed (DXGIPresentParameters* pPresentParameters = &presentParameters)
+            return TryPresent1(syncInterval, flags, pPresentParameters);
+    }
 
     public int TryPresent1(uint syncInterval, DXGIPresentFlags flags, DXGIPresentParameters* pPresentParameters)
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Present1);
-        return ((delegate* unmanaged[Stdcall]<void*, uint, DXGIPresentFlags, DXGIPresentParameters*, int>)functionPointer)(nativePointer,
+        int result = ((delegate* unmanaged[Stdcall]<void*, uint, DXGIPresentFlags, DXGIPresentParameters*, int>)functionPointer)(nativePointer,
             syncInterval, flags, pPresentParameters);
+        AfterUnmanagedCall();
+        return result;
     }
 }

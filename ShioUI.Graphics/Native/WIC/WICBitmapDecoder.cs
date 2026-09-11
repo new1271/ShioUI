@@ -55,6 +55,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.QueryCapability);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, WICBitmapDecoderCapabilities*, int>)functionPointer)(nativePointer, pStream, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -75,6 +76,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Initialize);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void*, WICDecodeOptions, int>)functionPointer)(nativePointer, pStream, cacheOptions);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -85,6 +87,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetContainerFormat);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Guid*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -94,6 +97,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetPreview);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new WICBitmapSource(nativePointer, ReferenceType.Owned);
     }
@@ -103,6 +107,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetThumbnail);
         int hr = ((delegate* unmanaged[Stdcall]<void*, void**, int>)functionPointer)(nativePointer, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new WICBitmapSource(nativePointer, ReferenceType.Owned);
     }
@@ -115,6 +120,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFrameCount);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint*, int>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return result;
     }
@@ -126,6 +132,7 @@ public sealed unsafe class WICBitmapDecoder : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetFrame);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, void**, int>)functionPointer)(nativePointer, index, &nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return nativePointer == null ? null : new WICBitmapFrameDecode(nativePointer, ReferenceType.Owned);
     }

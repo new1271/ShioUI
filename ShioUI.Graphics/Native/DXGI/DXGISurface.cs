@@ -41,6 +41,7 @@ public unsafe sealed class DXGISurface : DXGIDeviceSubObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDesc);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGISurfaceDescription*, int>)functionPointer)(nativePointer, &desc);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return desc;
     }
@@ -52,6 +53,7 @@ public unsafe sealed class DXGISurface : DXGIDeviceSubObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Map);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGIMappedRect*, DXGIMapFlags, int>)functionPointer)(nativePointer, &lockedRect, flags);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return lockedRect;
     }
@@ -61,6 +63,7 @@ public unsafe sealed class DXGISurface : DXGIDeviceSubObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.Unmap);
         int hr = ((delegate* unmanaged[Stdcall]<void*, int>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

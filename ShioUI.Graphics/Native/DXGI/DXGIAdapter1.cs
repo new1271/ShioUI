@@ -39,6 +39,7 @@ public unsafe sealed class DXGIAdapter1 : DXGIAdapter
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDesc1);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGIAdapterDescription1*, int>)functionPointer)(nativePointer, &desc);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return desc;
     }

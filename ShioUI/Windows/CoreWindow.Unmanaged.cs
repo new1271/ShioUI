@@ -472,8 +472,11 @@ unsafe partial class CoreWindow
 
     private bool TryProcessUIWindowMessage_Integrated(IntPtr hwnd, WindowMessage message, nint wParam, nint lParam, out nint result)
     {
-        if (DwmApi.DwmDefWindowProc(hwnd, (uint)message, wParam, lParam, UnsafeHelper.AsPointerOut(out result)))
-            return true;
+        fixed (nint* pResult = &result)
+        {
+            if (DwmApi.DwmDefWindowProc(hwnd, (uint)message, wParam, lParam, pResult))
+                return true;
+        }
 
         switch (message)
         {

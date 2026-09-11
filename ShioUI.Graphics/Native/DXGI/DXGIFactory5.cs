@@ -27,6 +27,7 @@ public unsafe class DXGIFactory5 : DXGIFactory4
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.CheckFeatureSupport);
         int hr = ((delegate* unmanaged[Stdcall]<void*, DXGIFeature, void*, uint, int>)functionPointer)(nativePointer, feature, pFeatureSupportData, featureSupportDataSize);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }

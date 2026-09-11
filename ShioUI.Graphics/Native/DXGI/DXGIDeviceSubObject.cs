@@ -22,18 +22,25 @@ public abstract unsafe class DXGIDeviceSubObject : DXGIObject
     public DXGIDeviceSubObject(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T? GetDevice<T>(in Guid riid, bool throwException = true) where T : ComObject, new()
-        => GetDevice<T>(UnsafeHelper.AsPointerIn(in riid), throwException);
+    public T? GetDevice<T>(in Guid iid, bool throwException = true) where T : ComObject, new()
+    {
+        fixed (Guid* riid = &iid)
+            return GetDevice<T>(riid, throwException);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ComObject? GetDevice(in Guid riid, bool throwException = true)
-        => GetDevice(UnsafeHelper.AsPointerIn(in riid), throwException);
+    public ComObject? GetDevice(in Guid iid, bool throwException = true)
+    {
+        fixed (Guid* riid = &iid)
+            return GetDevice(riid, throwException);
+    }
 
     public T? GetDevice<T>(Guid* riid, bool throwException = true) where T : ComObject, new()
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDevice);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Guid*, void**, int>)functionPointer)(nativePointer, riid, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else
@@ -46,6 +53,7 @@ public abstract unsafe class DXGIDeviceSubObject : DXGIObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetDevice);
         int hr = ((delegate* unmanaged[Stdcall]<void*, Guid*, void**, int>)functionPointer)(nativePointer, riid, &nativePointer);
+        AfterUnmanagedCall();
         if (throwException)
             ThrowHelper.ThrowExceptionForHR(hr);
         else

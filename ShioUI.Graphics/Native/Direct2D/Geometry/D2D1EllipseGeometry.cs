@@ -33,6 +33,7 @@ public sealed unsafe class D2D1EllipseGeometry : D2D1Geometry
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetEllipse);
         ((delegate* unmanaged[Stdcall]<void*, D2D1Ellipse*, void>)functionPointer)(nativePointer, &result);
+        AfterUnmanagedCall();
         return result;
     }
 }

@@ -5,6 +5,7 @@ using InlineMethod;
 
 using RiceTea.Core.Helpers;
 using RiceTea.Core.Native;
+using RiceTea.Core.Structures;
 using RiceTea.Core.Windows.ObjectModels;
 
 /// <summary>
@@ -41,12 +42,14 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
     {
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetCount);
-        return ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        uint result = ((delegate* unmanaged[Stdcall]<void*, uint>)functionPointer)(nativePointer);
+        AfterUnmanagedCall();
+        return result;
     }
 
     /// <inheritdoc cref="FindLocaleName(char*, uint*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool FindLocaleName(string localeName, out uint index)
+    public SysBool32 FindLocaleName(string localeName, out uint index)
     {
         fixed (char* ptr = localeName)
             return FindLocaleName(ptr, out index);
@@ -54,8 +57,11 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
 
     /// <inheritdoc cref="FindLocaleName(char*, uint*)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool FindLocaleName(char* localeName, out uint index)
-        => FindLocaleName(localeName, UnsafeHelper.AsPointerOut(out index));
+    public SysBool32 FindLocaleName(char* localeName, out uint index)
+    {
+        fixed (uint* pIndex = &index)
+            return FindLocaleName(localeName, pIndex);
+    }
 
     /// <summary>
     /// Gets the index of the item with the specified locale name.
@@ -66,12 +72,13 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
     /// <see langword="true"/> if the locale name exists or <see langword="false"/> if not.
     /// </returns>
     [SkipLocalsInit]
-    public bool FindLocaleName(char* localeName, uint* index)
+    public SysBool32 FindLocaleName(char* localeName, uint* index)
     {
-        bool exists;
+        SysBool32 exists;
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.FindLocaleName);
-        int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint*, bool*, int>)functionPointer)(nativePointer, localeName, index, &exists);
+        int hr = ((delegate* unmanaged[Stdcall]<void*, char*, uint*, SysBool32*, int>)functionPointer)(nativePointer, localeName, index, &exists);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return exists;
     }
@@ -90,6 +97,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLocaleNameLength);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, uint*, int>)functionPointer)(nativePointer, index, &length);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return length;
     }
@@ -126,6 +134,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetLocaleName);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, char*, uint, int>)functionPointer)(nativePointer, index, localeName, size);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 
@@ -143,6 +152,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetStringLength);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, uint*, int>)functionPointer)(nativePointer, index, &length);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
         return length;
     }
@@ -175,6 +185,7 @@ public unsafe sealed class DWriteLocalizedStrings : ComObject
         void* nativePointer = NativePointer;
         void* functionPointer = GetFunctionPointerOrThrow(nativePointer, (int)MethodTable.GetString);
         int hr = ((delegate* unmanaged[Stdcall]<void*, uint, char*, uint, int>)functionPointer)(nativePointer, index, stringBuffer, size);
+        AfterUnmanagedCall();
         ThrowHelper.ThrowExceptionForHR(hr);
     }
 }
