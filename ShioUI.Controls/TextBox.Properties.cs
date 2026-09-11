@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 using RiceTea.Core;
 using RiceTea.Core.Helpers;
@@ -101,7 +102,8 @@ partial class TextBox : IAutoHeightElement
                 return;
             _multiLine = value;
 
-            string text = _text;
+            using Lock.Scope scope = EnterSyncScope();
+            GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
             if (value)
             {
                 Size size = ContentSize;
@@ -109,7 +111,6 @@ partial class TextBox : IAutoHeightElement
                     SurfaceSize = Size.Empty;
                 else
                 {
-                    using DWriteTextLayout layout = CreateVirtualTextLayout(text);
                     layout.MaxWidth = size.Width;
 
                     SurfaceSize = new Size(0, MathI.Ceiling(layout.GetMetrics().Height) + UIConstants.ElementMargin);
