@@ -17,7 +17,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
-public partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
+public partial class NativeWindow : CriticalFinalizerObject
 {
     private static readonly Action<NativeWindow> PresentCoreAction = static (window) => window.PresentCore();
     private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowCore();
@@ -35,7 +35,7 @@ public partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
     private nuint _disposed;
     private uint _runtimeFlags, _windowState, _closeReason, _dialogResult;
 
-    public NativeWindow(IHwndOwner? parent = null)
+    public NativeWindow(NativeWindow? parent = null)
     {
         _parentReference = parent is null ? default : GCHandle.Alloc(parent, GCHandleType.Weak);
         _cursor = SystemCursors.Default;
@@ -247,7 +247,7 @@ public partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
         {
             GCHandle reference = _parentReference;
             IntPtr parentHandle;
-            if (reference != default && reference.Target is IHwndOwner parent)
+            if (reference != default && reference.Target is NativeWindow parent)
                 parentHandle = parent.Handle;
             else
                 parentHandle = IntPtr.Zero;
@@ -257,7 +257,7 @@ public partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
             if (handle == IntPtr.Zero)
                 InvalidOperationException.Throw("Cannot create the window!");
 
-            if (!WindowClassImpl.Instance.TryRegisterWindowUnsafe(handle, this))
+            if (!WindowManager.TryRegisterWindowUnsafe(handle, this))
                 InvalidOperationException.Throw("Cannot register the window!");
             Atomics.Write(ref _handle, handle);
             OnHandleCreated(handle);

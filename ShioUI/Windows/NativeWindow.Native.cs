@@ -17,11 +17,10 @@ partial class NativeWindow : IDisposable
 {
     private unsafe IntPtr CreateWindowHandle(IntPtr parent)
     {
-        WindowClassImpl windowClass = WindowClassImpl.Instance;
         CreateWindowInfo windowInfo = GetCreateWindowInfo();
 
         IntPtr result = User32.CreateWindowExW(
-            lpClassName: (char*)windowClass.Atom,
+            lpClassName: (char*)WindowManager.Atom,
             lpWindowName: null,
             dwStyle: windowInfo.Styles,
             dwExStyle: windowInfo.ExtendedStyles,
@@ -29,7 +28,7 @@ partial class NativeWindow : IDisposable
             nWidth: windowInfo.Width, nHeight: windowInfo.Height,
             hWndParent: parent,
             hMenu: IntPtr.Zero,
-            hInstance: windowClass.HInstance,
+            hInstance: WindowManager.HInstance,
             lpParam: null);
         if (result == IntPtr.Zero)
             Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
@@ -39,16 +38,7 @@ partial class NativeWindow : IDisposable
     }
 
     protected virtual CreateWindowInfo GetCreateWindowInfo()
-    {
-        const int CW_USEDEFAULT = unchecked((int)0x80000000);
-        return new CreateWindowInfo(
-            styles: WindowStyles.OverlappedWindow,
-            extendedStyles: WindowExtendedStyles.AppWindow | WindowExtendedStyles.WindowEdge,
-            x: CW_USEDEFAULT,
-            y: CW_USEDEFAULT,
-            width: CW_USEDEFAULT,
-            height: CW_USEDEFAULT);
-    }
+        => new CreateWindowInfo(WindowStyles.OverlappedWindow, WindowExtendedStyles.AppWindow | WindowExtendedStyles.WindowEdge);
 
     protected virtual void OnHandleCreated(IntPtr handle)
     {

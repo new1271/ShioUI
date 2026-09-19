@@ -13,23 +13,21 @@ using ShioUI.Windows;
 
 namespace ShioUI.Internals;
 
-internal sealed unsafe class WindowClassImpl
+internal sealed unsafe class WindowManager
 {
-    public static readonly WindowClassImpl Instance;
-
 #if NET472_OR_GREATER
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate nint WndProcDelegate(IntPtr hwnd, uint message, nint lParam, nint wParam);
     private static readonly WndProcDelegate? _wndProcDelegate;
 #endif
 
-    private readonly Dictionary<IntPtr, IHwndOwner> _hwndOwnerDict = new();
-    private readonly IntPtr _hInstance;
-    private readonly ushort _atom;
+    private static readonly Dictionary<IntPtr, NativeWindow> _windowDict = new();
+    private static readonly IntPtr _hInstance;
+    private static readonly ushort _atom;
 
-    private nuint _barrier;
+    private static nuint _barrier;
 
-    static WindowClassImpl()
+    static WindowManager()
     {
         void* wndProcFunc;
 
@@ -41,11 +39,6 @@ internal sealed unsafe class WindowClassImpl
         wndProcFunc = (delegate* unmanaged[Stdcall]<IntPtr, uint, nint, nint, nint>)Marshal.GetFunctionPointerForDelegate(wndProcDelegate);
 #endif
 
-        Instance = new WindowClassImpl(wndProcFunc);
-    }
-
-    private WindowClassImpl(void* wndProcFunc)
-    {
         ushort atom;
         IntPtr hInstance = Kernel32.GetModuleHandleW(null);
         fixed (char* className = "ShioWindow")
@@ -69,8 +62,8 @@ internal sealed unsafe class WindowClassImpl
         _atom = atom;
     }
 
-    public ushort Atom => _atom;
-    public IntPtr HInstance => _hInstance;
+    public static ushort Atom => _atom;
+    public static IntPtr HInstance => _hInstance;
 
 #if NET8_0_OR_GREATER
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
@@ -78,12 +71,10 @@ internal sealed unsafe class WindowClassImpl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static nint ProcessWindowMessage(IntPtr hwnd, uint message, nint wParam, nint lParam)
     {
-        WindowClassImpl instance = Instance;
         try
         {
-            if (instance.TryProcessWindowMessage(hwnd, message, wParam, lParam, out nint result))
+            if (TryProcessWindowMessage(hwnd, message, wParam, lParam, out nint result))
                 return result;
-            GC.KeepAlive(instance);
         }
         catch (Exception ex)
         {
@@ -96,7 +87,7 @@ internal sealed unsafe class WindowClassImpl
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EnterBarrier()
+    private static void EnterBarrier()
     {
         ref nuint barrier = ref _barrier;
         while (Atomics.Exchange(ref barrier, 1) != 0)
@@ -108,22 +99,22 @@ internal sealed unsafe class WindowClassImpl
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ExitBarrier() => Atomics.Exchange(ref _barrier, 0);
+    private static void ExitBarrier() => Atomics.Exchange(ref _barrier, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRegisterWindow<T>(T owner) where T : IHwndOwner
+    public static bool TryRegisterWindow(NativeWindow owner)
         => TryRegisterWindowUnsafe(owner.Handle, owner);
 
-    public bool TryRegisterWindowUnsafe<T>(IntPtr handle, T owner) where T : IHwndOwner
+    public static bool TryRegisterWindowUnsafe(IntPtr handle, NativeWindow owner)
     {
         if (handle == IntPtr.Zero)
             return false;
 
-        Dictionary<IntPtr, IHwndOwner> dict = _hwndOwnerDict;
+        Dictionary<IntPtr, NativeWindow> dict = _windowDict;
         EnterBarrier();
         try
         {
-            if (!dict.TryGetValue(handle, out IHwndOwner? target))
+            if (!dict.TryGetValue(handle, out NativeWindow? target))
             {
                 dict.Add(handle, owner);
                 return true;
@@ -144,19 +135,19 @@ internal sealed unsafe class WindowClassImpl
         }
     }
 
-    public bool TryUnregisterWindow<T>(T owner) where T : IHwndOwner
+    public static bool TryUnregisterWindow(NativeWindow owner)
         => TryUnregisterWindowUnsafe(owner.Handle, owner);
 
-    public bool TryUnregisterWindowUnsafe<T>(IntPtr handle, T owner) where T : IHwndOwner
+    public static bool TryUnregisterWindowUnsafe(IntPtr handle, NativeWindow owner)
     {
         if (handle == IntPtr.Zero)
             return false;
 
-        Dictionary<IntPtr, IHwndOwner> dict = _hwndOwnerDict;
+        Dictionary<IntPtr, NativeWindow> dict = _windowDict;
         EnterBarrier();
         try
         {
-            if (!dict.TryGetValue(handle, out IHwndOwner? target))
+            if (!dict.TryGetValue(handle, out NativeWindow? target))
                 return false;
             if (ReferenceEquals(target, owner))
             {
@@ -175,13 +166,13 @@ internal sealed unsafe class WindowClassImpl
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryProcessWindowMessage(IntPtr hwnd, uint message, nint wParam, nint lParam, out nint result)
+    public static bool TryProcessWindowMessage(IntPtr hwnd, uint message, nint wParam, nint lParam, out nint result)
     {
-        IHwndOwner? owner;
+        NativeWindow? owner;
         EnterBarrier();
         try
         {
-            if (!_hwndOwnerDict.TryGetValue(hwnd, out owner))
+            if (!_windowDict.TryGetValue(hwnd, out owner))
                 goto Failed;
         }
         finally
@@ -189,7 +180,7 @@ internal sealed unsafe class WindowClassImpl
             ExitBarrier();
         }
 
-        return owner.TryProcessWindowMessage(hwnd, (WindowMessage)message, wParam, lParam, out result);
+        return owner.TryProcessWindowMessageInternal(hwnd, (WindowMessage)message, wParam, lParam, out result);
 
     Failed:
         result = 0;

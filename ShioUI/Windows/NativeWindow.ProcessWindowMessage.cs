@@ -22,7 +22,7 @@ namespace ShioUI.Windows;
 
 unsafe partial class NativeWindow
 {
-    bool IWindowMessageFilter.TryProcessWindowMessage(IntPtr handle, WindowMessage message, nint wParam, nint lParam, out nint result)
+    internal bool TryProcessWindowMessageInternal(IntPtr handle, WindowMessage message, nint wParam, nint lParam, out nint result)
         => TryProcessWindowMessage(handle, message, wParam, lParam, out result);
 
     protected virtual bool TryProcessWindowMessage(IntPtr handle, WindowMessage message, nint wParam, nint lParam, out nint result)
@@ -138,7 +138,7 @@ unsafe partial class NativeWindow
             if (handle != IntPtr.Zero)
             {
                 Atomics.Write(ref _handle, IntPtr.Zero);
-                if (!WindowClassImpl.Instance.TryUnregisterWindowUnsafe(handle, this))
+                if (!WindowManager.TryUnregisterWindowUnsafe(handle, this))
                     DebugHelper.Throw();
                 CancellationTokenSource? dialogTokenSource = Atomics.Exchange(ref _dialogTokenSource, null);
                 if (dialogTokenSource is not null)

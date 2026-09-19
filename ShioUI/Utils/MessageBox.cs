@@ -14,7 +14,7 @@ public static class MessageBox
         => WindowMessageLoop.Invoke(ShowInternal, text, caption, flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static DialogResult Show<T>(T owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok) where T : IHwndOwner
+    public static DialogResult Show(NativeWindow owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok)
         => WindowMessageLoop.Invoke(ShowInternal, owner, (text, caption), flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -26,7 +26,7 @@ public static class MessageBox
         => WindowMessageLoop.InvokeTaskAsync(ShowInternal, text, caption, flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<DialogResult> ShowAsync<T>(T owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok) where T : IHwndOwner
+    public static Task<DialogResult> ShowAsync(NativeWindow owner, string text, string caption, MessageBoxFlags flags = MessageBoxFlags.Ok)
         => WindowMessageLoop.InvokeTaskAsync(ShowInternal, owner, (text, caption), flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -38,7 +38,7 @@ public static class MessageBox
         => ShowCore(IntPtr.Zero, text, caption, flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe DialogResult ShowInternal<T>(T owner, (string text, string caption) tuple, MessageBoxFlags flags) where T : IHwndOwner
+    private static unsafe DialogResult ShowInternal(NativeWindow owner, (string text, string caption) tuple, MessageBoxFlags flags)
         => ShowCore(owner.Handle, tuple.text, tuple.caption, flags);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
