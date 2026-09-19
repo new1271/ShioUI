@@ -17,7 +17,7 @@ using ShioUI.Utils;
 
 namespace ShioUI.Windows;
 
-public abstract partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
+public partial class NativeWindow : CriticalFinalizerObject, IHwndOwner
 {
     private static readonly Action<NativeWindow> PresentCoreAction = static (window) => window.PresentCore();
     private static readonly Action<NativeWindow> ShowCoreAction = static (window) => window.ShowCore();
