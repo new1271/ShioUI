@@ -12,43 +12,36 @@ namespace ShioUI;
 
 partial class WindowMessageLoop
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void PostInvokeClosure(uint threadId, IInvokeClosure closure)
-    {
-        InvokeMessageFilter.Instance.AddInvoke(closure);
-        PostInvokeMessage(threadId);
-    }
+    private static nuint _postInvokeResult = UnsafeHelper.GetMaxValue<nuint>();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void PostInvokeMessage(uint threadId)
+    private static bool TryPostInvokeClosure(uint threadId, IInvokeClosure closure)
     {
+        InvokeMessageFilter.Instance.AddInvoke(closure);
+        return TryPostInvokeMessage(threadId);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool TryPostInvokeMessage(uint threadId)
+    {
+        bool result;
+
         if (MathHelper.ToBooleanUnsafe(Atomics.CompareExchange(ref _invokeBarrier, Booleans.TrueInt, Booleans.FalseInt)))
-            return;
-        User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioUI_WindowInvoke, 0, 0);
-        Atomics.Write(ref _invokeBarrier, Booleans.FalseInt);
+        {
+            nuint lastResult = Atomics.Read(ref _postInvokeResult);
+            if (lastResult <= Booleans.TrueNativeUnsigned)
+                return MathHelper.ToBooleanUnsafe(lastResult);
+
+            result = User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioUI_WindowInvoke, 0, 0);
+            Atomics.CompareExchange(ref _postInvokeResult, MathHelper.BooleanToNativeUnsigned(result), lastResult);
+            return result;
+        }
+        Atomics.Write(ref _postInvokeResult, UnsafeHelper.GetMaxValue<nuint>());
+        result = User32.PostThreadMessageW(threadId, CustomWindowMessages.ShioUI_WindowInvoke, 0, 0);
+        Atomics.Write(ref _postInvokeResult, MathHelper.BooleanToNativeUnsigned(result));
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void ProcessAllInvoke() => InvokeMessageFilter.Instance.ProcessAllInvoke();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ThrowWhenMessageLoopThreadNotExists(bool condition)
-    {
-        if (condition)
-            ThrowWhenMessageLoopThreadNotExists();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static T ThrowWhenMessageLoopThreadNotExists<T>(T? condition) where T : class
-        => condition ?? ThrowWhenMessageLoopThreadNotExists<T>();
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [DoesNotReturn]
-    private static T ThrowWhenMessageLoopThreadNotExists<T>()
-        => throw new InvalidOperationException("The message loop thread is not exists");
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [DoesNotReturn]
-    private static void ThrowWhenMessageLoopThreadNotExists()
-        => throw new InvalidOperationException("The message loop thread is not exists");
 }

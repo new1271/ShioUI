@@ -21,7 +21,12 @@ partial class WindowMessageLoop
             action.Invoke();
         }
         else
-            InvokeTaskCoreAsync(messageLoopThreadId, action, CancellationToken.None).Wait();
+        {
+            Task? task = TryInvokeTaskCoreAsync(messageLoopThreadId, action, CancellationToken.None);
+            if (task is null)
+                return false;
+            task.Wait();
+        }
         return true;
     }
 
@@ -37,7 +42,12 @@ partial class WindowMessageLoop
             action.Invoke(arg);
         }
         else
-            InvokeTaskCoreAsync(messageLoopThreadId, action, arg, CancellationToken.None).Wait();
+        {
+            Task? task = TryInvokeTaskCoreAsync(messageLoopThreadId, action, arg, CancellationToken.None);
+            if (task is null)
+                return false;
+            task.Wait();
+        }
         return true;
     }
 
@@ -53,7 +63,12 @@ partial class WindowMessageLoop
             action.Invoke(arg1, arg2);
         }
         else
-            InvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, CancellationToken.None).Wait();
+        {
+            Task? task = TryInvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, CancellationToken.None);
+            if (task is null)
+                return false;
+            task.Wait();
+        }
         return true;
     }
 
@@ -69,7 +84,13 @@ partial class WindowMessageLoop
             action.Invoke(arg1, arg2, arg3);
         }
         else
-            InvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, arg3, CancellationToken.None).Wait();
+        {
+            Task? task = TryInvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, arg3, CancellationToken.None);
+            if (task is null)
+                return false;
+            task.Wait();
+        }
+
         return true;
     }
 
@@ -79,8 +100,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return false;
 
-        InvokeCoreAsync(messageLoopThreadId, action, cancellationToken);
-        return true;
+        return TryInvokeCoreAsync(messageLoopThreadId, action, cancellationToken);
     }
 
     public static bool TryInvokeAsync<TArg>(Action<TArg> action,
@@ -90,8 +110,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return false;
 
-        InvokeCoreAsync(messageLoopThreadId, action, arg, cancellationToken);
-        return true;
+        return TryInvokeCoreAsync(messageLoopThreadId, action, arg, cancellationToken);
     }
 
     public static bool TryInvokeAsync<TArg1, TArg2>(Action<TArg1, TArg2> action,
@@ -101,8 +120,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return false;
 
-        InvokeCoreAsync(messageLoopThreadId, action, arg1, arg2, cancellationToken);
-        return true;
+        return TryInvokeCoreAsync(messageLoopThreadId, action, arg1, arg2, cancellationToken);
     }
 
     public static bool TryInvokeAsync<TArg1, TArg2, TArg3>(Action<TArg1, TArg2, TArg3> action,
@@ -112,8 +130,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return false;
 
-        InvokeCoreAsync(messageLoopThreadId, action, arg1, arg2, arg3, cancellationToken);
-        return true;
+        return TryInvokeCoreAsync(messageLoopThreadId, action, arg1, arg2, arg3, cancellationToken);
     }
 
     public static Task? TryInvokeTaskAsync(Action action, CancellationToken cancellationToken = default)
@@ -129,7 +146,7 @@ partial class WindowMessageLoop
             return Task.CompletedTask;
         }
         else
-            return InvokeTaskCoreAsync(messageLoopThreadId, action, cancellationToken);
+            return TryInvokeTaskCoreAsync(messageLoopThreadId, action, cancellationToken);
     }
 
     public static Task? TryInvokeTaskAsync<TArg>(Action<TArg> action,
@@ -146,7 +163,7 @@ partial class WindowMessageLoop
             return Task.CompletedTask;
         }
         else
-            return InvokeTaskCoreAsync(messageLoopThreadId, action, arg, cancellationToken);
+            return TryInvokeTaskCoreAsync(messageLoopThreadId, action, arg, cancellationToken);
     }
 
     public static Task? TryInvokeTaskAsync<TArg1, TArg2>(Action<TArg1, TArg2> action,
@@ -163,7 +180,7 @@ partial class WindowMessageLoop
             return Task.CompletedTask;
         }
         else
-            return InvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, cancellationToken);
+            return TryInvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, cancellationToken);
     }
 
     public static Task? TryInvokeTaskAsync<TArg1, TArg2, TArg3>(Action<TArg1, TArg2, TArg3> action,
@@ -180,6 +197,6 @@ partial class WindowMessageLoop
             return Task.CompletedTask;
         }
         else
-            return InvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, arg3, cancellationToken);
+            return TryInvokeTaskCoreAsync(messageLoopThreadId, action, arg1, arg2, arg3, cancellationToken);
     }
 }

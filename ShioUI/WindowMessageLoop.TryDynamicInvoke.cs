@@ -16,10 +16,7 @@ partial class WindowMessageLoop
     {
         uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-        {
-            result = default;
-            return false;
-        }
+            goto Failed;
 
         if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
@@ -27,18 +24,24 @@ partial class WindowMessageLoop
             result = @delegate.DynamicInvoke(null);
         }
         else
-            result = DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None).Result;
+        {
+            Task<object?>? task = TryDynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
+            if (task is null)
+                goto Failed;
+            result = task.Result;
+        }
         return true;
+
+    Failed:
+        result = default;
+        return false;
     }
 
     public static bool TryDynamicInvoke(Delegate @delegate, object?[]? args, out object? result)
     {
         uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-        {
-            result = default;
-            return false;
-        }
+            goto Failed;
 
         if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
         {
@@ -46,8 +49,17 @@ partial class WindowMessageLoop
             result = @delegate.DynamicInvoke(args);
         }
         else
-            result = DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, CancellationToken.None).Result;
+        {
+            Task<object?>? task = TryDynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, CancellationToken.None);
+            if (task is null)
+                goto Failed;
+            result = task.Result;
+        }
         return true;
+
+    Failed:
+        result = default;
+        return false;
     }
 
     public static bool TryDynamicInvokeAsync(Delegate @delegate)
@@ -56,8 +68,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return false;
 
-        DynamicInvokeCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-        return true;
+        return TryDynamicInvokeCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
     }
 
     [Inline(InlineBehavior.Keep, export: true)]
@@ -71,8 +82,7 @@ partial class WindowMessageLoop
         if (messageLoopThreadId == 0)
             return false;
 
-        DynamicInvokeCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-        return true;
+        return TryDynamicInvokeCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
     }
 
     public static Task<object?>? TryDynamicInvokeTaskAsync(Delegate @delegate)
@@ -87,7 +97,7 @@ partial class WindowMessageLoop
             return Task.FromResult(@delegate.DynamicInvoke(null))!;
         }
         else
-            return DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
+            return TryDynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
     }
 
     [Inline(InlineBehavior.Keep, export: true)]
@@ -107,6 +117,6 @@ partial class WindowMessageLoop
             return Task.FromResult(@delegate.DynamicInvoke(args))!;
         }
         else
-            return DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
+            return TryDynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
     }
 }

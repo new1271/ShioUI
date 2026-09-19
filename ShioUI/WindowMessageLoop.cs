@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -89,7 +90,7 @@ public static unsafe partial class WindowMessageLoop
     {
         uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
         if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw("The message loop is not exists!");
+            ThrowWhenMessageLoopThreadNotExists();
         ChangeMainWindowCore(mainWindow, changeAction, IsMessageLoopThread);
     }
 
@@ -313,4 +314,24 @@ public static unsafe partial class WindowMessageLoop
         pool.Return(body.Array);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ThrowWhenMessageLoopThreadNotExists(bool condition)
+    {
+        if (condition)
+            ThrowWhenMessageLoopThreadNotExists();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static T ThrowWhenMessageLoopThreadNotExists<T>(T? condition) where T : class
+        => condition ?? ThrowWhenMessageLoopThreadNotExists<T>();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn]
+    private static T ThrowWhenMessageLoopThreadNotExists<T>()
+        => throw new InvalidOperationException("The message loop thread is not exists");
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn]
+    private static void ThrowWhenMessageLoopThreadNotExists()
+        => throw new InvalidOperationException("The message loop thread is not exists");
 }
