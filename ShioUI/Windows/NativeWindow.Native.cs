@@ -61,9 +61,10 @@ partial class NativeWindow : IDisposable
 
     private void DisposeInternal(bool disposing)
     {
-        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0)
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0 || 
+            WindowMessageLoop.TryInvoke(static (_this, disposing) => _this.DisposeSync(disposing), this, disposing))
             return;
-        WindowMessageLoop.Invoke(static (_this, disposing) => _this.DisposeSync(disposing), this, disposing);
+        DisposeSync(disposing);
     }
 
     private void DisposeSync(bool disposing)

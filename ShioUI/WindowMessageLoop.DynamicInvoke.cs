@@ -3,108 +3,39 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-using InlineMethod;
-
-using RiceTea.Core;
-using RiceTea.Core.Native;
-
 namespace ShioUI;
 
 partial class WindowMessageLoop
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static object? DynamicInvoke(Delegate @delegate)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+        => TryDynamicInvoke(@delegate, out object? result) ? result : ThrowWhenMessageLoopThreadNotExists<object?>();
 
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke(); 
-            return @delegate.DynamicInvoke(null);
-        }
-        return DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None).Result;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static object? DynamicInvoke(Delegate @delegate, params object?[]? args)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+        => TryDynamicInvoke(@delegate, args, out object? result) ? result : ThrowWhenMessageLoopThreadNotExists<object?>();
 
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke();
-            return @delegate.DynamicInvoke(args);
-        }
-        return DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, CancellationToken.None).Result;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void DynamicInvokeAsync(Delegate @delegate)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+        => ThrowWhenMessageLoopThreadNotExists(TryDynamicInvokeAsync(@delegate));
 
-        DynamicInvokeCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-    }
-
-    [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void DynamicInvokeAsync(Delegate @delegate, params object?[]? args)
-        => DynamicInvokeAsync(@delegate, args, CancellationToken.None);
+        => ThrowWhenMessageLoopThreadNotExists(TryDynamicInvokeAsync(@delegate, args));
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void DynamicInvokeAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+        => ThrowWhenMessageLoopThreadNotExists(TryDynamicInvokeAsync(@delegate, args, cancellationToken));
 
-        DynamicInvokeCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<object?> DynamicInvokeTaskAsync(Delegate @delegate)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
+        => ThrowWhenMessageLoopThreadNotExists(TryDynamicInvokeTaskAsync(@delegate));
 
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke();
-            return Task.FromResult(@delegate.DynamicInvoke(null))!;
-        }
-        else
-            return DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, null, CancellationToken.None);
-    }
-
-    [Inline(InlineBehavior.Keep, export: true)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<object?> DynamicInvokeTaskAsync(Delegate @delegate, params object?[]? args)
-        => DynamicInvokeTaskAsync(@delegate, args, CancellationToken.None);
+        => ThrowWhenMessageLoopThreadNotExists(TryDynamicInvokeTaskAsync(@delegate, args));
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<object?> DynamicInvokeTaskAsync(Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        uint messageLoopThreadId = Atomics.Read(ref _threadIdForMessageLoop);
-        if (messageLoopThreadId == 0)
-            InvalidOperationException.Throw();
-
-        if (NativeMethods.GetCurrentThreadId() == messageLoopThreadId)
-        {
-            ProcessAllInvoke();
-            return Task.FromResult(@delegate.DynamicInvoke(args))!;
-        }
-        else
-            return DynamicInvokeTaskCoreAsync(messageLoopThreadId, @delegate, args, cancellationToken);
-    }
-
-    private static void DynamicInvokeCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default) 
-        => PostInvokeClosure(threadId, new DynamicInvokeClosure(@delegate, args, null, cancellationToken));
-
-    private static Task<object?> DynamicInvokeTaskCoreAsync(uint threadId, Delegate @delegate, object?[]? args, CancellationToken cancellationToken = default)
-    {
-        TaskCompletionSource<object?> completionSource = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        PostInvokeClosure(threadId, new DynamicInvokeClosure(@delegate, args, completionSource, cancellationToken));
-        return completionSource.Task;
-    }
+        => ThrowWhenMessageLoopThreadNotExists(TryDynamicInvokeTaskAsync(@delegate, args, cancellationToken));
 }
