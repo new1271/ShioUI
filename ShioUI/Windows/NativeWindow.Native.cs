@@ -61,7 +61,7 @@ partial class NativeWindow : IDisposable
 
     private void DisposeInternal(bool disposing)
     {
-        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0 || 
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0 ||
             WindowMessageLoop.TryInvoke(static (_this, disposing) => _this.DisposeSync(disposing), this, disposing))
             return;
         DisposeSync(disposing);
@@ -97,7 +97,18 @@ partial class NativeWindow : IDisposable
 
 #if NET8_0_OR_GREATER
     private System.Threading.Tasks.Task DisposeInternalAsync()
-        => WindowMessageLoop.InvokeTaskAsync(static (_this) => _this.DisposeSync(disposing: true), this);
+    {
+        if (Atomics.Exchange(ref _disposed, UnsafeHelper.GetMaxValue<nuint>()) != 0)
+            goto Tail;
+        System.Threading.Tasks.Task? task = WindowMessageLoop.TryInvokeTaskAsync(static _this => _this.DisposeSync(disposing: true), this);
+        if (task is not null)
+            return task;
+
+        DisposeSync(disposing: true);
+
+    Tail:
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
 
     public async System.Threading.Tasks.ValueTask DisposeAsync()
     {
