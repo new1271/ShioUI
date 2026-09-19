@@ -13,7 +13,7 @@ using ShioUI.Windows;
 
 namespace ShioUI.Internals;
 
-internal sealed unsafe class WindowManager
+internal sealed unsafe class NativeWindowManager
 {
 #if NET472_OR_GREATER
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -27,7 +27,7 @@ internal sealed unsafe class WindowManager
 
     private static nuint _barrier;
 
-    static WindowManager()
+    static NativeWindowManager()
     {
         void* wndProcFunc;
 

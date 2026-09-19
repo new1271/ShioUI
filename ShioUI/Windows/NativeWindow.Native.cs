@@ -20,7 +20,7 @@ partial class NativeWindow : IDisposable
         CreateWindowInfo windowInfo = GetCreateWindowInfo();
 
         IntPtr result = User32.CreateWindowExW(
-            lpClassName: (char*)WindowManager.Atom,
+            lpClassName: (char*)NativeWindowManager.Atom,
             lpWindowName: null,
             dwStyle: windowInfo.Styles,
             dwExStyle: windowInfo.ExtendedStyles,
@@ -28,7 +28,7 @@ partial class NativeWindow : IDisposable
             nWidth: windowInfo.Width, nHeight: windowInfo.Height,
             hWndParent: parent,
             hMenu: IntPtr.Zero,
-            hInstance: WindowManager.HInstance,
+            hInstance: NativeWindowManager.HInstance,
             lpParam: null);
         if (result == IntPtr.Zero)
             Marshal.ThrowExceptionForHR(Kernel32.GetLastError());

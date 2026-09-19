@@ -257,7 +257,7 @@ public partial class NativeWindow : CriticalFinalizerObject
             if (handle == IntPtr.Zero)
                 InvalidOperationException.Throw("Cannot create the window!");
 
-            if (!WindowManager.TryRegisterWindowUnsafe(handle, this))
+            if (!NativeWindowManager.TryRegisterWindowUnsafe(handle, this))
                 InvalidOperationException.Throw("Cannot register the window!");
             Atomics.Write(ref _handle, handle);
             OnHandleCreated(handle);
