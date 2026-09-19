@@ -179,14 +179,13 @@ public partial class NativeWindow : CriticalFinalizerObject
         User32.SetForegroundWindow(handle);
     }
 
-    private IntPtr HideCore()
+    private void HideCore()
     {
         IntPtr handle = _handle;
         if (handle == IntPtr.Zero)
-            return IntPtr.Zero;
+            return;
 
         HideCore(handle);
-        return handle;
     }
 
     protected virtual void HideCore(IntPtr handle) => User32.ShowWindow(handle, ShowWindowCommands.Hide);

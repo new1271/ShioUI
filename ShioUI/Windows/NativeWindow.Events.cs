@@ -7,6 +7,8 @@ public delegate void WindowStateChangedEventHandler(object? sender, in WindowSta
 
 partial class NativeWindow
 {
+    public event EventHandler? Loaded;
+    public event EventHandler? Hidden;
     public event EventHandler? Shown;
     public event EventHandler? Destroyed;
     public event EventHandler? FocusedChanged;
@@ -16,6 +18,8 @@ partial class NativeWindow
     public event ClosingEventHandler? Closing;
     public event EventHandler? Closed;
 
+    protected virtual void OnLoaded() => Loaded?.Invoke(this, EventArgs.Empty);
+    protected virtual void OnHidden() => Hidden?.Invoke(this, EventArgs.Empty);
     protected virtual void OnShown() => Shown?.Invoke(this, EventArgs.Empty);
     protected virtual void OnDestroyed() => Destroyed?.Invoke(this, EventArgs.Empty);
     protected virtual void OnFocusedChanged() => FocusedChanged?.Invoke(this, EventArgs.Empty);

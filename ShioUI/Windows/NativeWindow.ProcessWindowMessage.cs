@@ -281,14 +281,18 @@ unsafe partial class NativeWindow
 
     private bool HandleShowWindow(nint wParam, nint lParam)
     {
-        if (wParam != 0 && lParam == 0)
+        if (lParam == 0)
         {
             WindowRuntimeFlags runtimeFlags = GetRuntimeFlagsDirectly();
-            if (!runtimeFlags.HasFlagFast(WindowRuntimeFlags.Shown))
+            if (!runtimeFlags.HasFlagFast(WindowRuntimeFlags.Loaded))
             {
-                RuntimeFlags = runtimeFlags | WindowRuntimeFlags.Shown;
-                WindowMessageLoop.InvokeAsync(static _this => _this.OnShown(), this);
+                RuntimeFlags = runtimeFlags | WindowRuntimeFlags.Loaded;
+                WindowMessageLoop.InvokeAsync(static _this => _this.OnLoaded(), this);
             }
+            if (wParam == 0)
+                WindowMessageLoop.InvokeAsync(static _this => _this.OnHidden(), this);
+            else
+                WindowMessageLoop.InvokeAsync(static _this => _this.OnShown(), this);
         }
         return false;
     }

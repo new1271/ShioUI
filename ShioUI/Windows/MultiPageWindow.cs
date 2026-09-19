@@ -75,12 +75,12 @@ public abstract partial class MultiPageWindow : CoreWindow
     protected override void RecalculatePageLayout(Size pageSize, in RecalculateLayoutInformation information)
         => RecalculatePageLayout(pageSize, _pageIndex, information);
 
-    protected override void OnShown()
+    protected override void OnLoaded()
     {
-        base.OnShown();
+        base.OnLoaded();
 
         if (WindowMessageLoop.IsMessageLoopThread) // ShioUI 觸發的 OnShown 必定在視窗訊息執行緒
-            WindowMessageLoop.InvokeAsync(static _this => _this.OnShown_RunLater(), this); // 脫離目前上下文後再執行，避免被使用者程式碼影響
+            WindowMessageLoop.InvokeAsync(static _this => _this.OnLoaded_RunLater(), this); // 脫離目前上下文後再執行，避免被使用者程式碼影響
     }
     #endregion
 
@@ -94,7 +94,7 @@ public abstract partial class MultiPageWindow : CoreWindow
     #endregion
 
     #region Normal Methods
-    private void OnShown_RunLater()
+    private void OnLoaded_RunLater()
     {
         lock (_pageLock)
         {

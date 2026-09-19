@@ -9,7 +9,7 @@ partial class NativeWindow
     {
         None = 0b000,
         Initialized = 0b001,
-        Shown = 0b010,
+        Loaded = 0b010,
         Focused = 0b100,
         Destroyed = unchecked((uint)-1),
     }
