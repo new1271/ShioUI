@@ -317,7 +317,7 @@ public static unsafe partial class WindowMessageLoop
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ThrowWhenMessageLoopThreadNotExists(bool condition)
     {
-        if (condition)
+        if (!condition)
             ThrowWhenMessageLoopThreadNotExists();
     }
 
