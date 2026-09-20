@@ -101,7 +101,6 @@ partial class CoreWindow : IRenderable, IRenderWindow
     private D2D1DeviceContext? _deviceContext;
     private DWriteTextLayout? _titleLayout;
     private D2D1ColorF _clearDCColor, _windowBaseColor;
-    private Point _drawingOffset;
     private StateTiny.SingleWriter<Rectangle> _minimizeButtonBounds, _maximizeButtonBounds, _closeButtonBounds, _pageBounds, _titleBarBounds;
     private ulong _resizeTimestamp, _renderFramestamp, _activeBorderSize, _normalBorderSize;
     private nuint _ownedGDP, _recreateGraphicsDeviceProviderBarrier, _recalculateLayoutVersion;
@@ -744,39 +743,27 @@ partial class CoreWindow : IRenderable, IRenderWindow
 
             Vector2 dpiScaleFactorInversed = _dpiScaleFactorInversed;
             Size activeBorderSize;
-            int drawingOffsetX, drawingOffsetY;
             if (User32.IsZoomed(handle))
             {
-                Rect windowRect;
-                if (!User32.GetWindowRect(handle, &windowRect))
-                    Marshal.ThrowExceptionForHR(Kernel32.GetLastError());
-                if (!Screen.TryGetScreenInfoFromHwnd(handle, out ScreenInfo screenInfo))
-                    screenInfo = default;
-                Rect workingArea = screenInfo.WorkingArea;
-                drawingOffsetX = MathI.Round((workingArea.Left - windowRect.Left) * dpiScaleFactorInversed.X, MidpointRounding.AwayFromZero);
-                drawingOffsetY = MathI.Round((workingArea.Top - windowRect.Top) * dpiScaleFactorInversed.Y, MidpointRounding.AwayFromZero);
                 activeBorderSize = Size.Empty;
             }
             else
             {
                 activeBorderSize = NormalBorderSize;
-                drawingOffsetX = 0;
-                drawingOffsetY = 0;
             }
             data.ActiveBorderSize = activeBorderSize;
-            data.DrawingOffset = new Point(drawingOffsetX, drawingOffsetY);
-            int x = windowSize.Width - 1 - drawingOffsetX, y = drawingOffsetY;
-            data.CloseButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
+            int x = windowSize.Width - 1;
+            data.CloseButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, 0,
                 UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
-            data.MaximizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
+            data.MaximizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, 0,
                 UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
-            data.MinimizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, y,
+            data.MinimizeButtonBounds = new Rectangle(x -= UIConstantsPrivate.TitleBarButtonSizeWidth, 0,
                 UIConstantsPrivate.TitleBarButtonSizeWidth, UIConstantsPrivate.TitleBarHeight);
-            Rectangle titleBarBounds = new Rectangle(drawingOffsetX, y, x - drawingOffsetX, UIConstantsPrivate.TitleBarHeight);
+            Rectangle titleBarBounds = new Rectangle(0, 0, x, UIConstantsPrivate.TitleBarHeight);
             pageBounds = Rectangle.FromLTRB(
-                left: drawingOffsetX + activeBorderSize.Width,
+                left: activeBorderSize.Width,
                 top: titleBarBounds.Bottom + 1,
-                right: windowSize.Width - drawingOffsetX - activeBorderSize.Width,
+                right: windowSize.Width - activeBorderSize.Width,
                 bottom: windowSize.Height - activeBorderSize.Height);
             pageSize = pageBounds.Size;
             data.TitleBarBounds = titleBarBounds;
@@ -843,7 +830,6 @@ partial class CoreWindow : IRenderable, IRenderWindow
                 CloseButtonBounds = _closeButtonBounds.GetValueUnsafe(),
                 PageBounds = _pageBounds.GetValueUnsafe(),
                 TitleBarBounds = _titleBarBounds.GetValueUnsafe(),
-                DrawingOffset = _drawingOffset,
                 ActiveBorderSize = BoundsHelper.AsSize(_activeBorderSize)
             },
             ResizeFramestamp = _resizeTimestamp,
@@ -907,7 +893,6 @@ partial class CoreWindow : IRenderable, IRenderWindow
 
                 ulong timestamp = data.ResizeFramestamp;
                 _resizeTimestamp = timestamp;
-                _drawingOffset = layoutData.DrawingOffset;
                 ActiveBorderSize = layoutData.ActiveBorderSize;
                 Atomics.Increment(ref _recalculateLayoutVersion);
 
@@ -1111,10 +1096,9 @@ partial class CoreWindow : IRenderable, IRenderWindow
             ClearDCForTitle(deviceContext);
             if (titleBarStates[0])
             {
-                Point drawingOffset = _drawingOffset;
                 RectF titleBarRect = RenderingHelper.RoundInPixel(data.Layout.TitleBarBounds, dpiScaleFactor);
                 deviceContext.PushAxisAlignedClip(titleBarRect, D2D1AntialiasMode.Aliased);
-                deviceContext.DrawTextLayout(new PointF(drawingOffset.X + 7.5f, drawingOffset.Y + 1.5f),
+                deviceContext.DrawTextLayout(new PointF(7.5f, 1.5f),
                     titleLayout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleForeBrush));
                 deviceContext.PopAxisAlignedClip();
             }
@@ -1877,7 +1861,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                 goto Failed;
             handles = pool.Rent<GCHandle>(count);
             ref readonly GCHandle arrayRef = ref UnsafeHelper.GetArrayDataReference(unwrappedList.Unwrap());
-            UnsafeHelper.CopyBlockUnaligned(ref UnsafeHelper.AsRef((byte*)handles.NativePointer), 
+            UnsafeHelper.CopyBlockUnaligned(ref UnsafeHelper.AsRef((byte*)handles.NativePointer),
                 in UnsafeHelper.As<GCHandle, byte>(ref UnsafeHelper.AsRefIn(in arrayRef)), (uint)(count * sizeof(GCHandle)));
             return true;
         }

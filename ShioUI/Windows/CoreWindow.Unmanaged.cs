@@ -181,14 +181,13 @@ unsafe partial class CoreWindow
                 goto default;
             case WindowMessage.GetMinMaxInfo:
                 {
+                    MinMaxInfo* pMinMax = (MinMaxInfo*)lParam;
                     SizeF minimumSize = _minimumSize;
                     SizeF maximumSize = _maximumSize;
-                    MinMaxInfo* pMinMax = (MinMaxInfo*)lParam;
                     if (minimumSize == SizeF.Empty)
                     {
-                        if (maximumSize == SizeF.Empty)
-                            break;
-                        pMinMax->ptMaxTrackSize = GraphicsUtils.ScalingSizeAndConvert(maximumSize, _dpiScaleFactor);
+                        if (maximumSize != SizeF.Empty)
+                            pMinMax->ptMaxTrackSize = GraphicsUtils.ScalingSizeAndConvert(maximumSize, _dpiScaleFactor);
                     }
                     else
                     {
@@ -198,7 +197,7 @@ unsafe partial class CoreWindow
                             pMinMax->ptMaxTrackSize = GraphicsUtils.ScalingSizeAndConvert(maximumSize, dpiScaleFactor);
                     }
                 }
-                break;
+                goto default;
             case WindowMessage.Size:
                 {
                     Volatile.Write(ref _sizeModeState, true);
@@ -398,9 +397,11 @@ unsafe partial class CoreWindow
                 UpdateWindowFps(hwnd);
                 goto default;
             case WindowMessage.WindowPositionChanged:
-                IntPtr monitor = User32.MonitorFromWindow(hwnd, MonitorFromWindowFlags.DefaultToNearest);
-                if (Cells.Exchange(ref _associatedMonitor, monitor) != monitor)
-                    UpdateWindowFps(hwnd);
+                {
+                    IntPtr monitor = User32.MonitorFromWindow(hwnd, MonitorFromWindowFlags.DefaultToNearest);
+                    if (Cells.Exchange(ref _associatedMonitor, monitor) != monitor)
+                        UpdateWindowFps(hwnd);
+                }
                 goto default;
             #endregion
             default:
@@ -431,21 +432,22 @@ unsafe partial class CoreWindow
                     }
                     else
                     {
-                        AppBarData data = new AppBarData() { cbSize = sizeof(AppBarData) };
-                        if (((Shell32.SHAppBarMessage(0x00000004, &data).ToInt64() & 0x1) == 0x1) && HasSizableBorder)
+                        if (User32.IsZoomed(hwnd))
                         {
-                            WindowPlacement windowPlacement = new WindowPlacement() { Length = sizeof(WindowPlacement) };
-                            User32.GetWindowPlacement(hwnd, &windowPlacement);
-                            if (windowPlacement.ShowCmd == ShowWindowCommands.ShowMaximized)
+                            ref Rect clientRect = ref ((NCCalcSizeParameters*)lParam)->rcNewWindow;
+
+                            int xBorder = User32.GetSystemMetrics(SystemMetric.SM_CXFRAME),
+                                yBorder = User32.GetSystemMetrics(SystemMetric.SM_CYFRAME);
+                            if (HasSizableBorder)
                             {
-                                NCCalcSizeParameters* lpParams = (NCCalcSizeParameters*)lParam;
-                                Rect clientRect = lpParams->rcNewWindow;
-                                int metrics_paddedBorder = User32.GetSystemMetrics(SystemMetric.SM_CXPADDEDBORDER);
-                                int yBorder = User32.GetSystemMetrics(SystemMetric.SM_CYFRAME) + metrics_paddedBorder;
-                                float factorY = _dpiScaleFactor.Y;
-                                clientRect.Bottom -= yBorder + (factorY == 1.0f ? 1 : MathI.Ceiling(1 * factorY));
-                                lpParams->rcNewWindow = clientRect;
+                                xBorder += User32.GetSystemMetrics(SystemMetric.SM_CXSIZEFRAME);
+                                yBorder += User32.GetSystemMetrics(SystemMetric.SM_CYSIZEFRAME);
                             }
+
+                            clientRect.Left += xBorder;
+                            clientRect.Top += yBorder;
+                            clientRect.Right -= xBorder;
+                            clientRect.Bottom -= yBorder;
                         }
                     }
                     result = 0;
@@ -455,6 +457,22 @@ unsafe partial class CoreWindow
                 {
                     HitTestValue hitTest = DoHitTestForDefault(lParam);
                     result = hitTest == HitTestValue.NoWhere ? (nint)HitTestValue.Client : (nint)hitTest;
+                }
+                break;
+            case WindowMessage.GetMinMaxInfo:
+                {
+                    MinMaxInfo* pMinMax = (MinMaxInfo*)lParam;
+                    IntPtr monitor = User32.MonitorFromWindow(hwnd, MonitorFromWindowFlags.DefaultToNearest);
+                    MonitorInfo info = new MonitorInfo() { cbSize = UnsafeHelper.SizeOf<MonitorInfo>() };
+                    if (User32.GetMonitorInfoW(monitor, &info))
+                    {
+                        ref readonly Rect workingArea = ref info.rcWork;
+                        ref readonly Rect monitorArea = ref info.rcMonitor;
+
+                        pMinMax->ptMaxPosition = new(workingArea.X - monitorArea.X, workingArea.Y - monitorArea.Y);
+                        pMinMax->ptMaxSize = workingArea.Size;
+                    }
+                    result = 0;
                 }
                 break;
             case WindowMessage.SetText:

@@ -15,7 +15,6 @@ partial class CoreWindow
     {
         public Rectangle MinimizeButtonBounds, MaximizeButtonBounds, CloseButtonBounds, PageBounds, TitleBarBounds;
         public Size ActiveBorderSize;
-        public Point DrawingOffset;
 
         public Point MinimizeButtonLocation
         {
