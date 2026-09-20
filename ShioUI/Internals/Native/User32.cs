@@ -139,9 +139,6 @@ internal static unsafe class User32
     public static extern int GetWindowThreadProcessId(IntPtr hWnd, int* lpdwProcessId);
 
     [DllImport(LibraryName)]
-    public static extern SysBool32 GetWindowPlacement(IntPtr hWnd, WindowPlacement* lpwndpl);
-
-    [DllImport(LibraryName)]
     public static extern SysBool32 IsIconic(IntPtr hWnd);
 
     [DllImport(LibraryName)]

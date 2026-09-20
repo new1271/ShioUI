@@ -40,17 +40,6 @@ public struct MinMaxInfo
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal unsafe struct WindowPlacement
-{
-    public int Length;
-    public int Flags;
-    public ShowWindowCommands ShowCmd;
-    public Point MinPosition;
-    public Point MaxPosition;
-    public Rect NormalPosition;
-}
-
-[StructLayout(LayoutKind.Sequential)]
 internal unsafe struct WindowCompositionAttributeData
 {
     public WindowCompositionAttribute Attribute;
