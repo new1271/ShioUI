@@ -95,8 +95,12 @@ public unsafe sealed class GraphicsDeviceProvider : ICloneable, IDisposable
     private GraphicsDeviceProvider(D3D11Device? d3dDevice, DXGIAdapter? adapter, DXGIFactory? factory, bool isDebug)
     {
         // 當硬體 3D 裝置建立失敗時，改建立 WARP 3D 裝置
-        d3dDevice ??= NullSafetyHelper.ThrowIfNull(D3D11Device.Create(null, D3DDriverType.Warp, IntPtr.Zero,
-            isDebug ? CreateDeviceFlagsForDebug : CreateDeviceFlags));
+        if (d3dDevice is null)
+        {
+            int hr = D3D11Device.TryCreate(null, D3DDriverType.Warp, IntPtr.Zero, isDebug ? CreateDeviceFlagsForDebug : CreateDeviceFlags, out d3dDevice);
+            ThrowHelper.ThrowExceptionForHR(hr);
+            d3dDevice = NullSafetyHelper.ThrowIfNull(d3dDevice);
+        }
 
         _d3dDevice = d3dDevice;
         DXGIDevice dxgiDevice = GetLatestDXGIDeviceInterface(NullSafetyHelper.ThrowIfNull(d3dDevice.QueryInterface<DXGIDevice>(DXGIDevice.IID_IDXGIDevice)));
@@ -259,7 +263,9 @@ public unsafe sealed class GraphicsDeviceProvider : ICloneable, IDisposable
 
         if (adapter is null)
             return null;
-        return D3D11Device.Create(adapter, D3DDriverType.Unknown, IntPtr.Zero, isDebug ? CreateDeviceFlagsForDebug : CreateDeviceFlags, Constants.FeatureLevels);
+        return D3D11Device.TryCreate(adapter, D3DDriverType.Unknown, IntPtr.Zero,
+            isDebug ? CreateDeviceFlagsForDebug : CreateDeviceFlags,
+            Constants.FeatureLevels, out D3D11Device? device) < 0 ? null : device;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

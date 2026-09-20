@@ -23,26 +23,32 @@ public unsafe sealed class D3D11Device : ComObject
     public D3D11Device(void* nativePointer, ReferenceType referenceType) : base(nativePointer, referenceType) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D11Device? Create(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software, D3D11CreateDeviceFlags createDeviceFlags)
-        => Create(adapter, driverType, software, createDeviceFlags, null, 0u);
+    public static int TryCreate(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software, D3D11CreateDeviceFlags createDeviceFlags,
+        out D3D11Device? result)
+        => TryCreate(adapter, driverType, software, createDeviceFlags, null, 0u, out result);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D11Device? Create(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software,
-        D3D11CreateDeviceFlags createDeviceFlags, params D3DFeatureLevel[]? featureLevels)
+    public static int TryCreate(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software,
+        D3D11CreateDeviceFlags createDeviceFlags, D3DFeatureLevel[]? featureLevels,
+        out D3D11Device? result)
     {
         fixed (D3DFeatureLevel* ptr = featureLevels)
-            return Create(adapter, driverType, software, createDeviceFlags, ptr, MathHelper.MakeUnsigned(featureLevels?.Length ?? 0));
+            return TryCreate(adapter, driverType, software, createDeviceFlags, ptr, MathHelper.MakeUnsigned(featureLevels?.Length ?? 0), out result);
     }
 
     [SkipLocalsInit]
-    public static D3D11Device? Create(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software,
-        D3D11CreateDeviceFlags createDeviceFlags, D3DFeatureLevel* featureLevels, uint featureLevelCount)
+    public static int TryCreate(DXGIAdapter? adapter, D3DDriverType driverType, IntPtr software,
+        D3D11CreateDeviceFlags createDeviceFlags, D3DFeatureLevel* featureLevels, uint featureLevelCount,
+        out D3D11Device? result)
     {
         void* device;
         int hr = D3D11.D3D11CreateDevice(adapter == null ? null : adapter.NativePointer, driverType, software,
-            createDeviceFlags, featureLevels, featureLevelCount, D3D11.D3D11_SDK_VERSION, &device, null, null);
+             createDeviceFlags, featureLevels, featureLevelCount, D3D11.D3D11_SDK_VERSION, &device, null, null);
         GC.KeepAlive(adapter);
-        ThrowHelper.ThrowExceptionForHR(hr);
-        return device is null ? null : new D3D11Device(device, ReferenceType.Owned);
+        if (hr < 0 || device is null)
+            result = null;
+        else
+            result = new D3D11Device(device, ReferenceType.Owned);
+        return hr;
     }
 }

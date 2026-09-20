@@ -287,12 +287,12 @@ unsafe partial class NativeWindow
             if (!runtimeFlags.HasFlagFast(WindowRuntimeFlags.Loaded))
             {
                 RuntimeFlags = runtimeFlags | WindowRuntimeFlags.Loaded;
-                WindowMessageLoop.InvokeAsync(static _this => _this.OnLoaded(), this);
+                OnLoaded();
             }
             if (wParam == 0)
-                WindowMessageLoop.InvokeAsync(static _this => _this.OnHidden(), this);
+                OnHidden();
             else
-                WindowMessageLoop.InvokeAsync(static _this => _this.OnShown(), this);
+                OnShown();
         }
         return false;
     }

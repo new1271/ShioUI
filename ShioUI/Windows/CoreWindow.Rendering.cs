@@ -940,7 +940,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
             }
             finally
             {
-                host.EndDraw();
+                host.Flush();
             }
 
             return (Presented: result.IsSuccessed() && host.TryPresent(), ResultFlags: result);
@@ -964,7 +964,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
             }
             finally
             {
-                host.EndDraw();
+                host.Flush();
             }
 
             if (result.IsSuccessed())
