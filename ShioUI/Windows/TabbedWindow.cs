@@ -125,17 +125,8 @@ public abstract class TabbedWindow : MultiPageWindow
             return;
         ref Rectangle menuBarButtonRectRef = ref UnsafeHelper.GetArrayDataReference(menuBarButtonRects);
         Rectangle pageBounds = data.PageBounds;
-        int x, y;
-        if (ActualWindowMaterial == WindowMaterial.Integrated)
-        {
-            x = 0;
-            y = 0;
-        }
-        else
-        {
-            x = pageBounds.X;
-            y = pageBounds.Y;
-        }
+        int x = pageBounds.X;
+        int y = pageBounds.Y;
         for (int i = 0; i < pageCount; i++)
         {
             ref Rectangle rectRef = ref UnsafeHelper.AddTypedOffset(ref menuBarButtonRectRef, i);

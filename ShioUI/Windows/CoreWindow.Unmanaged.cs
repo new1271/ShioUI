@@ -197,7 +197,7 @@ unsafe partial class CoreWindow
                             pMinMax->ptMaxTrackSize = GraphicsUtils.ScalingSizeAndConvert(maximumSize, dpiScaleFactor);
                     }
                 }
-                goto default;
+                break;
             case WindowMessage.Size:
                 {
                     Volatile.Write(ref _sizeModeState, true);
@@ -457,22 +457,6 @@ unsafe partial class CoreWindow
                 {
                     HitTestValue hitTest = DoHitTestForDefault(lParam);
                     result = hitTest == HitTestValue.NoWhere ? (nint)HitTestValue.Client : (nint)hitTest;
-                }
-                break;
-            case WindowMessage.GetMinMaxInfo:
-                {
-                    MinMaxInfo* pMinMax = (MinMaxInfo*)lParam;
-                    IntPtr monitor = User32.MonitorFromWindow(hwnd, MonitorFromWindowFlags.DefaultToNearest);
-                    MonitorInfo info = new MonitorInfo() { cbSize = UnsafeHelper.SizeOf<MonitorInfo>() };
-                    if (User32.GetMonitorInfoW(monitor, &info))
-                    {
-                        ref readonly Rect workingArea = ref info.rcWork;
-                        ref readonly Rect monitorArea = ref info.rcMonitor;
-
-                        pMinMax->ptMaxPosition = new(workingArea.X - monitorArea.X, workingArea.Y - monitorArea.Y);
-                        pMinMax->ptMaxSize = workingArea.Size;
-                    }
-                    result = 0;
                 }
                 break;
             case WindowMessage.SetText:
