@@ -179,6 +179,26 @@ unsafe partial class CoreWindow
                     }
                 }
                 goto default;
+            case WindowMessage.GetMinMaxInfo:
+                {
+                    SizeF minimumSize = _minimumSize;
+                    SizeF maximumSize = _maximumSize;
+                    MinMaxInfo* pMinMax = (MinMaxInfo*)lParam;
+                    if (minimumSize == SizeF.Empty)
+                    {
+                        if (maximumSize == SizeF.Empty)
+                            break;
+                        pMinMax->ptMaxTrackSize = GraphicsUtils.ScalingSizeAndConvert(maximumSize, _dpiScaleFactor);
+                    }
+                    else
+                    {
+                        Vector2 dpiScaleFactor = _dpiScaleFactor;
+                        pMinMax->ptMinTrackSize = GraphicsUtils.ScalingSizeAndConvert(minimumSize, dpiScaleFactor);
+                        if (maximumSize != SizeF.Empty)
+                            pMinMax->ptMaxTrackSize = GraphicsUtils.ScalingSizeAndConvert(maximumSize, dpiScaleFactor);
+                    }
+                }
+                break;
             case WindowMessage.Size:
                 {
                     Volatile.Write(ref _sizeModeState, true);
@@ -194,25 +214,7 @@ unsafe partial class CoreWindow
                         default:
                             break;
                     }
-                    SizeF minimumSize = _minimumSize;
-                    SizeF maximumSize = _maximumSize;
-                    if (minimumSize == SizeF.Empty && maximumSize == SizeF.Empty)
-                        goto default;
-
-                    IntPtr handle = Handle;
-                    if (handle == IntPtr.Zero)
-                        goto default;
-
-                    (ushort width, ushort height) = lParam.GetWords();
-                    Size oldSize = new Size(width, height);
-                    Size newSize = GraphicsUtils.AdjustSize(oldSize, minimumSize, maximumSize, _dpiScaleFactor);
-
-                    if (oldSize == newSize)
-                        goto default;
-
-                    User32.SetWindowPos(handle, IntPtr.Zero, Point.Empty, newSize,
-                        WindowPositionFlags.SwapWithNoMove | WindowPositionFlags.SwapWithNoZOrder | WindowPositionFlags.SwapWithNoActivate);
-                    break;
+                    goto default;
                 }
             case WindowMessage.ExitSizeMove:
                 Volatile.Write(ref _sizeModeState, false);

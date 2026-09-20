@@ -30,6 +30,16 @@ public struct WindowPosition
 }
 
 [StructLayout(LayoutKind.Sequential)]
+public struct MinMaxInfo
+{
+    public Point ptReserved;
+    public Size ptMaxSize;
+    public Point ptMaxPosition;
+    public Size ptMinTrackSize;
+    public Size ptMaxTrackSize;
+}
+
+[StructLayout(LayoutKind.Sequential)]
 internal unsafe struct WindowPlacement
 {
     public int Length;
