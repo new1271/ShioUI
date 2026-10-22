@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -203,11 +204,11 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void GetLayouts(out DWriteTextLayout layout, out DWriteTextLayout watermarkLayout)
+    private void GetLayouts(out DWriteTextLayout? layout, out DWriteTextLayout? watermarkLayout)
         => GetTextAndLayouts(out _, out _, out layout, out watermarkLayout);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void GetTextAndLayouts(out string text, out string watermark, out DWriteTextLayout layout, out DWriteTextLayout watermarkLayout)
+    private void GetTextAndLayouts(out string text, out string watermark, out DWriteTextLayout? layout, out DWriteTextLayout? watermarkLayout)
     {
         RenderObjectUpdateFlags flags = GetAndCleanRenderObjectUpdateFlags();
         DWriteTextLayout? tempLayout = _layout, tempWatermarkLayout = _watermarkLayout;
@@ -216,10 +217,10 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             try
             {
-                layout = BuildTextLayout(tempLayout, text = _text, flags);
+                layout = BuildTextLayoutOrNull(tempLayout, text = _text, flags);
 
                 _layout = layout;
-                _renderedText = text;
+                _renderedText = layout is null ? string.Empty : text;
             }
             finally
             {
@@ -236,10 +237,10 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             try
             {
-                watermarkLayout = BuildWatermarkLayout(tempWatermarkLayout, watermark = _watermark, flags);
+                watermarkLayout = BuildWatermarkLayoutOrNull(tempWatermarkLayout, watermark = _watermark, flags);
 
                 _watermarkLayout = watermarkLayout;
-                _renderedWatermark = watermark;
+                _renderedWatermark = watermarkLayout is null ? string.Empty : watermark;
             }
             finally
             {
@@ -253,10 +254,15 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         }
     }
 
-    private DWriteTextLayout BuildTextLayout(DWriteTextFormat? format, string text, RenderObjectUpdateFlags flags)
+    private DWriteTextLayout? BuildTextLayoutOrNull(DWriteTextFormat? format, string text, RenderObjectUpdateFlags flags)
     {
         if (CheckFormatIsNotAvailable(format, flags))
-            format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+        {
+            string? fontName = _fontName;
+            if (fontName is null)
+                return null;
+            format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), fontName, _fontSize);
+        }
 
         if (!StringHelper.IsNullOrEmpty(text))
         {
@@ -282,10 +288,15 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         return SharedResources.DWriteFactory.CreateTextLayout(text, format);
     }
 
-    private DWriteTextLayout BuildWatermarkLayout(DWriteTextFormat? format, string watermark, RenderObjectUpdateFlags flags)
+    private DWriteTextLayout? BuildWatermarkLayoutOrNull(DWriteTextFormat? format, string watermark, RenderObjectUpdateFlags flags)
     {
         if (CheckFormatIsNotAvailable(format, flags))
-            format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), NullSafetyHelper.ThrowIfNull(_fontName), _fontSize);
+        {
+            string? fontName = _fontName;
+            if (fontName is null)
+                return null;
+            format = TextFormatHelper.CreateTextFormat(GetRealAlignment(), fontName, _fontSize);
+        }
         return SharedResources.DWriteFactory.CreateTextLayout(watermark, format);
     }
 
@@ -359,7 +370,10 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     private void CalculateCurrentViewportPoint()
     {
         using Lock.Scope scope = EnterSyncScope();
-        GetLayouts(out DWriteTextLayout layout, out _);
+        GetLayouts(out DWriteTextLayout? layout, out _);
+
+        if (layout is null)
+            return;
 
         Size size = ContentSize;
         DWriteTextRange compositionRange = _compositionRange;
@@ -410,9 +424,9 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             context.MarkAsDirty();
         }
 
-        GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out DWriteTextLayout watermarkLayout);
+        GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out DWriteTextLayout? watermarkLayout);
 
-        if (layout.DetermineMinWidth() <= 0.0f && (!_multiLine || !SequenceHelper.Contains(text, '\n')))
+        if (layout is null || layout.DetermineMinWidth() <= 0.0f && (!_multiLine || !SequenceHelper.Contains(text, '\n')))
         {
             if (watermarkLayout is null)
                 return true;
@@ -560,9 +574,14 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             float contentWidth = ContentSize.Width;
             if (contentWidth > 0f)
             {
-                GetLayouts(out DWriteTextLayout layout, out _);
-                layout.MaxWidth = contentWidth;
-                SurfaceSize = new Size(0, MathI.Ceiling(layout.GetMetrics().Height));
+                GetLayouts(out DWriteTextLayout? layout, out _);
+                if (layout is null)
+                    SurfaceSize = Size.Empty;
+                else
+                {
+                    layout.MaxWidth = contentWidth;
+                    SurfaceSize = new Size(0, MathI.Ceiling(layout.GetMetrics().Height));
+                }
             }
             else
             {
@@ -656,9 +675,14 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                     using (EnterSyncScope())
                     {
                         using Lock.Scope scope = EnterSyncScope();
-                        GetLayouts(out DWriteTextLayout layout, out _);
-                        layout.HitTestTextPosition(MathHelper.MakeUnsigned(_caretIndex), isTrailingHit: true, out float pointX, out float pointY);
-                        location = new PointF(layoutPoint.X + pointX, layoutPoint.Y + pointY);
+                        GetLayouts(out DWriteTextLayout? layout, out _);
+                        if (layout is null)
+                            location = layoutPoint;
+                        else
+                        {
+                            layout.HitTestTextPosition(MathHelper.MakeUnsigned(_caretIndex), isTrailingHit: true, out float pointX, out float pointY);
+                            location = new PointF(layoutPoint.X + pointX, layoutPoint.Y + pointY);
+                        }
                     }
                     eventHandler.Invoke(this, new MouseEventArgs(location, MouseButtons.RightButton));
                 }
@@ -670,7 +694,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
     #region IME Support
     void IInputMethodHandler.StartIMEComposition(InputMethod ime, InputMethodContext context)
     {
-        (PointF caretPoint, Vector2 dpiScaleFactorInversed) = UpdateIMECaret(context, _caretIndex);
+        if (!TryUpdateIMECaret(context, _caretIndex, out PointF caretPoint, out Vector2 dpiScaleFactorInversed))
+            return;
         context.SetCompositionWindow(new IMECompositionForm()
         {
             dwStyle = IMECompositionStyle.PositionedAtPoint,
@@ -772,15 +797,19 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         UpdateCaretIndex(_caretIndex + MathHelper.MakeSigned(length));
     }
 
-    private (PointF caretPoint, Vector2 dpiScaleFactorInversed) UpdateIMECaret(InputMethodContext context, int caretIndex)
+    private bool TryUpdateIMECaret(InputMethodContext context, int caretIndex, out PointF caretPoint, out Vector2 dpiScaleFactorInversed)
     {
-        Vector2 dpiScaleFactor = Window.GetDpiScaleFactor();
+        if (!TryGetPointFromCaretIndex(caretIndex - 1, isTrailingHit: false, out DWriteHitTestMetrics metrics, out caretPoint))
+        {
+            dpiScaleFactorInversed = default;
+            return false;
+        }
 
-        PointF caretPoint = GetPointFromCaretIndex(caretIndex - 1, isTrailingHit: false, out DWriteHitTestMetrics metrics);
+        dpiScaleFactorInversed = Window.GetDpiScaleFactorInversed();
         PointF bottomRightPoint = new PointF(caretPoint.X + metrics.Width, caretPoint.Y + metrics.Height);
 
-        caretPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(caretPoint), dpiScaleFactor);
-        bottomRightPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(bottomRightPoint), dpiScaleFactor);
+        caretPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(caretPoint), dpiScaleFactorInversed);
+        bottomRightPoint = GraphicsUtils.ScalingPoint(this.PageToWindow(bottomRightPoint), dpiScaleFactorInversed);
 
         context.SetCandidateWindow(new IMECandidateForm()
         {
@@ -793,8 +822,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
                 bottom: MathI.Ceiling(bottomRightPoint.Y)
                 )
         });
-
-        return (caretPoint, dpiScaleFactor);
+        return true;
     }
 
     [SkipLocalsInit]
@@ -1041,7 +1069,7 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         {
             InputMethodContext? context = _ime?.Context;
             if (context is not null)
-                UpdateIMECaret(context, caretIndex + _compositionCaretIndex);
+                TryUpdateIMECaret(context, caretIndex + _compositionCaretIndex, out _, out _);
         }
         Atomics.Or(ref _rawUpdateFlags, (long)updateFlags);
         Update();
@@ -1190,7 +1218,9 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
             return;
 
         using Lock.Scope scope = EnterSyncScope();
-        GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
+        GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out _);
+        if (layout is null)
+            return;
         layout.HitTestTextPosition(MathHelper.MakeUnsigned(caretIndex), false, out float pointX, out float pointY);
 
         pointY -= 5;
@@ -1209,8 +1239,9 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (!MultiLine)
             return;
         using Lock.Scope scope = EnterSyncScope();
-        GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
-       
+        GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out _);
+        if (layout is null)
+            return;
         int caretIndex = _caretIndex;
         int textLength = text.Length;
         if (caretIndex >= textLength)
@@ -1251,21 +1282,33 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         float viewportLeft = location.X + UIConstants.ElementMarginHalf - viewportPoint.X;
         float viewportTop = location.Y + UIConstants.ElementMarginHalf - viewportPoint.Y;
         using Lock.Scope scope = EnterSyncScope();
-        GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
+        GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out _);
+        if (layout is null)
+        {
+            isInside = SysBool32.False;
+            return 0;
+        }
         int result = MathHelper.MakeSigned(layout.HitTestPoint(point.X - viewportLeft, point.Y - viewportTop, out SysBool32 isTrailingHit, out isInside).TextPosition);
         if (isTrailingHit)
             result = AdjustCaretIndex(text, result + 1, takeGreaterIfNotExists: true);
         return result;
     }
 
-    private PointF GetPointFromCaretIndex(int caretIndex, bool isTrailingHit, out DWriteHitTestMetrics metrics)
+    private bool TryGetPointFromCaretIndex(int caretIndex, bool isTrailingHit, out DWriteHitTestMetrics metrics, out PointF result)
     {
         Point contentLocation = ContentLocation;
         PointF viewportPoint = ViewportPoint;
         using Lock.Scope scope = EnterSyncScope();
-        GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
+        GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out _);
+        if (layout is null)
+        {
+            metrics = default;
+            result = default;
+            return false;
+        }
         metrics = layout.HitTestTextPosition((uint)MathHelper.Clamp(0, caretIndex, MathHelper.Max(text.Length, 0)), isTrailingHit, out float x, out float y);
-        return new PointF(x - viewportPoint.X + contentLocation.X, y - viewportPoint.Y + contentLocation.Y);
+        result = new PointF(x - viewportPoint.X + contentLocation.X, y - viewportPoint.Y + contentLocation.Y);
+        return true;
     }
 
     #region Mouse Events Handling
@@ -1386,8 +1429,8 @@ public sealed partial class TextBox : ScrollableElementBase, IInputMethodHandler
         if (_drag)
         {
             using Lock.Scope scope = EnterSyncScope();
-            GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
-            if (StringHelper.IsNullOrEmpty(text))
+            GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out _);
+            if (layout is null || StringHelper.IsNullOrEmpty(text))
                 return;
             if (!_multiLine)
                 location.Y = contentLocation.Y + UIConstants.ElementMarginHalf + layout.GetMetrics().Top;
