@@ -530,13 +530,23 @@ unsafe partial class CoreWindow
 
     private HitTestValue DoHitTestForDefault(IntPtr lParam)
     {
-        Rectangle bounds = RawBounds;
         Point point = UnsafeHelper.As<Words, Point16>(lParam.GetWords()).ToPoint32();
-        point.X -= bounds.Left;
-        point.Y -= bounds.Top;
 
-        if (!_isMaximized) // Disable border hit testing to maximized window
+        if (_isMaximized)
+            return OnMaximized(point);
+        else
+            return OnNormal(point);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        HitTestValue OnMaximized(Point point) => CustomHitTest(ScreenToWindow(point));
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        HitTestValue OnNormal(Point point)
         {
+            Rectangle bounds = RawBounds;
+            point.X -= bounds.Left;
+            point.Y -= bounds.Top;
+
             if (HasSizableBorder)
             {
                 Size borderSize = ActiveBorderSize;
@@ -564,8 +574,9 @@ unsafe partial class CoreWindow
                     else if (x > rightBorder) return HitTestValue.RightBorder;
                 }
             }
+
+            return CustomHitTest(GraphicsUtils.ScalingPoint(point, _dpiScaleFactorInversed));
         }
-        return CustomHitTest(GraphicsUtils.ScalingPoint(point, _dpiScaleFactorInversed));
     }
     #endregion
 
