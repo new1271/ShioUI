@@ -1,10 +1,10 @@
 using System;
 using System.Runtime.CompilerServices;
 
+using RiceTea.Core.Collections;
+
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
-
-using RiceTea.Core.Collections;
 
 namespace ShioUI.Theme;
 
@@ -12,33 +12,22 @@ partial class ThemedBrushFactory
 {
     public sealed class Builder : ICloneable
     {
-        private readonly UnwrappableList<byte> _variantKeyList;
-        private readonly UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>> _variantBrushFactoryList;
+        private readonly UnwrappableList<byte> _overrideKeyList;
+        private readonly UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>> _overrideBrushFactoryList;
+        private readonly IThemedBrushFactory _base;
 
-        private Func<D2D1DeviceContext, D2D1Brush> _base;
-
-        internal Builder(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory)
+        internal Builder(IThemedBrushFactory baseFactory)
         {
-            _base = baseBrushFactory;
-            _variantKeyList = new UnwrappableList<byte>(capacity: 0);
-            _variantBrushFactoryList = new UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>>(capacity: 0);
-        }
-
-        internal Builder(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory, byte[] variantKeys, Func<D2D1DeviceContext, D2D1Brush>[] variantBrushes)
-        {
-            int length = variantKeys.Length;
-            if (length != variantBrushes.Length)
-                throw new InvalidOperationException();
-            _base = baseBrushFactory;
-            _variantKeyList = new UnwrappableList<byte>(variantKeys);
-            _variantBrushFactoryList = new UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>>(variantBrushes);
+            _base = baseFactory;
+            _overrideKeyList = new UnwrappableList<byte>(capacity: 0);
+            _overrideBrushFactoryList = new UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>>(capacity: 0);
         }
 
         private Builder(Builder original)
         {
             _base = original._base;
-            _variantKeyList = new UnwrappableList<byte>(original._variantKeyList);
-            _variantBrushFactoryList = new UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>>(original._variantBrushFactoryList);
+            _overrideKeyList = new UnwrappableList<byte>(original._overrideKeyList);
+            _overrideBrushFactoryList = new UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>>(original._overrideBrushFactoryList);
         }
 
         public Func<D2D1DeviceContext, D2D1Brush> this[WindowMaterial material]
@@ -46,16 +35,21 @@ partial class ThemedBrushFactory
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                int index = _variantKeyList.IndexOf((byte)material);
+                int index = _overrideKeyList.IndexOf((byte)material);
                 if (index < 0)
-                    return _base;
-                return _variantBrushFactoryList[index];
+                {
+                    if (material == WindowMaterial.Default)
+                        return _base.CreateDefaultBrush;
+                    else
+                        return (context) => _base.CreateBrushByMaterial(context, material);
+                }
+                return _overrideBrushFactoryList[index];
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Builder WithVariant(WindowMaterial material, in D2D1ColorF brushColor)
-            => WithVariant(material, CreateFactoryByColor(brushColor));
+        public Builder WithVariant(WindowMaterial material, D2D1ColorF brushColor)
+            => WithVariant(material, context => context.CreateSolidColorBrush(brushColor));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Builder WithVariant(WindowMaterial material, IThemedBrushFactory brushFactory)
@@ -65,8 +59,8 @@ partial class ThemedBrushFactory
         {
             if (material < WindowMaterial.None || material >= WindowMaterial._Last)
                 ArgumentOutOfRangeException.Throw(nameof(material));
-            UnwrappableList<byte> variantKeyList = _variantKeyList;
-            UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>> variantBrushFactoryList = _variantBrushFactoryList;
+            UnwrappableList<byte> variantKeyList = _overrideKeyList;
+            UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>> variantBrushFactoryList = _overrideBrushFactoryList;
             byte key = (byte)material;
             int index = variantKeyList.IndexOf(key);
             if (index >= 0)
@@ -83,9 +77,11 @@ partial class ThemedBrushFactory
 
         public IThemedBrushFactory Build()
         {
-            if (_variantKeyList.Count > 0)
-                return new NormalImpl(_base, _variantKeyList.ToArray(), _variantBrushFactoryList.ToArray());
-            return new SimpleImpl(_base);
+            UnwrappableList<byte> keyList = _overrideKeyList;
+            UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>> brushFactoryList = _overrideBrushFactoryList;
+            if (keyList.Count > 0)
+                return new NormalImpl(_base, keyList.ToArray(), brushFactoryList.ToArray());
+            return _base;
         }
 
         object ICloneable.Clone() => Clone();

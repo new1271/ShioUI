@@ -19,43 +19,23 @@ public interface IThemedBrushFactory
 public static partial class ThemedBrushFactory
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IThemedBrushFactory FromColor(in D2D1ColorF color) => CreateBuilder(color).Build();
+    public static IThemedBrushFactory FromColor(in D2D1ColorF color) => new SolidColorImpl(color);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IThemedBrushFactory FromColorFactory(IThemedColorFactory factory)
-        => new Adapter(factory);
+    public static IThemedBrushFactory FromColorFactory(IThemedColorFactory factory) => new Adapter(factory);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IThemedBrushFactory AmplifiedFrom(IThemedBrushFactory factory, float amplifier)
-        => new AmplifiedImpl(factory, amplifier);
+    public static IThemedBrushFactory AmplifiedFrom(IThemedBrushFactory factory, float amplifier) => new AmplifiedImpl(factory, amplifier);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IThemedBrushFactory FromFunction(Func<D2D1DeviceContext, WindowMaterial, D2D1Brush> function)
-        => new FunctionImpl(function);
+    public static IThemedBrushFactory FromFunction(Func<D2D1DeviceContext, WindowMaterial, D2D1Brush> function) => new FunctionImpl(function);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Builder CreateBuilder(in D2D1ColorF baseBrushColor) => new Builder(CreateFactoryByColor(baseBrushColor));
+    public static Builder CreateBuilder(in D2D1ColorF baseBrushColor) => new Builder(new SolidColorImpl(baseBrushColor));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Builder CreateBuilder(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory) => new Builder(baseBrushFactory);
+    public static Builder CreateBuilder(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory) => new Builder(new SimpleImpl(baseBrushFactory));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Builder CreateBuilder(IThemedBrushFactory originalFactory)
-    {
-        switch (originalFactory)
-        {
-            case SimpleImpl factory:
-                return new Builder(factory.Destruct());
-            case NormalImpl factory:
-                return new Builder(factory.Destruct(out byte[] variantKeys, out Func<D2D1DeviceContext, D2D1Brush>[] variantBrushFactories), variantKeys, variantBrushFactories);
-            default:
-                Builder builder = new Builder(originalFactory.CreateDefaultBrush);
-                foreach (WindowMaterial variant in originalFactory.GetVariants())
-                    builder = builder.WithVariant(variant, context => originalFactory.CreateBrushByMaterial(context, variant));
-                return builder;
-        }
-    }
-
-    private static Func<D2D1DeviceContext, D2D1Brush> CreateFactoryByColor(D2D1ColorF color)
-        => context => context.CreateSolidColorBrush(color);
+    public static Builder CreateBuilder(IThemedBrushFactory baseFactory) => new Builder(baseFactory);
 }
