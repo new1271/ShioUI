@@ -18,6 +18,8 @@ partial class DropdownBox
         BackDisabledBrush,
         BackHoveredBrush,
         BorderBrush,
+        BorderHoveredBrush,
+        BorderPressedBrush,
         TextBrush,
         DropdownButtonBrush,
         DropdownButtonHoveredBrush,

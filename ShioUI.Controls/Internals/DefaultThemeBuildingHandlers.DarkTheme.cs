@@ -128,7 +128,7 @@ partial class ThemeBuildingHandlers
                 value: queryBrushFunc("app.control.border"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.textbox.border.focused",
-                value: queryBrushFunc("app.control.border.hovered"));
+                value: queryBrushFunc("app.control.border.pressed"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.textbox.fore",
                 value: queryBrushFunc("app.control.fore"));
@@ -155,6 +155,12 @@ partial class ThemeBuildingHandlers
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.dropdownBox.border",
                 value: queryBrushFunc("app.control.border"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.dropdownBox.border.hovered",
+                value: queryBrushFunc("app.control.border.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.dropdownBox.border.pressed",
+                value: queryBrushFunc("app.control.border.pressed"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.dropdownBox.fore",
                 value: queryBrushFunc("app.control.fore"));

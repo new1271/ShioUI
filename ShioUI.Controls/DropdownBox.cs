@@ -33,6 +33,8 @@ public sealed partial class DropdownBox : UIElement, IMouseInteractHandler, IMou
         "back.disabled",
         "back.hovered",
         "border",
+        "border.hovered",
+        "border.pressed",
         "fore",
         "button",
         "button.hovered",
@@ -170,14 +172,21 @@ public sealed partial class DropdownBox : UIElement, IMouseInteractHandler, IMou
     {
         DWriteTextLayout? layout = GetTextLayout(GetAndCleanRenderObjectUpdateFlags());
         ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
-        D2D1Brush backBrush;
+        D2D1Brush backBrush, borderBrush;
         if (Enabled)
         {
+            bool isHovered = _isHovered, isPressed = _isPressed;
+
             DebugHelper.ThrowUnless((nuint)Brush.BackBrush + 2 == (nuint)Brush.BackHoveredBrush);
-            backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush + 2 * MathHelper.BooleanToNativeUnsigned(_isHovered));
+            backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackBrush + 2 * MathHelper.BooleanToNativeUnsigned(isHovered));
+            borderBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush +
+                MathHelper.BooleanToNativeUnsigned(isHovered) + MathHelper.BooleanToNativeUnsigned(isPressed & isHovered));
         }
         else
+        {
             backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BackDisabledBrush);
+            borderBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush);
+        }
         RenderBackground(context, backBrush);
         SizeF renderSize = context.Size;
         float borderWidth = context.DefaultBorderWidth;
@@ -203,7 +212,7 @@ public sealed partial class DropdownBox : UIElement, IMouseInteractHandler, IMou
             D2D1Brush buttonBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.DropdownButtonBrush + (state > ButtonTriState.Pressed ? 0u : (nuint)state));
             FontIconResources.Instance.DrawDropDownButton(context, (RectangleF)buttonRect, buttonBrush);
         }
-        context.DrawBorder(UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.BorderBrush));
+        context.DrawBorder(borderBrush);
         return true;
     }
 
