@@ -36,7 +36,9 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         "border.hovered.checked" ,
         "border.pressed.checked",
         "mark",
-        "fore"
+        "fore",
+        "fore.hovered",
+        "fore.pressed"
     };
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
@@ -48,7 +50,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     private WeakReference<CheckBox>? _reference;
 
     private ButtonTriState _buttonState;
-    private long _redrawTypeRaw, _rawUpdateFlags;
+    private long _rawUpdateFlags;
     private float _fontSize;
     private uint _checked;
     private bool _isPressed;
@@ -56,12 +58,9 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     public CheckBox(IElementContainer parent) : base(parent, "app.checkBox")
     {
         _rawUpdateFlags = (long)RenderObjectUpdateFlags.FlagsAllTrue;
-        _redrawTypeRaw = (long)RedrawType.RedrawAllContent;
         _fontSize = UIConstants.DefaultFontSize;
         _checked = default;
         _text = string.Empty;
-
-        EnablePartialRendering = true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,44 +84,13 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         _rawUpdateFlags = -1L;
         _fontSize = UIConstants.DefaultFontSize;
         DisposeHelper.SwapDispose(ref _layout);
-        Update(RedrawType.RedrawAllContent);
     }
 
     public override void OnSizeChanged() => Update();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override void Update() => Update(RedrawType.RedrawAllContent);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Update(RedrawType type)
-    {
-        if (type == RedrawType.NoRedraw)
-            return;
-        Atomics.Or(ref _redrawTypeRaw, (long)type);
-        UpdateCore();
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private void Update(RenderObjectUpdateFlags flags)
-    {
-        Atomics.Or(ref _rawUpdateFlags, (long)flags);
-        Update();
-    }
-
-    [Inline(InlineBehavior.Remove)]
-    private RedrawType GetRedrawTypeAndReset()
-        => (RedrawType)Interlocked.Exchange(ref _redrawTypeRaw, (long)RedrawType.NoRedraw);
-
     [Inline(InlineBehavior.Remove)]
     private RenderObjectUpdateFlags GetAndCleanRenderObjectUpdateFlags()
         => (RenderObjectUpdateFlags)Interlocked.Exchange(ref _rawUpdateFlags, default);
-
-    public override bool NeedRefresh()
-    {
-        if (_redrawTypeRaw > (long)RedrawType.NoRedraw)
-            return true;
-        return Interlocked.Read(ref _redrawTypeRaw) > (long)RedrawType.NoRedraw;
-    }
 
     private DWriteTextLayout? GetTextLayout(RenderObjectUpdateFlags flags)
     {
@@ -158,39 +126,23 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
 
     protected override bool RenderCore(in RegionalRenderingContext context)
     {
-        RedrawType redrawType = GetRedrawTypeAndReset();
-        if (!context.HasDirtyCollector) //Force redraw
-            redrawType = RedrawType.RedrawAllContent;
-        else if (redrawType == RedrawType.NoRedraw)
-            return true;
-
         SizeF renderSize = context.Size;
-        switch (redrawType)
+        RenderObjectUpdateFlags flags = GetAndCleanRenderObjectUpdateFlags();
+        D2D1Brush textBrush = UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes),
+            (nuint)Brush.ForeBrush + (uint)_buttonState);
+        RenderBackground(context);
+        DrawCheckBox(context.WithEmptyDirtyCollector());
+        DWriteTextLayout? layout = GetTextLayout(flags);
+        if (layout is not null)
         {
-            case RedrawType.RedrawAllContent:
-                {
-                    RenderObjectUpdateFlags flags = GetAndCleanRenderObjectUpdateFlags();
-                    D2D1Brush textBrush = UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes), (nuint)Brush.TextBrush);
-                    RenderBackground(context);
-                    DrawCheckBox(context.WithEmptyDirtyCollector());
-                    DWriteTextLayout? layout = GetTextLayout(flags);
-                    if (layout is not null)
-                    {
-                        PointF textLocation = new PointF(renderSize.Height + 3.0f, 0);
-                        if (textLocation.X < renderSize.Width && renderSize.Height > 0)
-                        {
-                            layout.MaxWidth = renderSize.Width - textLocation.X;
-                            layout.MaxHeight = renderSize.Height;
-                            context.DrawTextLayout(textLocation, layout, textBrush);
-                        }
-                        DisposeHelper.NullSwapOrDispose(ref _layout, layout);
-                    }
-                    context.MarkAsDirty();
-                }
-                break;
-            case RedrawType.RedrawCheckBox:
-                DrawCheckBox(context);
-                break;
+            PointF textLocation = new PointF(renderSize.Height + 3.0f, 0);
+            if (textLocation.X < renderSize.Width && renderSize.Height > 0)
+            {
+                layout.MaxWidth = renderSize.Width - textLocation.X;
+                layout.MaxHeight = renderSize.Height;
+                context.DrawTextLayout(textLocation, layout, textBrush);
+            }
+            DisposeHelper.NullSwapOrDispose(ref _layout, layout);
         }
         return true;
     }
@@ -262,7 +214,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         if (oldButtonState == newButtonState)
             return;
         _buttonState = newButtonState;
-        Update(RedrawType.RedrawCheckBox);
+        Update();
     }
 
     public void OnMouseDown(ref HandleableMouseEventArgs args)
@@ -273,7 +225,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         args.Handle();
         _isPressed = true;
         _buttonState = ButtonTriState.Pressed;
-        Checked = !Checked;
+            Checked = !Checked;
     }
 
     public void OnMouseUp(in MouseEventArgs args)
@@ -285,7 +237,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         if (_buttonState != ButtonTriState.Pressed)
             return;
         _buttonState = ButtonTriState.Hovered;
-        Update(RedrawType.RedrawCheckBox);
+        Update();
     }
 
     protected override void DisposeCore(bool disposing)

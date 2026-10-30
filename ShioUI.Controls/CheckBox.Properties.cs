@@ -25,7 +25,7 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
             if (Atomics.Exchange(ref _checked, rawValue) == rawValue)
                 return;
             CheckedChanged?.Invoke(this, EventArgs.Empty);
-            Update(RedrawType.RedrawCheckBox);
+            Update();
         }
     }
 
@@ -38,7 +38,7 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
             if (Atomics.Exchange(ref _fontSize, value) == value)
                 return;
             DisposeHelper.SwapDisposeAtomic(ref _layout);
-            Update(RenderObjectUpdateFlags.Format);
+            Update();
         }
     }
 
@@ -50,7 +50,7 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
         {
             if (ReferenceEquals(Atomics.Exchange(ref _text, value), value))
                 return;
-            Update(RenderObjectUpdateFlags.Layout);
+            Update();
         }
     }
 

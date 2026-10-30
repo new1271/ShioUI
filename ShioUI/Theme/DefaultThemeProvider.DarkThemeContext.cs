@@ -99,10 +99,13 @@ partial class DefaultThemeProvider
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(175, 175, 175)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.fore",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(220, 220, 220)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.control.fore.hovered",
                 value: ThemedBrushFactory.FromColor(Color.White));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.fore.inactive",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(203, 203, 203)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(180, 180, 180)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.fore.description",
                 value: ThemedBrushFactory.FromColor(Color.LightGray));

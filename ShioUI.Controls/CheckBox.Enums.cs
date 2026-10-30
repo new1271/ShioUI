@@ -30,7 +30,9 @@ partial class CheckBox
         BorderPressedCheckedBrush,
         MarkBrush,
         _CheckBoxRenderingLast,
-        TextBrush = _CheckBoxRenderingLast,
+        ForeBrush = _CheckBoxRenderingLast,
+        ForeHoveredBrush,
+        ForePressedBrush,
         _Last,
     }
 }

@@ -101,6 +101,12 @@ partial class ThemeBuildingHandlers
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.fore",
                 value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.fore.hovered",
+                value: queryBrushFunc("app.control.fore.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.fore.pressed",
+                value: queryBrushFunc("app.control.fore"));
 
             // 卷軸
             yield return new KeyValuePair<string, IThemedBrushFactory>(
