@@ -80,7 +80,7 @@ partial class ThemedBrushFactory
             UnwrappableList<byte> keyList = _overrideKeyList;
             UnwrappableList<Func<D2D1DeviceContext, D2D1Brush>> brushFactoryList = _overrideBrushFactoryList;
             if (keyList.Count > 0)
-                return new NormalImpl(_base, keyList.ToArray(), brushFactoryList.ToArray());
+                return new ComplexImpl(_base, keyList.ToArray(), brushFactoryList.ToArray());
             return _base;
         }
 

@@ -19,7 +19,7 @@ public interface IThemedBrushFactory
 public static partial class ThemedBrushFactory
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IThemedBrushFactory FromColor(in D2D1ColorF color) => new SolidColorImpl(color);
+    public static IThemedBrushFactory FromColor(in D2D1ColorF color) => new SimpleImpl(color);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IThemedBrushFactory FromColorFactory(IThemedColorFactory factory) => new Adapter(factory);
@@ -31,10 +31,10 @@ public static partial class ThemedBrushFactory
     public static IThemedBrushFactory FromFunction(Func<D2D1DeviceContext, WindowMaterial, D2D1Brush> function) => new FunctionImpl(function);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Builder CreateBuilder(in D2D1ColorF baseBrushColor) => new Builder(new SolidColorImpl(baseBrushColor));
+    public static Builder CreateBuilder(in D2D1ColorF baseBrushColor) => new Builder(new SimpleImpl(baseBrushColor));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Builder CreateBuilder(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory) => new Builder(new SimpleImpl(baseBrushFactory));
+    public static Builder CreateBuilder(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory) => new Builder(new NormalImpl(baseBrushFactory));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Builder CreateBuilder(IThemedBrushFactory baseFactory) => new Builder(baseFactory);

@@ -1,30 +1,26 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using ShioUI.Graphics.Native.Direct2D;
 using ShioUI.Graphics.Native.Direct2D.Brushes;
 
 namespace ShioUI.Theme;
 
-
 partial class ThemedBrushFactory
 {
-    private sealed class SimpleImpl : IThemedBrushFactory
+    private sealed class SimpleImpl : IThemedBrushFactory, IThemedColorFactory
     {
-        private readonly Func<D2D1DeviceContext, D2D1Brush> _base;
+        private readonly D2D1ColorF _color;
 
-        public SimpleImpl(Func<D2D1DeviceContext, D2D1Brush> baseBrushFactory)
-        {
-            _base = baseBrushFactory;
-        }
+        public SimpleImpl(in D2D1ColorF color) => _color = color;
 
-        public D2D1Brush CreateDefaultBrush(D2D1DeviceContext context) => _base.Invoke(context);
+        public D2D1Brush CreateBrushByMaterial(D2D1DeviceContext context, WindowMaterial material) => context.CreateSolidColorBrush(_color);
 
-        public D2D1Brush CreateBrushByMaterial(D2D1DeviceContext context, WindowMaterial material) => _base.Invoke(context);
+        public D2D1ColorF CreateColorByMaterial(WindowMaterial material) => _color;
 
-        public IEnumerable<WindowMaterial> GetVariants() => Enumerable.Empty<WindowMaterial>();
+        public D2D1Brush CreateDefaultBrush(D2D1DeviceContext context) => context.CreateSolidColorBrush(_color);
 
-        public Func<D2D1DeviceContext, D2D1Brush> Destruct() => _base;
+        public D2D1ColorF CreateDefaultColor() => _color;
+
+        public IEnumerable<WindowMaterial> GetVariants() => [WindowMaterial.Default];
     }
 }
