@@ -48,7 +48,7 @@ partial class ThemeBuildingHandlers
                 value: queryBrushFunc("app.control.border"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.button.border.hovered",
-                value: queryBrushFunc("app.control.border.active"));
+                value: queryBrushFunc("app.control.border.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.button.face",
                 value: ThemedBrushFactory.AmplifiedFrom(queryBrushFunc("app.control.back"), 0.96f));
@@ -82,10 +82,10 @@ partial class ThemeBuildingHandlers
                 value: queryBrushFunc("app.control.border"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.border.hovered",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(100, 100, 100)));
+                value: queryBrushFunc("app.control.border.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.border.pressed",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(55, 55, 55)));
+                value: queryBrushFunc("app.control.border.pressed"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.border.checked",
                 value: queryBrushFunc("app.checkBox.border"));
@@ -128,7 +128,7 @@ partial class ThemeBuildingHandlers
                 value: queryBrushFunc("app.control.border"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.textbox.border.focused",
-                value: queryBrushFunc("app.control.border.active"));
+                value: queryBrushFunc("app.control.border.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.textbox.fore",
                 value: queryBrushFunc("app.control.fore"));

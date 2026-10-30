@@ -92,8 +92,11 @@ partial class DefaultThemeProvider
                 key: "app.control.border",
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.control.border.active",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(0, 111, 195)));
+                key: "app.control.border.hovered",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.control.border.pressed",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(55, 55, 55)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.fore",
                 value: ThemedBrushFactory.FromColor(Color.Black));

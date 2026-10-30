@@ -103,11 +103,11 @@ partial class TextBox : IAutoHeightElement
             _multiLine = value;
 
             using Lock.Scope scope = EnterSyncScope();
-            GetTextAndLayouts(out string text, out _, out DWriteTextLayout layout, out _);
+            GetTextAndLayouts(out string text, out _, out DWriteTextLayout? layout, out _);
             if (value)
             {
                 Size size = ContentSize;
-                if (size.Width <= 0 || size.Height <= 0)
+                if (layout is null || size.Width <= 0 || size.Height <= 0)
                     SurfaceSize = Size.Empty;
                 else
                 {
