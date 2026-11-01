@@ -48,11 +48,13 @@ public static class GraphicsUtils
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RectF RoundRectangleF(in RectF rawRect)
-        => new RectF(MathF.Round(rawRect.Left), MathF.Round(rawRect.Top), MathF.Round(rawRect.Right), MathF.Round(rawRect.Bottom));
+        => new RectF(MathF.Round(rawRect.Left, MidpointRounding.AwayFromZero), MathF.Round(rawRect.Top, MidpointRounding.AwayFromZero), 
+            MathF.Round(rawRect.Right, MidpointRounding.AwayFromZero), MathF.Round(rawRect.Bottom, MidpointRounding.AwayFromZero));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static RectF RoundRectangleF(in RectangleF rawRect)
-        => new RectF(MathF.Round(rawRect.Left), MathF.Round(rawRect.Top), MathF.Round(rawRect.Right), MathF.Round(rawRect.Bottom));
+        => new RectF(MathF.Round(rawRect.Left, MidpointRounding.AwayFromZero), MathF.Round(rawRect.Top, MidpointRounding.AwayFromZero), 
+            MathF.Round(rawRect.Right, MidpointRounding.AwayFromZero), MathF.Round(rawRect.Bottom, MidpointRounding.AwayFromZero));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Point AdjustPoint(PointF rawPoint)
