@@ -14,6 +14,22 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
 {
     public event EventHandler? CheckedChanged;
 
+    public bool RightSided
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _isRightSided;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        init => _isRightSided = value;
+    }
+
+    public CheckBoxMode Mode
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _mode;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        init => _mode = value;
+    }
+
     public bool Checked
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

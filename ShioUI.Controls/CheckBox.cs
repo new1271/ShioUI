@@ -36,6 +36,11 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         "border.hovered.checked" ,
         "border.pressed.checked",
         "mark",
+        "switch.thumb",
+        "switch.thumb.hovered",
+        "switch.thumb.pressed",
+        "switch.track",
+        "switch.track.checked",
         "fore",
         "fore.hovered",
         "fore.pressed"
@@ -43,6 +48,8 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
 
     private readonly D2D1Brush[] _brushes = new D2D1Brush[(int)Brush._Last];
     private readonly LayoutNode?[] _autoLayoutDefinitions = new LayoutNode?[2];
+    private readonly CheckBoxMode _mode;
+    private readonly bool _isRightSided;
 
     private string? _fontName;
     private string _text;
@@ -94,7 +101,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
 
     private DWriteTextLayout? GetTextLayout(RenderObjectUpdateFlags flags)
     {
-        DWriteTextLayout? layout = Interlocked.Exchange(ref _layout, null);
+        DWriteTextLayout? layout = Atomics.Exchange(ref _layout, null);
 
         if ((flags & RenderObjectUpdateFlags.Layout) == RenderObjectUpdateFlags.Layout)
         {
@@ -128,78 +135,159 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
     {
         SizeF renderSize = context.Size;
         RenderObjectUpdateFlags flags = GetAndCleanRenderObjectUpdateFlags();
-        D2D1Brush textBrush = UnsafeHelper.AddTypedOffset(ref UnsafeHelper.GetArrayDataReference(_brushes),
-            (nuint)Brush.ForeBrush + (uint)_buttonState);
+        ButtonTriState buttonState = _buttonState;
+        if (buttonState >= ButtonTriState.Pressed)
+            buttonState = ButtonTriState.None;
+
+        ref readonly D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
+        D2D1Brush textBrush = UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesRef, (nuint)Brush.ForeBrush + (uint)buttonState);
         RenderBackground(context);
-        DrawCheckBox(context.WithEmptyDirtyCollector());
-        DWriteTextLayout? layout = GetTextLayout(flags);
-        if (layout is not null)
+
+        RectangleF checkBoxBounds, textBounds;
+        switch (_mode)
         {
-            PointF textLocation = new PointF(renderSize.Height + 3.0f, 0);
-            if (textLocation.X < renderSize.Width && renderSize.Height > 0)
-            {
-                layout.MaxWidth = renderSize.Width - textLocation.X;
-                layout.MaxHeight = renderSize.Height;
-                context.DrawTextLayout(textLocation, layout, textBrush);
-            }
+            case CheckBoxMode.Regular:
+                {
+                    checkBoxBounds = GetCheckBoxRenderingBounds(in context, renderSize.Height);
+                    if (_isRightSided)
+                        checkBoxBounds.X = renderSize.Width - checkBoxBounds.Width;
+                    DrawCheckBoxCore(context, in brushesRef, checkBoxBounds, Checked, buttonState);
+                }
+                break;
+            case CheckBoxMode.ToggleSwitch:
+                {
+                    checkBoxBounds = GetToggleSwitchRenderingBounds(in context, renderSize.Height);
+                    if (_isRightSided)
+                        checkBoxBounds.X = renderSize.Width - checkBoxBounds.Width;
+                    DrawToggleSwitchCore(context, in brushesRef, checkBoxBounds, Checked, buttonState);
+                }
+                break;
+            default:
+                {
+                    if (_isRightSided)
+                        checkBoxBounds = new RectangleF(renderSize.Width, 0, 0, 0);
+                    else
+                        checkBoxBounds = default;
+                }
+                break;
+        }
+        if (_isRightSided)
+            textBounds = new RectangleF(0, 0, checkBoxBounds.X - UIConstants.ElementMarginHalf, renderSize.Height);
+        else
+            textBounds = RectangleF.FromLTRB(checkBoxBounds.Right + UIConstants.ElementMarginHalf, 0, renderSize.Width, renderSize.Height);
+
+        DWriteTextLayout? layout = GetTextLayout(flags);
+        if (layout is null)
+            goto Tail;
+        try
+        {
+            float width = textBounds.Width;
+            float height = textBounds.Height;
+            if (width <= 0.0f || height <= 0.0f)
+                goto Tail;
+
+            layout.MaxWidth = textBounds.Width;
+            layout.MaxHeight = textBounds.Height;
+            context.DrawTextLayout(textBounds.Location, layout, textBrush);
+        }
+        finally
+        {
             DisposeHelper.NullSwapOrDispose(ref _layout, layout);
         }
+
+    Tail:
         return true;
     }
 
-    private void DrawCheckBox(in RegionalRenderingContext context)
-    {
-        ButtonTriState buttonState = _buttonState;
-        if (buttonState > ButtonTriState.Pressed)
-            return;
-        RectangleF renderingBounds = GetCheckBoxRenderingBounds(in context, context.Size.Height);
-        if (context.HasDirtyCollector)
-        {
-            using RenderingClipScope scope = context.PushAxisAlignedClip(renderingBounds, D2D1AntialiasMode.Aliased);
-            RenderBackground(in context);
-            context.MarkAsDirty(renderingBounds);
-        }
-        DrawCheckBoxUnsafe(context, _brushes, renderingBounds, Checked, buttonState);
-    }
+    private void DrawCheckBox(in RegionalRenderingContext context, ref readonly D2D1Brush? brushesRef, ButtonTriState buttonState)
+        => DrawCheckBoxCore(in context, in brushesRef, GetCheckBoxRenderingBounds(in context, context.Size.Height), Checked, buttonState);
 
     public static RectangleF GetCheckBoxRenderingBounds(in RegionalRenderingContext context, float itemHeight)
     {
-        Vector2 dpiScaleFactorInversed = context.DpiScaleFactor;
         float borderWidth = context.DefaultBorderWidth;
-        float buttonWidth = RenderingHelper.RoundInPixel(itemHeight, dpiScaleFactorInversed.Y) - borderWidth * 2;
-        return new RectangleF(borderWidth, borderWidth, buttonWidth, buttonWidth);
+        float buttonWidth = itemHeight - borderWidth * 2;
+        return context.GetPixelAlignedRect(new RectangleF(borderWidth, borderWidth, buttonWidth, buttonWidth));
+    }
+
+    public static RectangleF GetToggleSwitchRenderingBounds(in RegionalRenderingContext context, float itemHeight)
+    {
+        float borderWidth = context.DefaultBorderWidth;
+        float buttonWidth = itemHeight * 2 - borderWidth * 2;
+        float buttonHeight = itemHeight - borderWidth * 2;
+        return context.GetPixelAlignedRect(new RectangleF(borderWidth, borderWidth, buttonWidth, buttonHeight));
     }
 
     public static void DrawCheckBox(in RegionalRenderingContext context, D2D1Brush?[] brushes, in RectangleF renderingBounds,
-        bool checkState, ButtonTriState hoverState)
+        bool checkState, ButtonTriState buttonState)
     {
-        if (hoverState > ButtonTriState.Pressed || brushes.Length < (int)Brush._CheckBoxRenderingLast)
+        if (buttonState > ButtonTriState.Pressed || brushes.Length < (int)Brush._CheckBoxRenderingLast)
             return;
-        DrawCheckBoxUnsafe(context, brushes, renderingBounds, checkState, hoverState);
+        DrawCheckBoxCore(context, ref brushes.AsUnsafeRef().FirstElement, renderingBounds, checkState, buttonState);
     }
 
-    internal static void DrawCheckBoxUnsafe(in RegionalRenderingContext context, D2D1Brush?[] brushes, in RectangleF renderingBounds,
-        bool checkState, ButtonTriState hoverState)
+    private static void DrawCheckBoxCore(in RegionalRenderingContext context, ref readonly D2D1Brush? brushesRef, in RectangleF renderingBounds,
+        bool checkState, ButtonTriState buttonState)
     {
-        ref D2D1Brush? brushesRef = ref UnsafeHelper.GetArrayDataReference(brushes);
-        D2D1Brush? backBrush = UnsafeHelper.AddTypedOffset(ref brushesRef,
-            MathHelper.BooleanToNativeUnsigned(checkState) * (nuint)Brush.BorderCheckedBrush + (nuint)hoverState);
-        if (backBrush is null)
+        D2D1Brush? borderBrush = UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesRef,
+            MathHelper.BooleanToNativeUnsigned(checkState) * (nuint)Brush.BorderCheckedBrush + (nuint)buttonState);
+        if (borderBrush is null)
             return;
 
         using RegionalRenderingContext clipContext = context.WithPixelAlignedClip(renderingBounds, D2D1AntialiasMode.Aliased, out RectF _);
         if (checkState)
         {
             RectF bounds = clipContext.Bounds;
-            clipContext.FillRectangle(bounds, backBrush);
-            D2D1Brush? markBrush = UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.MarkBrush);
+            clipContext.FillRectangle(bounds, borderBrush);
+            D2D1Brush? markBrush = UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesRef, (nuint)Brush.MarkBrush);
             if (markBrush is null)
                 return;
             FontIconResources.Instance.DrawCheckMark(clipContext, new RectangleF(PointF.Empty, clipContext.Size), markBrush);
         }
         else
         {
-            clipContext.DrawBorder(backBrush);
+            clipContext.DrawBorder(borderBrush);
+        }
+    }
+
+    private static void DrawToggleSwitchCore(in RegionalRenderingContext context, ref readonly D2D1Brush? brushesRef, in RectangleF renderingBounds,
+        bool checkState, ButtonTriState buttonState)
+    {
+        D2D1Brush? borderBrush = UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesRef, (nuint)Brush.BorderBrush + (nuint)buttonState);
+        D2D1Brush? buttonBrush = UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesRef, (nuint)Brush.ToggleSwitchButtonBrush + (nuint)buttonState);
+        D2D1Brush? railBrush = UnsafeHelper.AddTypedOffsetAsReadOnly(in brushesRef, (nuint)Brush.ToggleSwitchRailBrush + MathHelper.BooleanToNativeUnsigned(checkState));
+        if (borderBrush is null || buttonBrush is null || railBrush is null)
+            return;
+
+        using RegionalRenderingContext clipContext = context.WithPixelAlignedClip(renderingBounds, D2D1AntialiasMode.Aliased, out RectF _);
+
+        RectangleF railRect = new RectangleF(UIConstants.ElementMarginHalf, UIConstants.ElementMarginHalf,
+            renderingBounds.Width - UIConstants.ElementMargin, renderingBounds.Height - UIConstants.ElementMargin);
+
+        SizeF buttonSize = new SizeF(renderingBounds.Width / 4, renderingBounds.Height);
+
+        PointF buttonLocation;
+
+        if (checkState)
+        {
+            float buttonX = renderingBounds.Width - buttonSize.Width;
+            buttonLocation = new PointF(buttonX, 0);
+        }
+        else
+        {
+            buttonLocation = PointF.Empty;
+        }
+
+        clipContext.FillRectangle(railRect, railBrush);
+        clipContext.DrawBorder(borderBrush);
+        D2D1DeviceContext deviceContext = clipContext.DeviceContext;
+        (D2D1AntialiasMode lastAntialiasMode, deviceContext.AntialiasMode) = (deviceContext.AntialiasMode, D2D1AntialiasMode.PerPrimitive);
+        try
+        {
+            clipContext.FillRectangle(new RectangleF(buttonLocation, buttonSize), buttonBrush);
+        }
+        finally
+        {
+            clipContext.DeviceContext.AntialiasMode = lastAntialiasMode;
         }
     }
 
@@ -225,7 +313,7 @@ public sealed partial class CheckBox : UIElement, IMouseInteractHandler, IMouseM
         args.Handle();
         _isPressed = true;
         _buttonState = ButtonTriState.Pressed;
-            Checked = !Checked;
+        Checked = !Checked;
     }
 
     public void OnMouseUp(in MouseEventArgs args)

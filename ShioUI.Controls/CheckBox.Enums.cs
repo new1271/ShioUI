@@ -2,6 +2,12 @@ using System;
 
 namespace ShioUI.Controls;
 
+public enum CheckBoxMode
+{
+    Regular,
+    ToggleSwitch
+}
+
 partial class CheckBox
 {
     private enum RedrawType : long
@@ -30,7 +36,13 @@ partial class CheckBox
         BorderPressedCheckedBrush,
         MarkBrush,
         _CheckBoxRenderingLast,
-        ForeBrush = _CheckBoxRenderingLast,
+        ToggleSwitchButtonBrush = _CheckBoxRenderingLast,
+        ToggleSwitchButtonHoveredBrush,
+        ToggleSwitchButtonPressedBrush,
+        ToggleSwitchRailBrush,
+        ToggleSwitchRailCheckedBrush,
+        _ToggleSwitchRenderingLast,
+        ForeBrush = _ToggleSwitchRenderingLast,
         ForeHoveredBrush,
         ForePressedBrush,
         _Last,

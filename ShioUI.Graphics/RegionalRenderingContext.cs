@@ -396,16 +396,31 @@ public ref struct RegionalRenderingContext : IRenderingContext
     public readonly RectF GetPixelAlignedRect(in RectF rect)
     {
         RectF sourceClipRect = _clipScope.ClipRect;
-        float width = sourceClipRect.Width;
-        float height = sourceClipRect.Height;
-        RectF adjustedRect = new RectF(MathHelper.Min(rect.Left, width), MathHelper.Min(rect.Top, height),
-            MathHelper.Min(rect.Right, width), MathHelper.Min(rect.Bottom, height));
+        float right = sourceClipRect.Right;
+        float bottom = sourceClipRect.Bottom;
+        RectF adjustedRect = new RectF(MathHelper.Min(rect.Left, right), MathHelper.Min(rect.Top, bottom),
+            MathHelper.Min(rect.Right, right), MathHelper.Min(rect.Bottom, bottom));
         if (!adjustedRect.IsValid)
             return default;
         if (_isPixelAligned)
             return RenderingHelper.RoundInPixel(adjustedRect, _dpiScaleFactor);
         return TranslateAreaToLocal(
             RenderingHelper.RoundInPixel(TranslateAreaToGlobal(adjustedRect), _dpiScaleFactor));
+    }
+
+    public readonly RectangleF GetPixelAlignedRect(in RectangleF rect)
+    {
+        RectF sourceClipRect = _clipScope.ClipRect;
+        float right = sourceClipRect.Right;
+        float bottom = sourceClipRect.Bottom;
+        RectangleF adjustedRect = RectangleF.FromLTRB(MathHelper.Min(rect.Left, right), MathHelper.Min(rect.Top, bottom),
+            MathHelper.Min(rect.Right, right), MathHelper.Min(rect.Bottom, bottom));
+        if (adjustedRect.Left < 0 || adjustedRect.Top < 0 || adjustedRect.Width < 0 || adjustedRect.Height < 0)
+            return default;
+        if (_isPixelAligned)
+            return (RectangleF)RenderingHelper.RoundInPixel(adjustedRect, _dpiScaleFactor);
+        return TranslateAreaToLocal(
+            (RectangleF)RenderingHelper.RoundInPixel(TranslateAreaToGlobal(adjustedRect), _dpiScaleFactor));
     }
 
     public readonly RectF GetBorderRect(out float strokeWidth)
@@ -478,6 +493,16 @@ public ref struct RegionalRenderingContext : IRenderingContext
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly RectangleF TranslateAreaToGlobal(in RectangleF rect)
+    {
+        PointF offsetPoint = _offsetPoint;
+        float offsetX = offsetPoint.X;
+        float offsetY = offsetPoint.Y;
+        return new RectangleF(rect.Left + offsetX, rect.Top + offsetY,
+            rect.Width, rect.Height);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly RectF TranslateAreaToLocal(in RectF rect)
     {
         PointF offsetPoint = _offsetPoint;
@@ -485,6 +510,16 @@ public ref struct RegionalRenderingContext : IRenderingContext
         float offsetY = offsetPoint.Y;
         return new RectF(rect.Left - offsetX, rect.Top - offsetY,
             rect.Right - offsetX, rect.Bottom - offsetY);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly RectangleF TranslateAreaToLocal(in RectangleF rect)
+    {
+        PointF offsetPoint = _offsetPoint;
+        float offsetX = offsetPoint.X;
+        float offsetY = offsetPoint.Y;
+        return new RectangleF(rect.Left - offsetX, rect.Top - offsetY,
+            rect.Width, rect.Height);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

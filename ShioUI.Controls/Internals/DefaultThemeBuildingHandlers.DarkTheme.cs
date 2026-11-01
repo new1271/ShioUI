@@ -99,6 +99,21 @@ partial class ThemeBuildingHandlers
                 key: "app.checkBox.mark",
                 value: queryBrushFunc("app.control.back"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.thumb",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.thumb.hovered",
+                value: queryBrushFunc("app.control.fore.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.thumb.pressed",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.track",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(125, 125, 125)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.track.checked",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.fore",
                 value: queryBrushFunc("app.control.fore"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(

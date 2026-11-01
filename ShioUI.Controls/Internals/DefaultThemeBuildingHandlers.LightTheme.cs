@@ -71,10 +71,10 @@ partial class ThemeBuildingHandlers
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.fontIconButton.face.hovered",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(0, 127, 195)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(147, 147, 147)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.fontIconButton.face.pressed",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(0, 82, 193)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(175, 175, 175)));
 
             // 核取方塊
             yield return new KeyValuePair<string, IThemedBrushFactory>(
@@ -98,6 +98,21 @@ partial class ThemeBuildingHandlers
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.mark",
                 value: queryBrushFunc("app.control.back"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.thumb",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.thumb.hovered",
+                value: queryBrushFunc("app.control.fore.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.thumb.pressed",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.track",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(160, 160, 160)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.checkBox.switch.track.checked",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(195, 195, 195)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.fore",
                 value: queryBrushFunc("app.control.fore"));
