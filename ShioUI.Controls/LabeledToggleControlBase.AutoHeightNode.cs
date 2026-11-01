@@ -5,13 +5,13 @@ using ShioUI.Utils;
 
 namespace ShioUI.Controls;
 
-partial class CheckBox
+partial class LabeledToggleControlBase
 {
-    private sealed class AutoHeightNode : UIElementReferencedNode<CheckBox>
+    private sealed class AutoHeightNode : UIElementReferencedNode<LabeledToggleControlBase>
     {
-        public AutoHeightNode(WeakReference<CheckBox> reference) : base(reference) { }
+        public AutoHeightNode(WeakReference<LabeledToggleControlBase> reference) : base(reference) { }
 
-        protected override int ComputeCore(CheckBox element, in LayoutContext context)
+        protected override int ComputeCore(LabeledToggleControlBase element, in LayoutContext context)
         {
             string? fontName = element._fontName;
             if (fontName is null)

@@ -99,21 +99,6 @@ partial class ThemeBuildingHandlers
                 key: "app.checkBox.mark",
                 value: queryBrushFunc("app.control.back"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.checkBox.switch.thumb",
-                value: queryBrushFunc("app.control.fore"));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.checkBox.switch.thumb.hovered",
-                value: queryBrushFunc("app.control.fore.hovered"));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.checkBox.switch.thumb.pressed",
-                value: queryBrushFunc("app.control.fore"));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.checkBox.switch.track",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(125, 125, 125)));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.checkBox.switch.track.checked",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.fore",
                 value: queryBrushFunc("app.control.fore"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
@@ -121,6 +106,41 @@ partial class ThemeBuildingHandlers
                 value: queryBrushFunc("app.control.fore.hovered"));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.checkBox.fore.pressed",
+                value: queryBrushFunc("app.control.fore"));
+
+            // 開關按鈕
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.border",
+                value: queryBrushFunc("app.control.border"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.border.hovered",
+                value: queryBrushFunc("app.control.border.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.border.pressed",
+                value: queryBrushFunc("app.control.border.pressed"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.thumb",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.thumb.hovered",
+                value: queryBrushFunc("app.control.fore.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.thumb.pressed",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.track",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(125, 125, 125)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.track.checked",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.fore",
+                value: queryBrushFunc("app.control.fore"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.fore.hovered",
+                value: queryBrushFunc("app.control.fore.hovered"));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.toggleSwitch.fore.pressed",
                 value: queryBrushFunc("app.control.fore"));
 
             // 卷軸

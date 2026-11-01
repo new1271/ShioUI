@@ -10,9 +10,9 @@ using ShioUI.Traits;
 
 namespace ShioUI.Controls;
 
-partial class CheckBox : IAutoWidthElement, IAutoHeightElement
+partial class LabeledToggleControlBase : IAutoWidthElement, IAutoHeightElement
 {
-    public event EventHandler? CheckedChanged;
+    public event EventHandler? StateChanged;
 
     public bool RightSided
     {
@@ -22,25 +22,17 @@ partial class CheckBox : IAutoWidthElement, IAutoHeightElement
         init => _isRightSided = value;
     }
 
-    public CheckBoxMode Mode
+    public bool State
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _mode;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        init => _mode = value;
-    }
-
-    public bool Checked
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => MathHelper.ToBoolean(Atomics.Read(ref _checked));
+        get => MathHelper.ToBoolean(Atomics.Read(ref _state));
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             uint rawValue = MathHelper.BooleanToUInt32(value);
-            if (Atomics.Exchange(ref _checked, rawValue) == rawValue)
+            if (Atomics.Exchange(ref _state, rawValue) == rawValue)
                 return;
-            CheckedChanged?.Invoke(this, EventArgs.Empty);
+            StateChanged?.Invoke(this, EventArgs.Empty);
             Update();
         }
     }
