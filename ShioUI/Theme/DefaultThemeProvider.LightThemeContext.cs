@@ -90,13 +90,13 @@ partial class DefaultThemeProvider
                 value: ThemedBrushFactory.AmplifiedFrom(queryBrushFunc("app.control.back"), 0.9675f));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.border",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
-            yield return new KeyValuePair<string, IThemedBrushFactory>(
-                key: "app.control.border.hovered",
                 value: ThemedBrushFactory.FromColor(new D2D1ColorF(120, 120, 120)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
+                key: "app.control.border.hovered",
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(150, 150, 150)));
+            yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.border.pressed",
-                value: ThemedBrushFactory.FromColor(new D2D1ColorF(55, 55, 55)));
+                value: ThemedBrushFactory.FromColor(new D2D1ColorF(75, 75, 75)));
             yield return new KeyValuePair<string, IThemedBrushFactory>(
                 key: "app.control.fore",
                 value: ThemedBrushFactory.FromColor(Color.Black));
