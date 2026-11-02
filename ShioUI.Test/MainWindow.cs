@@ -59,9 +59,11 @@ internal sealed partial class MainWindow : TabbedWindow
             GC.Collect();
     }
 
-    private void Button_Click(UIElement sender, in MouseEventArgs args)
+    private void LightSwitch_StateChanged(object? sender, System.EventArgs e)
     {
-        if (CurrentTheme?.IsDarkTheme ?? false)
+        if (sender is not ToggleSwitch toggleSwitch)
+            return;
+        if (toggleSwitch.State)
         {
             if (!ThemeManager.TryGetThemeContext("#light", out IThemeContext? themeContext))
                 return;

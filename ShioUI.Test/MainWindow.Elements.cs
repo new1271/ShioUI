@@ -31,21 +31,22 @@ partial class MainWindow
     {
         List<UIElement> elementList = new List<UIElement>();
 
-        Button button = new Button(this)
+        ToggleSwitch lightSwitch = new ToggleSwitch(this)
         {
-            Text = "請點我!",
+            Text = "電燈開關!",
+            State = !(CurrentTheme?.IsDarkTheme ?? false),
             LeftExpression = UIConstants.ElementMargin,
             TopExpression = UIConstants.ElementMargin,
         }.WithAutoWidth().WithAutoHeight();
-        button.Click += Button_Click;
-        elementList.Add(button);
+        lightSwitch.StateChanged += LightSwitch_StateChanged;
+        elementList.Add(lightSwitch);
 
         TextBox textBox = new TextBox(this, _ime)
         {
-            LeftExpression = button.RightDefinition + UIConstants.ElementMargin,
+            LeftExpression = lightSwitch.RightDefinition + UIConstants.ElementMargin,
             TopExpression = UIConstants.ElementMargin,
             RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
-            HeightExpression = button.HeightDefinition,
+            HeightExpression = lightSwitch.HeightDefinition,
             Watermark = "這裡可以輸入文字喔!"
         };
         textBox.KeyDown += TextBox_KeyDown;
@@ -69,7 +70,7 @@ partial class MainWindow
             LeftExpression = listBox.RightDefinition + UIConstants.ElementMargin,
             TopExpression = textBox.BottomDefinition + UIConstants.ElementMargin,
             RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
-            Title = "群組容器",
+            Title = "群組容器"
         }.WithAutoHeight();
         using (var scope = groupBox.EnterContentPageScope())
         {
@@ -141,7 +142,9 @@ partial class MainWindow
             //TopExpression = groupBox.BottomDefinition + UIConstants.ElementMargin,
             BottomExpression = PageHeightDefinition - UIConstants.ElementMargin,
             RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
-            Title = "群組容器(倒轉)",
+            Title = "群組容器",
+            TitleDescription = "(倒轉 + 卡片型態)",
+            Mode = GroupBoxMode.Card
         }.WithAutoHeight();
         using (var scope = groupBox2.EnterContentPageScope())
         {
