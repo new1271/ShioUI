@@ -348,7 +348,7 @@ public sealed partial class GroupBox : UIElement, IAppendableElementContainer
                 RenderBackground(context);
                 ref D2D1Brush brushesRef = ref UnsafeHelper.GetArrayDataReference(_brushes);
                 context.DrawTextLayout(bounds.Location, layout, UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleBrush), DrawTextOptions);
-                context.DrawTextLayout(new PointF(bounds.X + titleWidth - BorderedTitleExtraWidth / 2, bounds.Y), layout,
+                context.DrawTextLayout(new PointF(bounds.X + titleWidth - BorderedTitleExtraWidth / 2, bounds.Y), descriptionLayout,
                     UnsafeHelper.AddTypedOffset(ref brushesRef, (nuint)Brush.TitleDescriptionBrush), DrawTextOptions);
             }
         }

@@ -70,7 +70,8 @@ partial class MainWindow
             LeftExpression = listBox.RightDefinition + UIConstants.ElementMargin,
             TopExpression = textBox.BottomDefinition + UIConstants.ElementMargin,
             RightExpression = PageWidthDefinition - UIConstants.ElementMargin,
-            Title = "群組容器"
+            Title = "群組容器",
+            TitleDescription = "(線條型態)",
         }.WithAutoHeight();
         using (var scope = groupBox.EnterContentPageScope())
         {
