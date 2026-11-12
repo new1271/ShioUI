@@ -23,7 +23,7 @@ internal sealed partial class MainWindow : TabbedWindow
     private ulong _startingTime;
     private bool _isAnimating = false;
 
-    public MainWindow(CoreWindow? parent) : base(parent, ["頁面A", "頁面B", "頁面C"])
+    public MainWindow(CoreWindow? parent) : base(parent, ["簡單畫面", "自動高度測試", "動畫測試"])
     {
         InitializeBaseInformation();
     }
@@ -99,19 +99,15 @@ internal sealed partial class MainWindow : TabbedWindow
         const int MinimumRotatingRange = 250;
         const int MaximumRotatingRange = 100;
 
-        RenderingController? controller = GetRenderingController();
-        if (controller is null)
-            return;
-
         LayoutNode sharedNode = LayoutNode.Custom(SharedFunc);
 
-        controller.Lock();
-        sender.LeftExpression = LayoutNode.Custom(CustomXFunc);
-        sender.TopExpression = LayoutNode.Custom(CustomYFunc);
-        _startingTime = NativeMethods.GetTicksForSystem();
-        _isAnimating = true;
-        UpdateAndResize();
-        controller.Unlock();
+        using (EnterCriticalUpdateScope())
+        {
+            sender.LeftExpression = LayoutNode.Custom(CustomXFunc);
+            sender.TopExpression = LayoutNode.Custom(CustomYFunc);
+            _startingTime = NativeMethods.GetTicksForSystem();
+            _isAnimating = true;
+        }
 
         try
         {
@@ -133,11 +129,11 @@ internal sealed partial class MainWindow : TabbedWindow
         }
         Volatile.Write(ref _isAnimating, false);
 
-        controller.Lock();
-        sender.LeftExpression = (PageWidthDefinition - sender.WidthDefinition) / 2;
-        sender.TopExpression = (PageHeightDefinition - sender.HeightDefinition) / 2;
-        UpdateAndResize();
-        controller.Unlock();
+        using (EnterCriticalUpdateScope())
+        {
+            sender.LeftExpression = (PageWidthDefinition - sender.WidthDefinition) / 2;
+            sender.TopExpression = (PageHeightDefinition - sender.HeightDefinition) / 2;
+        }
 
         int SharedFunc(in LayoutContext context) => (int)((NativeMethods.GetTicksForSystem() - _startingTime) / (TimeSpan.TicksPerSecond / 60));
 
