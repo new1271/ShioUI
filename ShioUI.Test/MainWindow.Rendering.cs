@@ -17,7 +17,7 @@ partial class MainWindow
         finally
         {
             if (Volatile.Read(ref _isAnimating))
-                UpdateAndResize();
+                InvalidateLayout();
         }
     }
 }
