@@ -80,7 +80,7 @@ public abstract class WizardWindow : MultiPageWindow
         {
             Atomics.Write(ref _heading, value ?? string.Empty);
             Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateCaption);
-            UpdateAndResize();
+            InvalidateLayout();
         }
     }
 
@@ -93,7 +93,7 @@ public abstract class WizardWindow : MultiPageWindow
         {
             Atomics.Write(ref _headingDescription, value ?? string.Empty);
             Atomics.Or(ref _updateFlags, (long)UpdateFlags.UpdateCaptionDescription);
-            UpdateAndResize();
+            InvalidateLayout();
         }
     }
     #endregion

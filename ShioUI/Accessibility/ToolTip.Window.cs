@@ -86,7 +86,7 @@ partial class ToolTip
             if (Screen.TryGetScreenInfoFromHwnd(Handle, out ScreenInfo screenInfo))
             {
                 RawBounds = GetToolTipBoundsForScreen(screenInfo.WorkingArea, layout);
-                UpdateAndResize();
+                InvalidateLayout();
             }
         }
 

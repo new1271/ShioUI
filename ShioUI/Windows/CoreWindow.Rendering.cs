@@ -377,7 +377,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                     pool.Return(handles);
                 }
             }
-            UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
+            InvalidateLayoutCoreUnchecked(controller, ref _sizeModeState);
             controller.Unlock();
         }
         finally
@@ -1165,7 +1165,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
         RenderingController? controller = GetRenderingController();
         if (controller is null)
             return;
-        UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
+        InvalidateLayoutCoreUnchecked(controller, ref _sizeModeState);
         controller.Unlock();
     }
 
@@ -1181,7 +1181,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                     RenderingController? controller = GetRenderingController();
                     if (controller is not null)
                     {
-                        UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
+                        InvalidateLayoutCoreUnchecked(controller, ref _sizeModeState);
                         controller.Unlock();
                     }
                 }
@@ -1201,7 +1201,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                     RenderingController? controller = GetRenderingController();
                     if (controller is not null)
                     {
-                        UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
+                        InvalidateLayoutCoreUnchecked(controller, ref _sizeModeState);
                         controller.Unlock();
                     }
                 }
@@ -1220,7 +1220,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
     protected override void OnResized()
     {
         base.OnResized();
-        UpdateAndResize();
+        InvalidateLayout();
     }
 
     private void UpdateFirstTime()
@@ -1255,15 +1255,15 @@ partial class CoreWindow : IRenderable, IRenderWindow
     }
 
     [Inline(InlineBehavior.Remove)]
-    private static void UpdateAndResizeCoreUnchecked(RenderingController controller, ref bool sizeModeState)
+    private static void InvalidateLayoutCoreUnchecked(RenderingController controller, ref bool sizeModeState)
         => controller.RequestUpdateAndResize(Volatile.Read(ref sizeModeState));
 
     [Inline(InlineBehavior.Remove)]
-    private static void UpdateAndResizeCore(RenderingController? controller, ref bool sizeModeState)
+    private static void InvalidateLayoutCore(RenderingController? controller, ref bool sizeModeState)
     {
         if (controller is null)
             return;
-        UpdateAndResizeCoreUnchecked(controller, ref sizeModeState);
+        InvalidateLayoutCoreUnchecked(controller, ref sizeModeState);
     }
 
     [Inline(InlineBehavior.Remove)]
@@ -1299,7 +1299,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                 static (window, tuple) => window.OnDpiChangedForElements(new DpiChangedEventArgs(tuple.dpi, tuple.dpiScaleFactorInversed, tuple.dpiScaleFactor)),
                 this, (dpi, dpiScaleFactorInversed, dpiScaleFactor));
         }
-        UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
+        InvalidateLayoutCoreUnchecked(controller, ref _sizeModeState);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1447,7 +1447,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
 
     public CriticalUpdateScope EnterCriticalUpdateScope() => EnterCriticalUpdateScopeCore(GetRenderingController());
 
-    public void UpdateAndResize() => UpdateAndResizeCore(GetRenderingController(), ref _sizeModeState);
+    public void InvalidateLayout() => InvalidateLayoutCore(GetRenderingController(), ref _sizeModeState);
 
     public void Update() => UpdateCore(GetRenderingController());
 
@@ -1690,7 +1690,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                 oldElement = Cells.Exchange(ref _this._overlayElement, element);
                 _this.OnOverlayLayerChanged(element, oldElement);
             }
-            _this.UpdateAndResize();
+            _this.InvalidateLayout();
             _this.OnOverlayElementChanged(new OverlayElementChangedEventArgs(oldElement, element));
         }
     }
@@ -1708,7 +1708,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
                 oldElement = Cells.Exchange(ref _this._overlayElement, element);
                 _this.OnOverlayLayerChanged(element, oldElement);
             }
-            _this.UpdateAndResize();
+            _this.InvalidateLayout();
             _this.OnOverlayElementChanged(new OverlayElementChangedEventArgs(oldElement, element));
             return oldElement;
         }
@@ -1729,7 +1729,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
 
                 _this.OnOverlayLayerChanged(element, oldElement);
             }
-            _this.UpdateAndResize();
+            _this.InvalidateLayout();
             _this.OnOverlayElementChanged(new OverlayElementChangedEventArgs(oldElement, element));
         }
     }
@@ -1812,7 +1812,7 @@ partial class CoreWindow : IRenderable, IRenderWindow
         {
             if (controller is not null)
             {
-                UpdateAndResizeCoreUnchecked(controller, ref _sizeModeState);
+                InvalidateLayoutCoreUnchecked(controller, ref _sizeModeState);
                 controller.Unlock();
             }
         }

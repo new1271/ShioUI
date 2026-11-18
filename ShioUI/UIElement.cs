@@ -113,7 +113,11 @@ public abstract partial class UIElement : RenderElement
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void InvalidateLayout() => Atomics.Write(ref _layoutFramestamp, 0);
+    public void InvalidateLayout()
+    {
+        Atomics.Write(ref _layoutFramestamp, 0);
+        Update();
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RefreshLayout(ulong framestamp) => Atomics.Write(ref _layoutFramestamp, framestamp);
